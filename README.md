@@ -1,4 +1,4 @@
-# HexedUTComp
+# HexedUTComp is now [HexedNET](https://github.com/hexengraf/HexedNET)
 
 Fork of WSUTComp made to work together with HexedUT and significantly reduce the amount of features.
 Releases are bundled together with HexedUT (see [HexedUT2k4](https://github.com/hexengraf/HexedUT2k4)).
