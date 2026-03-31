@@ -4,7 +4,6 @@ const AVERDT_SEND_PERIOD = 4.00;
 
 var config bool bAllowEnhancedNetcode;
 var config bool bAllowNewEyeHeightAlgorithm;
-var config int TimedOvertime;
 var config float TimeBetweenPings;
 var config float PawnCollisionTimeWindow;
 
@@ -77,24 +76,6 @@ function SetupInstagib()
         Instagib.WeaponString = string(class'NewNet_SuperShockRifle');
         Instagib.DefaultWeaponName = string(class'NewNet_SuperShockRifle');
     }
-}
-
-event PostBeginPlay()
-{
-    local HxNTGameRules G;
-
-    Super.PostBeginPlay();
-
-    if (Level.Game.IsA('CTFGame') || Level.Game.IsA('ONSOnslaughtGame')
-        || Level.Game.IsA('ASGameInfo') || Level.Game.IsA('xBombingRun')
-        || Level.Game.IsA('xMutantGame') || Level.Game.IsA('xLastManStandingGame')
-        || Level.Game.IsA('xDoubleDom') || Level.Game.IsA('Invasion'))
-    {
-       TimedOvertime = 0;
-    }
-    G = Spawn(class'HxNTGameRules');
-    G.HexedNET = Self;
-    Level.Game.AddGameModifier(G);
 }
 
 function ModifyPlayer(Pawn Other)
@@ -301,7 +282,7 @@ function GetServerDetails(out GameInfo.ServerResponseLine ServerState)
 defaultproperties
 {
     FriendlyName="HexedNET v6dev"
-    Description="Cutdown version of UTComp providing enhanced netcode (NewNet Weapons), new eye height algorithm, and timed overtime."
+    Description="Cutdown version of UTComp providing enhanced netcode (NewNet Weapons) and enhanced eye height algorithm."
     bAddToServerPackages=true
 
     MutatorGroup="HexedNET"
@@ -310,14 +291,12 @@ defaultproperties
     Properties(1)=(Name="TimeBetweenPings",Section="Enhanced Netcode",Caption="Time between pings",Hint="Time to wait between pings (in seconds).",Type="Text",Data="4;0.0:360.0",bMPOnly=true,bAdvanced=true)
     Properties(2)=(Name="PawnCollisionTimeWindow",Section="Enhanced Netcode",Caption="Pawn collision time window",Hint="Time window (in seconds) to look back for pawn collisions.",Type="Text",Data="4;0.0:360.0",bMPOnly=true,bAdvanced=true)
     Properties(3)=(Name="bAllowNewEyeHeightAlgorithm",Section="EyeHeight Algorithm",Caption="Allow new EyeHeight algorithm",Hint="Allow clients to enable/disable the new EyeHeight algorithm.",Type="Check",bMPOnly=true)
-    Properties(4)=(Name="TimedOvertime",Section="Miscellaneous",Caption="Timed overtime duration",Type="Text",Hint="Duration of timed overtime (in seconds).",Data="4;0:3600")
 
     // configs
     bAllowEnhancedNetcode=true
     bAllowNewEyeHeightAlgorithm=true
     TimeBetweenPings=3.0
     PawnCollisionTimeWindow=0.35
-    TimedOvertime=0
     //original weapons
     WeaponClasses(0)=class'ShockRifle'
     WeaponClasses(1)=class'LinkGun'

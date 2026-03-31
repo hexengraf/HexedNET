@@ -5,9 +5,7 @@ Releases are bundled together with HexedUT (see [HexedUT2k4](https://github.com/
 
 Features kept:
 * Enhanced netcode (NewNet weapons)
-* New EyeHeight algorithm
-  * View smoothing
-* Timed overtime
+* New EyeHeight algorithm and View smoothing
 
 All other features were removed.
 
