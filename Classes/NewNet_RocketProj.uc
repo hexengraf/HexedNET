@@ -38,7 +38,7 @@ simulated function PostNetBeginPlay()
 
 simulated function bool CheckOwned()
 {
-    if(!class'NewNet_Client'.static.IsEnhancedNetcodeEnabled())
+    if(!class'HxNTClient'.static.IsEnhancedNetcodeEnabled())
         return false;
     bOwned = (PC!=None && PC.Pawn!=None && PC.Pawn == Instigator);
     return bOwned;
@@ -60,7 +60,7 @@ simulated function bool CheckForFakeProj()
      local float ping;
      local Projectile FP;
 
-     ping = FMax(0.0, class'NewNet_Client'.default.PredictedPing - 0.5*class'TimeStamp'.default.AverDT);
+     ping = FMax(0.0, class'HxNTClient'.default.PredictedPing - 0.5*class'TimeStamp'.default.AverDT);
 
      if(FPM == none)
         FindFPM();

@@ -1,4 +1,4 @@
-class UTComp_xPawn extends xPawn;
+class HxNTPawn extends xPawn;
 
 var config bool bNewEyeHeightAlgorithm;
 var config bool bViewSmoothing;

@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
-class NewNet_Client extends HxClientReplicationInfo
+class HxNTClient extends HxClientReplicationInfo
     config(User);
 
 var config bool bEnhancedNetCode;
@@ -146,9 +146,9 @@ simulated function string GetProperty(int Index)
         case 0:
             return string(bEnhancedNetCode);
         case 1:
-            return string(class'UTComp_xPawn'.default.bNewEyeHeightAlgorithm);
+            return string(class'HxNTPawn'.default.bNewEyeHeightAlgorithm);
         case 2:
-            return string(class'UTComp_xPawn'.default.bViewSmoothing);
+            return string(class'HxNTPawn'.default.bViewSmoothing);
     }
     return "";
 }
@@ -156,7 +156,7 @@ simulated function string GetProperty(int Index)
 simulated function SetProperty(int Index, string Value)
 {
     local PlayerController PC;
-    local UTComp_xPawn Pawn;
+    local HxNTPawn Pawn;
 
     if (Index == 0)
     {
@@ -167,23 +167,23 @@ simulated function SetProperty(int Index, string Value)
         switch (Index)
         {
             case 1:
-                class'UTComp_xPawn'.default.bNewEyeHeightAlgorithm = bool(Value);
+                class'HxNTPawn'.default.bNewEyeHeightAlgorithm = bool(Value);
                 break;
             case 2:
-                class'UTComp_xPawn'.default.bViewSmoothing = bool(Value);
+                class'HxNTPawn'.default.bViewSmoothing = bool(Value);
                 break;
         }
         PC = PlayerController(Owner);
         if (PC != None)
         {
-            Pawn = UTComp_xPawn(PC.Pawn);
+            Pawn = HxNTPawn(PC.Pawn);
         }
         if (Pawn != None)
         {
-            Pawn.bNewEyeHeightAlgorithm = class'UTComp_xPawn'.default.bNewEyeHeightAlgorithm;
-            Pawn.bViewSmoothing = class'UTComp_xPawn'.default.bViewSmoothing;
+            Pawn.bNewEyeHeightAlgorithm = class'HxNTPawn'.default.bNewEyeHeightAlgorithm;
+            Pawn.bViewSmoothing = class'HxNTPawn'.default.bViewSmoothing;
         }
-        class'UTComp_xPawn'.static.StaticSaveConfig();
+        class'HxNTPawn'.static.StaticSaveConfig();
     }
 }
 
@@ -211,7 +211,7 @@ defaultproperties
     bPingReceived=True
     bEnhancedNetCode=True
 
-    MutatorClass=class'MutUTComp'
+    MutatorClass=class'MutHexedNET'
     Properties(0)=(Name="bEnhancedNetCode",Section="Enhanced Netcode",Caption="Enable Enhanced Netcode",Hint="Enable enhanced netcode on weapons.",Type=PIT_Check,Dependency="bAllowEnhancedNetcode")
     Properties(1)=(Name="bNewEyeHeightAlgorithm",Section="EyeHeight Algorithm",Caption="Enable New EyeHeight Algorithm",Hint="Enable new EyeHeight algorithm to fix aim offset while moving on slopes.",Type=PIT_Check,Dependency="bAllowNewEyeHeightAlgorithm")
     Properties(2)=(Name="bViewSmoothing",Section="EyeHeight Algorithm",Caption="View Smoothing",Hint="Smooth the view when using new EyeHeight algorithm",Type=PIT_Check,Dependency="bAllowNewEyeHeightAlgorithm",bAdvanced=true)

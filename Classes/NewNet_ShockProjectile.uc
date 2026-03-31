@@ -36,7 +36,7 @@ simulated function DoPostNet()
         if( !CheckForFakeProj())
         {
             bMoved = true;
-            DoMove(FMax(0.00, (class'NewNet_Client'.default.PredictedPing - 1.5*class'TimeStamp'.default.AverDT))*Velocity);
+            DoMove(FMax(0.00, (class'HxNTClient'.default.PredictedPing - 1.5*class'TimeStamp'.default.AverDT))*Velocity);
         }
 }
 
@@ -52,7 +52,7 @@ simulated function DoSetLoc(Vector V)
 
 simulated function bool CheckOwned()
 {
-    if(!class'NewNet_Client'.static.IsEnhancedNetcodeEnabled())
+    if(!class'HxNTClient'.static.IsEnhancedNetcodeEnabled())
         return false;
     bOwned = (PC!=None && PC.Pawn!=None && PC.Pawn == Instigator);
     return bOwned;
@@ -62,7 +62,7 @@ simulated function bool CheckForFakeProj()
 {
      local Projectile FP;
 
-     ping = FMax(0.0, class'NewNet_Client'.default.PredictedPing - 1.50*class'TimeStamp'.default.AverDT);
+     ping = FMax(0.0, class'HxNTClient'.default.PredictedPing - 1.50*class'TimeStamp'.default.AverDT);
      if(FPM == none)
         FindFPM();
      FP = FPM.GetFP(class'NewNet_Fake_ShockProjectile');

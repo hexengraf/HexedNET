@@ -46,7 +46,7 @@ simulated function PostNetBeginPlay()
 
 simulated function bool CheckOwned()
 {
-    if(!class'NewNet_Client'.static.IsEnhancedNetcodeEnabled())
+    if(!class'HxNTClient'.static.IsEnhancedNetcodeEnabled())
         return false;
     bOwned = (PC!=None && PC.Pawn!=None && PC.Pawn == Instigator);
     return bOwned;

@@ -19,7 +19,7 @@ var bool bUseEnhancedNetCode;
 function PlayFiring()
 {
     super.PlayFiring();
-    if(Level.NetMode != NM_Client || !class'NewNet_Client'.static.IsEnhancedNetcodeEnabled())
+    if(Level.NetMode != NM_Client || !class'HxNTClient'.static.IsEnhancedNetcodeEnabled())
         return;
     CheckFireEffect();
 }
@@ -29,7 +29,7 @@ simulated function CheckFireEffect()
    local float Ping;
    if(Level.NetMode == NM_Client && Instigator.IsLocallyControlled())
    {
-        Ping = class'NewNet_Client'.default.PredictedPing - 0.5*class'TimeStamp'.default.AverDT;
+        Ping = class'HxNTClient'.default.PredictedPing - 0.5*class'TimeStamp'.default.AverDT;
 
         if(Ping <= MAX_PROJECTILE_FUDGE)
             DoClientFireEffect();

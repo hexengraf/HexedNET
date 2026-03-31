@@ -1,13 +1,13 @@
-class UTComp_GameRules extends GameRules;
+class HxNTGameRules extends GameRules;
 
-var MutUTComp UTComp;
+var MutHexedNET HexedNET;
 var float OvertimeEndTime;
 var bool bFirstRun;
 var bool bFirstEndOvertime;
 
 function bool CheckEndGame(PlayerReplicationInfo Winner, string Reason)
 {
-    if(UTComp.TimedOvertime > 0 && Level.Game.bOverTime)
+    if(HexedNET.TimedOvertime > 0 && Level.Game.bOverTime)
     {
         if(!OvertimeOver())
         {
@@ -25,7 +25,7 @@ function bool OvertimeOver()
 {
     if (bFirstRun)
     {
-        OvertimeEndTime = Level.TimeSeconds + UTComp.TimedOvertime * Level.TimeDilation;
+        OvertimeEndTime = Level.TimeSeconds + HexedNET.TimedOvertime * Level.TimeDilation;
         UpdateClock((OvertimeEndTime - Level.TimeSeconds) / Level.TimeDilation);
         bFirstRun = False;
         return False;

@@ -25,7 +25,7 @@ function PlayFiring()
 {
    super.PlayFiring();
 
-   if(Level.NetMode != NM_Client || !class'NewNet_Client'.static.IsEnhancedNetcodeEnabled())
+   if(Level.NetMode != NM_Client || !class'HxNTClient'.static.IsEnhancedNetcodeEnabled())
        return;
    if(!bSkipNextEffect)
        CheckFireEffect();
@@ -506,7 +506,7 @@ function Actor DoTimeTravelTrace(Out vector Hitlocation, out vector HitNormal, v
     //be checked by an unlagged copy.
     foreach Weapon.TraceActors(class'Actor', Other,WorldHitLocation,WorldHitNormal,End,Start)
     {
-       if((Other.bBlockActors || Other.bProjTarget || Other.bWorldGeometry) && !class'MutUTComp'.static.IsPredicted(Other))
+       if((Other.bBlockActors || Other.bProjTarget || Other.bWorldGeometry) && !class'MutHexedNET'.static.IsPredicted(Other))
        {
            break;
        }
@@ -551,7 +551,7 @@ function TimeTravel(float delta)
     local PawnCollisionCopy PCC;
 
     if(NewNet_SniperRifle(Weapon).M == none)
-        foreach Weapon.DynamicActors(class'MutUTComp',NewNet_SniperRifle(Weapon).M)
+        foreach Weapon.DynamicActors(class'MutHexedNET',NewNet_SniperRifle(Weapon).M)
             break;
 
     for(PCC = NewNet_SniperRifle(Weapon).M.PCC; PCC!=None; PCC=PCC.Next)

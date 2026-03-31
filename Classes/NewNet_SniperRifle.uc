@@ -17,7 +17,7 @@ struct ReplicatedVector
 };
 
 var TimeStamp_Pawn T;
-var MutUTComp M;
+var MutHexedNET M;
 var float lastDT;
 
 replication
@@ -60,7 +60,7 @@ simulated function ClientStartFire(int mode)
     }
     else
     {
-        if(class'NewNet_Client'.static.IsEnhancedNetcodeEnabled())
+        if(class'HxNTClient'.static.IsEnhancedNetcodeEnabled())
             NewNet_ClientStartFire(mode);
         else
             super(Weapon).ClientStartFire(mode);
@@ -154,7 +154,7 @@ function NewNet_ServerStartFire(byte Mode, byte ClientTimeStamp, float DT, Repli
 	}
 
 	if(M==None)
-        foreach DynamicActors(class'MutUTComp', M)
+        foreach DynamicActors(class'MutHexedNET', M)
 	        break;
 
     NewNet_SniperFire(FireMode[Mode]).PingDT = M.ClientTimeStamp - M.GetStamp(ClientTimeStamp)-DT + 0.5*M.AverDT;

@@ -4,7 +4,7 @@ class NewNet_AssaultRifle extends AssaultRifle
 	CacheExempt;
 
 var TimeStamp_Pawn T;
-var MutUTComp M;
+var MutHexedNET M;
 
 const MAX_PROJECTILE_FUDGE = 0.075;
 
@@ -28,7 +28,7 @@ function DisableNet()
 //// client only ////
 simulated event ClientStartFire(int Mode)
 {
-    if(Level.NetMode!=NM_Client || !class'NewNet_Client'.static.IsEnhancedNetcodeEnabled())
+    if(Level.NetMode!=NM_Client || !class'HxNTClient'.static.IsEnhancedNetcodeEnabled())
         super.ClientStartFire(mode);
     else
         NewNet_ClientStartFire(mode);
@@ -58,7 +58,7 @@ simulated event NewNet_ClientStartFire(int Mode)
 function NewNet_ServerStartFire(byte Mode, byte ClientTimeStamp, float DT)
 {
     if(M==None)
-        foreach DynamicActors(class'MutUTComp', M)
+        foreach DynamicActors(class'MutHexedNET', M)
 	        break;
 
     if(NewNet_AssaultFire(FireMode[Mode])!=None)

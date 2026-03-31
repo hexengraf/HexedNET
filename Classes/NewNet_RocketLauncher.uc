@@ -21,7 +21,7 @@ struct ReplicatedVector
 };
 
 var TimeStamp_Pawn T;
-var MutUTComp M;
+var MutHexedNET M;
 
 var float PingDT;
 var bool bUseEnhancedNetCode;
@@ -48,7 +48,7 @@ function DisableNet()
 //// client only ////
 simulated event ClientStartFire(int Mode)
 {
-    if(Level.NetMode!=NM_Client || !class'NewNet_Client'.static.IsEnhancedNetcodeEnabled())
+    if(Level.NetMode!=NM_Client || !class'HxNTClient'.static.IsEnhancedNetcodeEnabled())
         super.ClientStartFire(mode);
     else
         NewNet_ClientStartFire(mode);
@@ -150,7 +150,7 @@ simulated function bool AltReadyToFire(int Mode)
 function NewNet_ServerStartFire(byte Mode, byte ClientTimeStamp, float dt, ReplicatedRotator R, ReplicatedVector V)
 {
     if(M==None)
-        foreach DynamicActors(class'MutUTComp', M)
+        foreach DynamicActors(class'MutHexedNET', M)
 	        break;
 
     if ( (Instigator != None) && (Instigator.Weapon != self) )
@@ -406,7 +406,7 @@ function Actor DoTimeTravelTrace(Out vector Hitlocation, out vector HitNormal, v
     //be checked by an unlagged copy.
     foreach Owner.TraceActors(class'Actor', Other,WorldHitLocation,WorldHitNormal,End,Start)
     {
-       if((Other.bBlockActors || Other.bProjTarget || Other.bWorldGeometry) && !class'MutUTComp'.static.IsPredicted(Other))
+       if((Other.bBlockActors || Other.bProjTarget || Other.bWorldGeometry) && !class'MutHexedNET'.static.IsPredicted(Other))
        {
            break;
        }
@@ -452,7 +452,7 @@ function TimeTravel(float delta)
     local PawnCollisionCopy PCC;
 
     if(M == none)
-        foreach DynamicActors(class'MutUTComp',M)
+        foreach DynamicActors(class'MutHexedNET',M)
             break;
 
     for(PCC = M.PCC; PCC!=None; PCC=PCC.Next)

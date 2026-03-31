@@ -137,7 +137,7 @@ function Actor DoTimeTravelTrace(Out vector Hitlocation, out vector HitNormal, v
     //be checked by an unlagged copy.
     foreach Weapon.TraceActors(class'Actor', Other,WorldHitLocation,WorldHitNormal,End,Start)
     {
-       if((Other.bBlockActors || Other.bProjTarget || Other.bWorldGeometry) && !class'MutUTComp'.static.IsPredicted(Other))
+       if((Other.bBlockActors || Other.bProjTarget || Other.bWorldGeometry) && !class'MutHexedNET'.static.IsPredicted(Other))
        {
            break;
        }
@@ -182,7 +182,7 @@ function TimeTravel(float delta)
     local PawnCollisionCopy PCC;
 
     if(NewNet_BioRifle(Weapon).M == none)
-        foreach Weapon.DynamicActors(class'MutUTComp',NewNet_BioRifle(Weapon).M)
+        foreach Weapon.DynamicActors(class'MutHexedNET',NewNet_BioRifle(Weapon).M)
             break;
 
     for(PCC = NewNet_BioRifle(Weapon).M.PCC; PCC!=None; PCC=PCC.Next)

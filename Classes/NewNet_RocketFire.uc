@@ -15,7 +15,7 @@ var rotator OldAim;
 
 var class<Projectile> FakeProjectileClass;
 var FakeProjectileManager FPM;
-var MutUTComp MNN;
+var MutHexedNET MNN;
 var bool bSkipNextEffect;
 
 const PROJ_TIMESTEP = 0.0201;
@@ -26,7 +26,7 @@ function PlayFiring()
 {
    super.PlayFiring();
 
-   if(Level.NetMode != NM_Client || !class'NewNet_Client'.static.IsEnhancedNetcodeEnabled())
+   if(Level.NetMode != NM_Client || !class'HxNTClient'.static.IsEnhancedNetcodeEnabled())
        return;
    if(!bSkipNextEffect)
        CheckFireEffect();
@@ -41,13 +41,13 @@ function CheckFireEffect()
 {
    if(Level.NetMode == NM_Client && Instigator.IsLocallyControlled())
    {
-       if(class'NewNet_Client'.default.PredictedPing - SLACK > MAX_PROJECTILE_FUDGE)
+       if(class'HxNTClient'.default.PredictedPing - SLACK > MAX_PROJECTILE_FUDGE)
        {
            OldInstigatorLocation = Instigator.Location;
            OldInstigatorEyePosition = Instigator.EyePosition();
            Weapon.GetViewAxes(OldXAxis,OldYAxis,OldZAxis);
            OldAim=AdjustAim(OldInstigatorLocation+OldInstigatorEyePosition, AimError);
-           SetTimer(class'NewNet_Client'.default.PredictedPing - SLACK - MAX_PROJECTILE_FUDGE, false);
+           SetTimer(class'HxNTClient'.default.PredictedPing - SLACK - MAX_PROJECTILE_FUDGE, false);
        }
        else
            DoClientFireEffect();

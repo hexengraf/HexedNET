@@ -4,7 +4,7 @@ class NewNet_ClassicSniperRifle extends ClassicSniperRifle
 	CacheExempt;
 
 var TimeStamp_Pawn T;
-var MutUTComp M;
+var MutHexedNET M;
 
 replication
 {
@@ -34,7 +34,7 @@ simulated function ClientStartFire(int mode)
 
 simulated event SuperClientStartFire(int Mode)
 {
-    if(Level.NetMode!=NM_Client || !class'NewNet_Client'.static.IsEnhancedNetcodeEnabled())
+    if(Level.NetMode!=NM_Client || !class'HxNTClient'.static.IsEnhancedNetcodeEnabled())
         super(Weapon).ClientStartFire(mode);
     else
         NewNet_ClientStartFire(mode);
@@ -64,7 +64,7 @@ simulated event NewNet_ClientStartFire(int Mode)
 function NewNet_ServerStartFire(byte Mode, byte ClientTimeStamp, float dt)
 {
     if(M==None)
-        foreach DynamicActors(class'MutUTComp', M)
+        foreach DynamicActors(class'MutHexedNET', M)
 	        break;
 
     if(NewNet_ClassicSniperFire(FireMode[Mode])!=None)

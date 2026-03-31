@@ -1,4 +1,4 @@
-class MutUTComp extends HxMutator;
+class MutHexedNET extends HxMutator;
 
 const AVERDT_SEND_PERIOD = 4.00;
 
@@ -40,7 +40,7 @@ function SetupNewEyeHeightAlgorithm()
     {
         if (Level.Game.DefaultPlayerClassName ~= "xGame.xPawn")
         {
-            Level.Game.DefaultPlayerClassName = string(class'UTComp_xPawn');
+            Level.Game.DefaultPlayerClassName = string(class'HxNTPawn');
             bPawnClassReplaced = true;
         }
         else
@@ -81,7 +81,7 @@ function SetupInstagib()
 
 event PostBeginPlay()
 {
-    local UTComp_GameRules G;
+    local HxNTGameRules G;
 
     Super.PostBeginPlay();
 
@@ -92,8 +92,8 @@ event PostBeginPlay()
     {
        TimedOvertime = 0;
     }
-    G = Spawn(class'UTComp_GameRules');
-    G.UTComp = Self;
+    G = Spawn(class'HxNTGameRules');
+    G.HexedNET = Self;
     Level.Game.AddGameModifier(G);
 }
 
@@ -103,9 +103,9 @@ function ModifyPlayer(Pawn Other)
     {
         SpawnCollisionCopy(Other);
     }
-    if (UTComp_xPawn(Other) != None)
+    if (HxNTPawn(Other) != None)
     {
-        UTComp_xPawn(Other).bAllowNewEyeHeightAlgorithm = bAllowNewEyeHeightAlgorithm;
+        HxNTPawn(Other).bAllowNewEyeHeightAlgorithm = bAllowNewEyeHeightAlgorithm;
     }
     Super.ModifyPlayer(Other);
 }
@@ -300,12 +300,12 @@ function GetServerDetails(out GameInfo.ServerResponseLine ServerState)
 
 defaultproperties
 {
-    FriendlyName="HexedUTComp v6dev"
-    Description="Cutdown version of UTComp providing new eye height algorithm, enhanced netcode, and timed overtime."
+    FriendlyName="HexedNET v6dev"
+    Description="Cutdown version of UTComp providing enhanced netcode (NewNet Weapons), new eye height algorithm, and timed overtime."
     bAddToServerPackages=true
 
-    MutatorGroup="HexedUTComp"
-    CRIClass=class'NewNet_Client'
+    MutatorGroup="HexedNET"
+    CRIClass=class'HxNTClient'
     Properties(0)=(Name="bAllowEnhancedNetcode",Section="Enhanced Netcode",Caption="Allow enhanced netcode",Hint="Allow clients to enable/disable the enhanced netcode.",Type="Check",bMPOnly=true,bAdvanced=true)
     Properties(1)=(Name="TimeBetweenPings",Section="Enhanced Netcode",Caption="Time between pings",Hint="Time to wait between pings (in seconds).",Type="Text",Data="4;0.0:360.0",bMPOnly=true,bAdvanced=true)
     Properties(2)=(Name="PawnCollisionTimeWindow",Section="Enhanced Netcode",Caption="Pawn collision time window",Hint="Time window (in seconds) to look back for pawn collisions.",Type="Text",Data="4;0.0:360.0",bMPOnly=true,bAdvanced=true)

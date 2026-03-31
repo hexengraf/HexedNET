@@ -1,4 +1,4 @@
-# HexedUTComp is now [HexedNET](https://github.com/hexengraf/HexedNET)
+# HexedNET
 
 Fork of WSUTComp made to work together with HexedUT and significantly reduce the amount of features.
 Releases are bundled together with HexedUT (see [HexedUT2k4](https://github.com/hexengraf/HexedUT2k4)).
@@ -216,7 +216,7 @@ UTCompOmni
 
 
 1.53
-- use bAlwaysRelevant for UTComp_xPawn
+- use bAlwaysRelevant for HxNTPawn
 
 1.52
 - New config value NetUpdateMaxNetSpeed.  This limits the netspeed used when calculating player movements.  Default is 10000 (default UT max net speed for > 16 players)
@@ -351,7 +351,7 @@ VehicleData=(Name="ONSRV",RadarColor=(B=32,G=32,R=0,A=255))
 - Fix bug where linking didn't work on link vehicles with server setting enhancednet=true
 - Fix bug where fast movement such as doding may not have worked with server setting enhancednet=true
 - If client netspeed is > 10000, automatically set netspeed for client
-- Remove bAlwaysRelevant flag for UTComp_xPawn to reduce net load
+- Remove bAlwaysRelevant flag for HxNTPawn to reduce net load
 
 1.23
 - Fix bug where AVRiL launchers were littering the map when player died holding the avril

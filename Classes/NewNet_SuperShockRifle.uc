@@ -3,7 +3,7 @@ class NewNet_SuperShockRifle extends SuperShockRifle
 	CacheExempt;
 
 var TimeStamp_Pawn T;
-var MutUTComp M;
+var MutHexedNET M;
 var float LastDT;
 
 struct ReplicatedRotator
@@ -38,7 +38,7 @@ function DisableNet()
 //// client only ////
 simulated event ClientStartFire(int Mode)
 {
-    if(Level.NetMode!=NM_Client || !class'NewNet_Client'.static.IsEnhancedNetcodeEnabled() || NewNet_SuperShockBeamFire(FireMode[Mode]) == None)
+    if(Level.NetMode!=NM_Client || !class'HxNTClient'.static.IsEnhancedNetcodeEnabled() || NewNet_SuperShockBeamFire(FireMode[Mode]) == None)
         super.ClientStartFire(mode);
     else
         NewNet_ClientStartFire(mode);
@@ -193,7 +193,7 @@ function NewNet_ServerStartFire(byte Mode, byte ClientTimeStamp, float DT, Repli
 	}
 
     if(M==None)
-        foreach DynamicActors(class'MutUTComp', M)
+        foreach DynamicActors(class'MutHexedNET', M)
             break;
 
     NewNet_SuperShockBeamFire(FireMode[Mode]).PingDT = M.ClientTimeStamp - M.GetStamp(ClientTimeStamp)-DT + 0.5*M.AverDT;
@@ -234,7 +234,7 @@ function NewNet_ServerStartFire(byte Mode, byte ClientTimeStamp, float DT, Repli
 function NewNet_OldServerStartFire(byte Mode, byte ClientTimeStamp, float dt)
 {
     if(M==None)
-        foreach DynamicActors(class'MutUTComp', M)
+        foreach DynamicActors(class'MutHexedNET', M)
             break;
     NewNet_SuperShockBeamFire(FireMode[Mode]).PingDT = M.ClientTimeStamp - M.GetStamp(ClientTimeStamp)-DT + 0.5*M.AverDT;
     NewNet_SuperShockBeamFire(FireMode[Mode]).bUseEnhancedNetCode = true;

@@ -3,7 +3,7 @@ class NewNet_MiniGun extends MiniGun
 	CacheExempt;
 
 var TimeStamp_pawn T;
-var MutUTComp M;
+var MutHexedNET M;
 
 replication
 {
@@ -22,7 +22,7 @@ function DisableNet()
 //// client only ////
 simulated event ClientStartFire(int Mode)
 {
-    if(Level.NetMode!=NM_Client || !class'NewNet_Client'.static.IsEnhancedNetcodeEnabled())
+    if(Level.NetMode!=NM_Client || !class'HxNTClient'.static.IsEnhancedNetcodeEnabled())
         super.ClientStartFire(mode);
     else
         NewNet_ClientStartFire(mode);
@@ -52,7 +52,7 @@ simulated event NewNet_ClientStartFire(int Mode)
 function NewNet_ServerStartFire(byte Mode, byte ClientTimeStamp, float dt)
 {
     if(M==None)
-        foreach DynamicActors(class'MutUTComp', M)
+        foreach DynamicActors(class'MutHexedNET', M)
 	        break;
 
     if(NewNet_MiniGunFire(FireMode[Mode])!=None)

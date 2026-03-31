@@ -16,7 +16,7 @@ var PawnCollisionCopy Next;
 var float CrouchHeight;
 var float CrouchRadius;
 
-var MutUTComp M;
+var MutHexedNET M;
 
 var Pawn CopiedPawn;
 var bool bNormalDestroy;
@@ -44,7 +44,7 @@ function PostBeginPlay()
 {
     super.PostBeginPlay();
     if(M==None)
-        foreach DynamicActors(class'MutUTComp', M)
+        foreach DynamicActors(class'MutHexedNET', M)
             break;
 
     if(M != None)
@@ -69,7 +69,7 @@ function SetPawn(Pawn Other)
     CopiedPawn=Other;
 
     if(M==None)
-        foreach DynamicActors(class'MutUTComp', M)
+        foreach DynamicActors(class'MutHexedNET', M)
             break;
     CrouchHeight=CopiedPawn.CrouchHeight;
     CrouchRadius=CopiedPawn.CrouchRadius;
