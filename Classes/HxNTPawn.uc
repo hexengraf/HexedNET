@@ -96,38 +96,6 @@ function bool WantsSmoothedView()
         || (Physics == PHYS_Falling && OldPhysics2 == PHYS_Walking);
 }
 
-// override to fix None access
-function ServerChangedWeapon(Weapon OldWeapon, Weapon NewWeapon)
-{
-	local float InvisTime;
-
-	if ( bInvis )
-	{
-	    if ( (OldWeapon != None) && (OldWeapon.OverlayMaterial == InvisMaterial) )
-		    InvisTime = OldWeapon.ClientOverlayCounter;
-	    else
-		    InvisTime = 20000;
-	}
-    if (HasUDamage() || bInvis)
-        SetWeaponOverlay(None, 0.f, true);
-
-    Super(UnrealPawn).ServerChangedWeapon(OldWeapon, NewWeapon);
-
-    if (bInvis)
-        SetWeaponOverlay(InvisMaterial, InvisTime, true);
-    else if (HasUDamage())
-        SetWeaponOverlay(UDamageWeaponMaterial, UDamageTime - Level.TimeSeconds, false);
-
-    // check for none here
-    if(Weapon != None)
-    {
-        if (bBerserk)
-            Weapon.StartBerserk();
-        else if ( Weapon.bBerserk )
-            Weapon.StopBerserk();
-    }
-}
-
 simulated function Tick(float DeltaTime)
 {
     Super.Tick(DeltaTime);
