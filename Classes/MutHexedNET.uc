@@ -281,7 +281,7 @@ function GetServerDetails(out GameInfo.ServerResponseLine ServerState)
 
 defaultproperties
 {
-    FriendlyName="HexedNET v6"
+    FriendlyName="HexedNET v7T1"
     Description="Cutdown version of UTComp providing enhanced netcode (NewNet Weapons) and enhanced eye height algorithm."
     bAddToServerPackages=true
 
