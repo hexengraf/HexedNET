@@ -185,6 +185,11 @@ function Tick(float DeltaTime)
         {
             ReplaceOtherMutatorWeapons();
         }
+        if (CounterPawn == None)
+        {
+            // TODO: this shouldn't be required, see comments in TimeStamp_Pawn.uc
+            CounterPawn = Spawn(class'TimeStamp_Pawn', Self);
+        }
         ClientTimeStamp += DeltaTime;
         Counter += 1;
         StampArray[Counter % 256] = ClientTimeStamp;

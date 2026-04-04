@@ -28,11 +28,13 @@ function UpdateCounter(float NewCounter)
     SetRotation(R);
 }
 
-function Reset()
-{
-    // skip Pawn.Reset() to prevent self-destroy
-    Super(Actor).Reset();
-}
+// TODO: investigate how CounterPawn still ends up destroyed (couldn't reproduce locally).
+// For now, let it self-destruct and we respawn it every round.
+// function Reset()
+// {
+//     // skip Pawn.Reset() to prevent self-destroy
+//     Super(Actor).Reset();
+// }
 
 DefaultProperties
 {
