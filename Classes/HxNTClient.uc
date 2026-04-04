@@ -126,7 +126,6 @@ function TurnOffNetcode()
 
 simulated function ServerInfoReady()
 {
-    Log("ServerInfoReady");
     if (bool(GetServerProperty("bAllowEnhancedNetcode")))
     {
         FPM = Spawn(Class'FakeProjectileManager', Self);
