@@ -67,6 +67,10 @@ simulated function Tick(float DeltaTime)
             bPingReceived = False;
             Ping();
         }
+        if (PlayerController(Owner) != None)
+        {
+            FixWeaponInstigator(PlayerController(Owner));
+        }
     }
 }
 
@@ -144,45 +148,15 @@ simulated function string GetProperty(int Index)
     {
         case 0:
             return string(bEnhancedNetCode);
-        case 1:
-            return string(class'HxNTPawn'.default.bNewEyeHeightAlgorithm);
-        case 2:
-            return string(class'HxNTPawn'.default.bViewSmoothing);
     }
     return "";
 }
 
 simulated function SetProperty(int Index, string Value)
 {
-    local PlayerController PC;
-    local HxNTPawn Pawn;
-
     if (Index == 0)
     {
         SetEnhancedNetCode(Value);
-    }
-    else if (Index < Properties.Length)
-    {
-        switch (Index)
-        {
-            case 1:
-                class'HxNTPawn'.default.bNewEyeHeightAlgorithm = bool(Value);
-                break;
-            case 2:
-                class'HxNTPawn'.default.bViewSmoothing = bool(Value);
-                break;
-        }
-        PC = PlayerController(Owner);
-        if (PC != None)
-        {
-            Pawn = HxNTPawn(PC.Pawn);
-        }
-        if (Pawn != None)
-        {
-            Pawn.bNewEyeHeightAlgorithm = class'HxNTPawn'.default.bNewEyeHeightAlgorithm;
-            Pawn.bViewSmoothing = class'HxNTPawn'.default.bViewSmoothing;
-        }
-        class'HxNTPawn'.static.StaticSaveConfig();
     }
 }
 
@@ -195,6 +169,17 @@ function SetEnhancedNetCode(coerce bool bEnable)
     bEnhancedNetCode = bEnable;
     default.bEnhancedNetCode = bEnable;
     StaticSaveConfig();
+}
+
+// TODO: do we really need this?
+static function FixWeaponInstigator(PlayerController PC)
+{
+    // fix annoying bug where sometimes weapon instigator gets set to none
+    // due to race condition in replication
+    if (PC.Pawn != None && PC.Pawn.Weapon != None && PC.Pawn.Weapon.Instigator != PC.Pawn)
+    {
+        PC.Pawn.Weapon.Instigator = PC.Pawn;
+    }
 }
 
 static function bool IsEnhancedNetcodeEnabled()
@@ -212,6 +197,4 @@ defaultproperties
 
     MutatorClass=class'MutHexedNET'
     Properties(0)=(Name="bEnhancedNetCode",Section="Enhanced Netcode",Caption="Enable Enhanced Netcode",Hint="Enable enhanced netcode on weapons.",Type=PIT_Check,Dependency="bAllowEnhancedNetcode")
-    Properties(1)=(Name="bNewEyeHeightAlgorithm",Section="EyeHeight Algorithm",Caption="Enable New EyeHeight Algorithm",Hint="Enable new EyeHeight algorithm to fix aim offset while moving on slopes.",Type=PIT_Check,Dependency="bAllowNewEyeHeightAlgorithm")
-    Properties(2)=(Name="bViewSmoothing",Section="EyeHeight Algorithm",Caption="View Smoothing",Hint="Smooth the view when using new EyeHeight algorithm",Type=PIT_Check,Dependency="bAllowNewEyeHeightAlgorithm",bAdvanced=true)
 }

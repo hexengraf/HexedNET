@@ -3,7 +3,6 @@ class MutHexedNET extends HxMutator;
 const AVERDT_SEND_PERIOD = 4.00;
 
 var config bool bAllowEnhancedNetcode;
-var config bool bAllowNewEyeHeightAlgorithm;
 var config float TimeBetweenPings;
 var config float PawnCollisionTimeWindow;
 
@@ -20,7 +19,6 @@ var private float StampArray[256];
 var private float Counter;
 var private float LastReplicatedAverDT;
 var private bool bEnhancedNetcodeActive;
-var private bool bPawnClassReplaced;
 var private bool bDefaultWeaponsChanged;
 
 event PreBeginPlay()
@@ -28,36 +26,13 @@ event PreBeginPlay()
     Super.PreBeginPlay();
     if (Level.NetMode != NM_Standalone)
     {
-        SetupNewEyeHeightAlgorithm();
-        SetupEnhancedNetcode();
-    }
-}
-
-function SetupNewEyeHeightAlgorithm()
-{
-    if (bAllowNewEyeHeightAlgorithm)
-    {
-        if (Level.Game.DefaultPlayerClassName ~= "xGame.xPawn")
+        if (bAllowEnhancedNetcode)
         {
-            Level.Game.DefaultPlayerClassName = string(class'HxNTPawn');
-            bPawnClassReplaced = true;
+            StampInfo = Spawn(class'TimeStamp', Self);
+            CounterPawn = Spawn(class'TimeStamp_Pawn', Self);
+            SetupInstagib();
+            bEnhancedNetcodeActive = true;
         }
-        else
-        {
-            Warn(Name@"failed to replace xPawn class, disabling new eye height algorithm.");
-            bAllowNewEyeHeightAlgorithm = false;
-        }
-    }
-}
-
-function SetupEnhancedNetcode()
-{
-    if (bAllowEnhancedNetcode)
-    {
-        StampInfo = Spawn(class'TimeStamp', Self);
-        CounterPawn = Spawn(class'TimeStamp_Pawn', Self);
-        SetupInstagib();
-        bEnhancedNetcodeActive = true;
     }
 }
 
@@ -83,10 +58,6 @@ function ModifyPlayer(Pawn Other)
     if (bEnhancedNetcodeActive)
     {
         SpawnCollisionCopy(Other);
-    }
-    if (HxNTPawn(Other) != None)
-    {
-        HxNTPawn(Other).bAllowNewEyeHeightAlgorithm = bAllowNewEyeHeightAlgorithm;
     }
     Super.ModifyPlayer(Other);
 }
@@ -278,16 +249,12 @@ function GetServerDetails(out GameInfo.ServerResponseLine ServerState)
     ServerState.ServerInfo.Length = i + 1;
     ServerState.ServerInfo[i].Key = "Enhanced netcode";
     ServerState.ServerInfo[i++].Value = Eval(bEnhancedNetcodeActive, "Enabled", "Disabled");
-    i = ServerState.ServerInfo.Length;
-    ServerState.ServerInfo.Length = i + 1;
-    ServerState.ServerInfo[i].Key = "New EyeHeight algorithm";
-    ServerState.ServerInfo[i++].Value = Eval(bPawnClassReplaced, "Enabled", "Disabled");
 }
 
 defaultproperties
 {
     FriendlyName="HexedNET v7T1"
-    Description="Cutdown version of UTComp providing enhanced netcode (NewNet Weapons) and enhanced eye height algorithm."
+    Description="Provides UTComp's enhanced netcode (ping compensation)."
     bAddToServerPackages=true
 
     MutatorGroup="HexedNET"
@@ -295,11 +262,9 @@ defaultproperties
     Properties(0)=(Name="bAllowEnhancedNetcode",Section="Enhanced Netcode",Caption="Allow enhanced netcode",Hint="Allow clients to enable/disable the enhanced netcode.",Type="Check",bMPOnly=true,bAdvanced=true)
     Properties(1)=(Name="TimeBetweenPings",Section="Enhanced Netcode",Caption="Time between pings",Hint="Time to wait between pings (in seconds).",Type="Text",Data="4;0.0:360.0",bMPOnly=true,bAdvanced=true)
     Properties(2)=(Name="PawnCollisionTimeWindow",Section="Enhanced Netcode",Caption="Pawn collision time window",Hint="Time window (in seconds) to look back for pawn collisions.",Type="Text",Data="4;0.0:360.0",bMPOnly=true,bAdvanced=true)
-    Properties(3)=(Name="bAllowNewEyeHeightAlgorithm",Section="EyeHeight Algorithm",Caption="Allow new EyeHeight algorithm",Hint="Allow clients to enable/disable the new EyeHeight algorithm.",Type="Check",bMPOnly=true)
 
     // configs
     bAllowEnhancedNetcode=true
-    bAllowNewEyeHeightAlgorithm=true
     TimeBetweenPings=3.0
     PawnCollisionTimeWindow=0.35
     //original weapons
