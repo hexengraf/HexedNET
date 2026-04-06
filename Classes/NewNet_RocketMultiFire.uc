@@ -29,7 +29,7 @@ simulated function CheckFireEffect()
    local float Ping;
    if(Level.NetMode == NM_Client && Instigator.IsLocallyControlled())
    {
-        Ping = class'HxNTClient'.default.PredictedPing - 0.5*class'TimeStamp'.default.AverDT;
+        Ping = class'HxNTClient'.default.PredictedPing - 0.5*class'HxNTClock'.default.AverDT;
 
         if(Ping <= MAX_PROJECTILE_FUDGE)
             DoClientFireEffect();

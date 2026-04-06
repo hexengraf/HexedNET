@@ -2,7 +2,7 @@ class NewNet_SuperShockRifle extends SuperShockRifle
 	HideDropDown
 	CacheExempt;
 
-var TimeStamp_Pawn T;
+var HxNTClock C;
 var MutHexedNET M;
 var float LastDT;
 
@@ -49,7 +49,6 @@ simulated event NewNet_ClientStartFire(int Mode)
     local ReplicatedRotator R;
     local ReplicatedVector V;
     local vector Start;
-    local byte stamp;
     local bool b;
     local actor A;
     local vector HN,HL;
@@ -60,13 +59,12 @@ simulated event NewNet_ClientStartFire(int Mode)
     {
         if (AltReadyToFire(Mode) && StartFire(Mode))
         {
+            if(C==None)
+                foreach DynamicActors(class'HxNTClock', C)
+                        break;
             if(!ReadyToFire(Mode))
             {
-                if(T==None)
-                    foreach DynamicActors(class'TimeStamp_Pawn', T)
-                         break;
-                Stamp = T.TimeStamp;
-                NewNet_OldServerStartFire(Mode,Stamp, T.DT);
+                NewNet_OldServerStartFire(Mode,C.ClientCounter, C.DT);
              //   Log("This should never execute");
                 return;
             }
@@ -78,14 +76,7 @@ simulated event NewNet_ClientStartFire(int Mode)
             V.Y = Start.Y;
             V.Z = Start.Z;
 
-            if(T==None)
-                foreach DynamicActors(class'TimeStamp_Pawn', T)
-                     break;
-            Stamp = T.TimeStamp;
-
-
             NewNet_SuperShockBeamFire(FireMode[mode]).DoInstantFireEffect();
-
 
             A = Trace(HN,HL,Start+Vector(Pawn(Owner).Controller.Rotation)*40000.0,Start,true);
             if(A!=None && (A.IsA('xPawn') || A.IsA('Vehicle')))
@@ -93,7 +84,7 @@ simulated event NewNet_ClientStartFire(int Mode)
                     b=true;
             }
 
-            NewNet_ServerStartFire(Mode, stamp, T.DT, R, V,b,A);
+            NewNet_ServerStartFire(Mode, C.ClientCounter, C.DT, R, V,b,A);
         }
     }
     else
@@ -181,7 +172,7 @@ simulated function bool StartFire(int Mode)
 }
 
 
-function NewNet_ServerStartFire(byte Mode, byte ClientTimeStamp, float DT, ReplicatedRotator R, ReplicatedVector V, bool bBelievesHit, actor A/*, bool bBelievesHit, ReplicatedVector BelievedHLDelta, Actor A, vector HN, vector HL*/)
+function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT, ReplicatedRotator R, ReplicatedVector V, bool bBelievesHit, actor A/*, bool bBelievesHit, ReplicatedVector BelievedHLDelta, Actor A, vector HN, vector HL*/)
 {
 	if ( (Instigator != None) && (Instigator.Weapon != self) )
 	{
@@ -196,7 +187,7 @@ function NewNet_ServerStartFire(byte Mode, byte ClientTimeStamp, float DT, Repli
         foreach DynamicActors(class'MutHexedNET', M)
             break;
 
-    NewNet_SuperShockBeamFire(FireMode[Mode]).PingDT = M.ClientTimeStamp - M.GetStamp(ClientTimeStamp)-DT + 0.5*M.AverDT;
+    NewNet_SuperShockBeamFire(FireMode[Mode]).PingDT = M.ClientTimeStamp - M.GetTimestamp(ClientCounter)-DT + 0.5*M.AverDT;
     NewNet_SuperShockBeamFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     NewNet_SuperShockBeamFire(FireMode[Mode]).AverDT = M.AverDT;
 
@@ -231,12 +222,12 @@ function NewNet_ServerStartFire(byte Mode, byte ClientTimeStamp, float DT, Repli
 }
 
 
-function NewNet_OldServerStartFire(byte Mode, byte ClientTimeStamp, float dt)
+function NewNet_OldServerStartFire(byte Mode, byte ClientCounter, float dt)
 {
     if(M==None)
         foreach DynamicActors(class'MutHexedNET', M)
             break;
-    NewNet_SuperShockBeamFire(FireMode[Mode]).PingDT = M.ClientTimeStamp - M.GetStamp(ClientTimeStamp)-DT + 0.5*M.AverDT;
+    NewNet_SuperShockBeamFire(FireMode[Mode]).PingDT = M.ClientTimeStamp - M.GetTimestamp(ClientCounter)-DT + 0.5*M.AverDT;
     NewNet_SuperShockBeamFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     ServerStartFire(mode);
 }

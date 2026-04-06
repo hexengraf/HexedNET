@@ -3,7 +3,7 @@ class NewNet_ClassicSniperRifle extends ClassicSniperRifle
     HideDropDown
 	CacheExempt;
 
-var TimeStamp_Pawn T;
+var HxNTClock C;
 var MutHexedNET M;
 
 replication
@@ -48,11 +48,11 @@ simulated event NewNet_ClientStartFire(int Mode)
     {
         if (StartFire(Mode))
         {
-            if(T==None)
-                foreach DynamicActors(class'TimeStamp_pawn', T)
+            if(C==None)
+                foreach DynamicActors(class'HxNTClock', C)
                      break;
 
-            NewNet_ServerStartFire(mode, T.TimeStamp, T.dt);
+            NewNet_ServerStartFire(mode, C.ClientCounter, C.dt);
         }
     }
     else
@@ -61,7 +61,7 @@ simulated event NewNet_ClientStartFire(int Mode)
     }
 }
 
-function NewNet_ServerStartFire(byte Mode, byte ClientTimeStamp, float dt)
+function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float dt)
 {
     if(M==None)
         foreach DynamicActors(class'MutHexedNET', M)
@@ -69,7 +69,7 @@ function NewNet_ServerStartFire(byte Mode, byte ClientTimeStamp, float dt)
 
     if(NewNet_ClassicSniperFire(FireMode[Mode])!=None)
     {
-        NewNet_ClassicSniperFire(FireMode[Mode]).PingDT = M.ClientTimeStamp - M.GetStamp(ClientTimeStamp)-DT + 0.5*M.AverDT;
+        NewNet_ClassicSniperFire(FireMode[Mode]).PingDT = M.ClientTimeStamp - M.GetTimestamp(ClientCounter)-DT + 0.5*M.AverDT;
         NewNet_ClassicSniperFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
 

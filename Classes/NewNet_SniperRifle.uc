@@ -16,7 +16,7 @@ struct ReplicatedVector
     var float Z;
 };
 
-var TimeStamp_Pawn T;
+var HxNTClock C;
 var MutHexedNET M;
 var float lastDT;
 
@@ -72,8 +72,6 @@ simulated function NewNet_ClientStartFire(int mode)
     local ReplicatedRotator R;
     local ReplicatedVector V;
     local vector Start;
-  //  local float stamp;
-    local byte stamp;
     local bool b;
     local actor A;
     local vector HN,HL;
@@ -92,10 +90,9 @@ simulated function NewNet_ClientStartFire(int mode)
             V.Y = Start.Y;
             V.Z = Start.Z;
 
-            if(T==None)
-                foreach DynamicActors(class'TimeStamp_Pawn', T)
+            if(C==None)
+                foreach DynamicActors(class'HxNTClock', C)
                      break;
-            Stamp = T.TimeStamp;
 
             NewNet_SniperFire(FireMode[mode]).DoInstantFireEffect();
             A = Trace(HN,HL,Start+Vector(Pawn(Owner).Controller.Rotation)*40000.0,Start,true);
@@ -104,7 +101,7 @@ simulated function NewNet_ClientStartFire(int mode)
                 b=true;
             }
 
-            NewNet_ServerStartFire(Mode, stamp, T.dt, R, V,b,A);
+            NewNet_ServerStartFire(Mode, C.ClientCounter, C.dt, R, V,b,A);
         }
     }
     else
@@ -142,7 +139,7 @@ simulated function bool AltReadyToFire(int Mode)
 	return true;
 }
 
-function NewNet_ServerStartFire(byte Mode, byte ClientTimeStamp, float DT, ReplicatedRotator R, ReplicatedVector V, bool bBelievesHit, optional actor A)
+function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT, ReplicatedRotator R, ReplicatedVector V, bool bBelievesHit, optional actor A)
 {
 	if ( (Instigator != None) && (Instigator.Weapon != self) )
 	{
@@ -157,9 +154,9 @@ function NewNet_ServerStartFire(byte Mode, byte ClientTimeStamp, float DT, Repli
         foreach DynamicActors(class'MutHexedNET', M)
 	        break;
 
-    NewNet_SniperFire(FireMode[Mode]).PingDT = M.ClientTimeStamp - M.GetStamp(ClientTimeStamp)-DT + 0.5*M.AverDT;
+    NewNet_SniperFire(FireMode[Mode]).PingDT = M.ClientTimeStamp - M.GetTimestamp(ClientCounter)-DT + 0.5*M.AverDT;
     NewNet_SniperFire(FireMode[Mode]).AverDT = M.AverDT;
-    //Log("Firing with"@M.ClientTimeStamp@M.GetStamp(ClientTimeStamp)@DT);
+    //Log("Firing with"@M.ClientTimeStamp@M.GetTimestamp(ClientCounter)@DT);
    // Log(PlayerController(Pawn(Owner).Controller).ExactPing);
     if(bBelievesHit)
     {

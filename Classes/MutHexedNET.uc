@@ -1,7 +1,5 @@
 class MutHexedNET extends HxMutator;
 
-const AVERDT_SEND_PERIOD = 4.00;
-
 var config bool bAllowEnhancedNetcode;
 var config float TimeBetweenPings;
 var config float PawnCollisionTimeWindow;
@@ -13,11 +11,7 @@ var float AverDT;
 var const private class<Weapon> WeaponClasses[13];
 var const private class<Weapon> NewNetWeaponClasses[13];
 
-var private TimeStamp_Pawn CounterPawn;
-var private TimeStamp StampInfo;
-var private float StampArray[256];
-var private float Counter;
-var private float LastReplicatedAverDT;
+var private HxNTClock NETClock;
 var private bool bEnhancedNetcodeActive;
 var private bool bDefaultWeaponsChanged;
 
@@ -28,8 +22,7 @@ event PreBeginPlay()
     {
         if (bAllowEnhancedNetcode)
         {
-            StampInfo = Spawn(class'TimeStamp', Self);
-            CounterPawn = Spawn(class'TimeStamp_Pawn', Self);
+            NETClock = Spawn(class'HxNTClock', Self);
             SetupInstagib();
             bEnhancedNetcodeActive = true;
         }
@@ -156,27 +149,15 @@ function Tick(float DeltaTime)
         {
             ReplaceOtherMutatorWeapons();
         }
-        if (CounterPawn == None)
-        {
-            // TODO: this shouldn't be required, see comments in TimeStamp_Pawn.uc
-            CounterPawn = Spawn(class'TimeStamp_Pawn', Self);
-        }
         ClientTimeStamp += DeltaTime;
-        Counter += 1;
-        StampArray[Counter % 256] = ClientTimeStamp;
         AverDT = (9.0 * AverDT + DeltaTime) * 0.1;
-        CounterPawn.UpdateCounter(Counter);
-        if (ClientTimeStamp > LastReplicatedAverDT + AVERDT_SEND_PERIOD)
-        {
-            StampInfo.ReplicatedAverDT(AverDT);
-            LastReplicatedAverDT = ClientTimeStamp;
-        }
+        NETClock.Update(ClientTimeStamp, AverDT);
     }
 }
 
-function float GetStamp(int Stamp)
+function float GetTimestamp(byte Index)
 {
-   return StampArray[Stamp % 256];
+   return NETClock.GetTimestamp(Index);
 }
 
 function bool CheckReplacement(Actor Other, out byte bSuperRelevant)

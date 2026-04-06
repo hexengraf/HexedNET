@@ -20,7 +20,7 @@ struct ReplicatedVector
     var float Z;
 };
 
-var TimeStamp_Pawn T;
+var HxNTClock C;
 var MutHexedNET M;
 
 var float PingDT;
@@ -93,8 +93,8 @@ simulated function NewNet_AltClientStartFire(int mode)
     {
         if (StartFire(Mode))
         {
-            if(T==None)
-                foreach DynamicActors(class'TimeStamp_Pawn', T)
+            if(C==None)
+                foreach DynamicActors(class'HxNTClock', C)
                      break;
          /*   if(NewNet_RocketMultiFire(FireMode[Mode])!=None)
                 NewNet_RocketMultiFire(FireMode[Mode]).DoInstantFireEffect();
@@ -108,7 +108,7 @@ simulated function NewNet_AltClientStartFire(int mode)
             V.Y = Start.Y;
             V.Z = Start.Z;
 
-            NewNet_ServerStartFire(mode, T.TimeStamp,T.DT, R, V);
+            NewNet_ServerStartFire(mode, C.ClientCounter,C.DT, R, V);
         }
     }
     else
@@ -147,7 +147,7 @@ simulated function bool AltReadyToFire(int Mode)
 	return true;
 }
 
-function NewNet_ServerStartFire(byte Mode, byte ClientTimeStamp, float dt, ReplicatedRotator R, ReplicatedVector V)
+function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float dt, ReplicatedRotator R, ReplicatedVector V)
 {
     if(M==None)
         foreach DynamicActors(class'MutHexedNET', M)
@@ -162,7 +162,7 @@ function NewNet_ServerStartFire(byte Mode, byte ClientTimeStamp, float dt, Repli
 		return;
 	}
 
-    PingDT = FMin(M.ClientTimeStamp - M.GetStamp(ClientTimeStamp)-DT + 0.5*M.AverDT, MAX_PROJECTILE_FUDGE);
+    PingDT = FMin(M.ClientTimeStamp - M.GetTimestamp(ClientCounter)-DT + 0.5*M.AverDT, MAX_PROJECTILE_FUDGE);
     bUseEnhancedNetCode=true;
     if(NewNet_RocketFire(FireMode[Mode])!=None)
     {

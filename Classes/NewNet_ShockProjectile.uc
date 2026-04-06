@@ -36,7 +36,7 @@ simulated function DoPostNet()
         if( !CheckForFakeProj())
         {
             bMoved = true;
-            DoMove(FMax(0.00, (class'HxNTClient'.default.PredictedPing - 1.5*class'TimeStamp'.default.AverDT))*Velocity);
+            DoMove(FMax(0.00, (class'HxNTClient'.default.PredictedPing - 1.5*class'HxNTClock'.default.AverDT))*Velocity);
         }
 }
 
@@ -62,7 +62,7 @@ simulated function bool CheckForFakeProj()
 {
      local Projectile FP;
 
-     ping = FMax(0.0, class'HxNTClient'.default.PredictedPing - 1.50*class'TimeStamp'.default.AverDT);
+     ping = FMax(0.0, class'HxNTClient'.default.PredictedPing - 1.50*class'HxNTClock'.default.AverDT);
      if(FPM == none)
         FindFPM();
      FP = FPM.GetFP(class'NewNet_Fake_ShockProjectile');

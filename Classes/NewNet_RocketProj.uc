@@ -32,7 +32,7 @@ simulated function PostNetBeginPlay()
     if (CheckOwned())
        CheckForFakeProj();
 
-  //  foreach DynamicActors(class'TimeStamp', TS)
+  //  foreach DynamicActors(class'HxNTClock', TS)
    //    Log(TS.ClientTimeStamp);
 }
 
@@ -60,7 +60,7 @@ simulated function bool CheckForFakeProj()
      local float ping;
      local Projectile FP;
 
-     ping = FMax(0.0, class'HxNTClient'.default.PredictedPing - 0.5*class'TimeStamp'.default.AverDT);
+     ping = FMax(0.0, class'HxNTClient'.default.PredictedPing - 0.5*class'HxNTClock'.default.AverDT);
 
      if(FPM == none)
         FindFPM();
