@@ -26,25 +26,7 @@ replication
         SpawnLGEffect;
 }
 
-simulated event PreBeginPlay()
-{
-    Super.PreBeginPlay();
-    ForEach DynamicActors(class'HxNTClock', NETClock) break;
-}
-
-simulated function ValidateNETClockPointer()
-{
-    if (NETClock == None)
-    {
-        ForEach DynamicActors(class'HxNTClock', NETClock) break;
-    }
-}
-
-function DisableNet()
-{
-    NewNet_SniperFire(FireMode[0]).bUseEnhancedNetCode = false;
-    NewNet_SniperFire(FireMode[0]).PingDT = 0.00;
-}
+#include Classes\Include\WeaponBaseFunctions.uci
 
 simulated function SpawnLGEffect(class<Actor> tmpHitEmitClass, vector ArcEnd, vector HitNormal, vector HitLocation)
 {
@@ -56,30 +38,19 @@ simulated function SpawnLGEffect(class<Actor> tmpHitEmitClass, vector ArcEnd, ve
         Warn("Server should never spawn the client lightningbolt");
 }
 
-simulated function ClientStartFire(int mode)
+simulated function ClientStartFire(int Mode)
 {
-    if(Level.NetMode!=NM_Client)
+    if (Mode == 0 && class'HxNTClient'.static.IsEnhancedNetcodeEnabled(Level))
     {
-        Super.ClientStartFire(mode);
-        return;
-    }
-
-    if (mode == 1)
-    {
-        FireMode[mode].bIsFiring = true;
-        if( Instigator.Controller.IsA( 'PlayerController' ) )
-            PlayerController(Instigator.Controller).ToggleZoom();
+        NewNet_ClientStartFire(Mode);
     }
     else
     {
-        if(class'HxNTClient'.static.IsEnhancedNetcodeEnabled())
-            NewNet_ClientStartFire(mode);
-        else
-            super(Weapon).ClientStartFire(mode);
+        Super.ClientStartFire(Mode);
     }
 }
 
-simulated function NewNet_ClientStartFire(int mode)
+simulated function NewNet_ClientStartFire(int Mode)
 {
     local ReplicatedRotator R;
     local ReplicatedVector V;
@@ -92,7 +63,7 @@ simulated function NewNet_ClientStartFire(int mode)
         return;
     if (Role < ROLE_Authority)
     {
-        if (ReadyToFire(mode) && StartFire(Mode) )
+        if (ReadyToFire(Mode) && StartFire(Mode) )
         {
             R.Pitch = Pawn(Owner).Controller.Rotation.Pitch;
             R.Yaw = Pawn(Owner).Controller.Rotation.Yaw;
@@ -103,7 +74,7 @@ simulated function NewNet_ClientStartFire(int mode)
             V.Z = Start.Z;
 
             ValidateNETClockPointer();
-            NewNet_SniperFire(FireMode[mode]).DoInstantFireEffect();
+            NewNet_SniperFire(FireMode[Mode]).DoInstantFireEffect();
             A = Trace(HN,HL,Start+Vector(Pawn(Owner).Controller.Rotation)*40000.0,Start,true);
             if(A!=None && (A.IsA('xPawn') || A.IsA('Vehicle')))
             {

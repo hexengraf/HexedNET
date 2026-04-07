@@ -7,10 +7,11 @@ var FakeProjectileManager FPM;
 
 function PlayFiring()
 {
-    super.PlayFiring();
-    if(Level.NetMode != NM_Client || !class'HxNTClient'.static.IsEnhancedNetcodeEnabled())
-       return;
-    CheckFireEffect();
+    Super.PlayFiring();
+    if (class'HxNTClient'.static.IsEnhancedNetcodeEnabled(Level))
+    {
+        CheckFireEffect();
+    }
 }
 
 simulated function CheckFireEffect()

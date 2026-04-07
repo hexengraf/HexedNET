@@ -18,35 +18,19 @@ replication
         CurIndex;
 }
 
-simulated event PreBeginPlay()
-{
-    Super.PreBeginPlay();
-    ForEach DynamicActors(class'HxNTClock', NETClock) break;
-}
-
-simulated function ValidateNETClockPointer()
-{
-    if (NETClock == None)
-    {
-        ForEach DynamicActors(class'HxNTClock', NETClock) break;
-    }
-}
-
-function DisableNet()
-{
-    NewNet_LinkAltFire(FireMode[0]).bUseEnhancedNetCode = false;
-    NewNet_LinkAltFire(FireMode[0]).PingDT = 0.00;
-    NewNet_LinkFire(FireMode[1]).bUseEnhancedNetCode = false;
-    NewNet_LinkFire(FireMode[1]).PingDT = 0.00;
-}
+#include Classes\Include\WeaponBaseFunctions.uci
 
 //// client only ////
 simulated event ClientStartFire(int Mode)
 {
-    if(Level.NetMode!=NM_Client || !class'HxNTClient'.static.IsEnhancedNetcodeEnabled())
-        super.ClientStartFire(mode);
-    else
+    if (class'HxNTClient'.static.IsEnhancedNetcodeEnabled(Level))
+    {
         NewNet_ClientStartFire(mode);
+    }
+    else
+    {
+        Super.ClientStartFire(mode);
+    }
 }
 
 simulated event NewNet_ClientStartFire(int Mode)

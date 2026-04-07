@@ -11,20 +11,6 @@ var bool bOwned;
 
 var FakeProjectileManager FPM;
 
-struct ReplicatedRotator
-{
-    var int Yaw;
-    var int Pitch;
-    var int Roll;
-};
-
-struct ReplicatedVector
-{
-    var float X;
-    var float Y;
-    var float Z;
-};
-
 const INTERP_TIME = 0.50;
 
 replication
@@ -56,9 +42,11 @@ simulated function PostNetBeginPlay()
 
 simulated function bool CheckOwned()
 {
-    if(!class'HxNTClient'.static.IsEnhancedNetcodeEnabled())
+    if (!class'HxNTClient'.static.IsEnhancedNetcodeEnabled(Level))
+    {
         return false;
-    bOwned = (PC!=None && PC.Pawn!=None && PC.Pawn == Instigator);
+    }
+    bOwned = PC != None && PC.Pawn != None && PC.Pawn == Instigator;
     return bOwned;
 }
 

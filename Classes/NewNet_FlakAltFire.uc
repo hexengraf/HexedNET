@@ -21,17 +21,19 @@ var rotator OldAim;
 
 function PlayFiring()
 {
-   super.PlayFiring();
-
-   if(Level.NetMode != NM_Client || !class'HxNTClient'.static.IsEnhancedNetcodeEnabled())
-       return;
-   if(!bSkipNextEffect)
-       CheckFireEffect();
-   else
-   {
-      bSkipNextEffect=false;
-      Weapon.ClientStopFire(0);
-   }
+    Super.PlayFiring();
+    if (class'HxNTClient'.static.IsEnhancedNetcodeEnabled(Level))
+    {
+        if (bSkipNextEffect)
+        {
+            bSkipNextEffect = false;
+            Weapon.ClientStopFire(0);
+        }
+        else
+        {
+            CheckFireEffect();
+        }
+    }
 }
 
 function CheckFireEffect()
@@ -142,12 +144,15 @@ function projectile SpawnProjectile(Vector Start, Rotator Dir)
     local vector End, HitLocation, HitNormal, VZ;
     local actor Other;
 
-    if(Level.NetMode == NM_Client && class'HxNTClient'.static.IsEnhancedNetcodeEnabled())
-        return SpawnFakeProjectile(Start,Dir);
-
-    if(!bUseEnhancedNetCode)
-        return super.SpawnProjectile(start,Dir);
-    if( ProjectileClass != none )
+    if (class'HxNTClient'.static.IsEnhancedNetcodeEnabled(Level))
+    {
+        return SpawnFakeProjectile(Start, Dir);
+    }
+    if (!bUseEnhancedNetCode)
+    {
+        return Super.SpawnProjectile(start, Dir);
+    }
+    if (ProjectileClass != none)
     {
         if(PingDT > 0.0 && Weapon.Owner!=None)
         {

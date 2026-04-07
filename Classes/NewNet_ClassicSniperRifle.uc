@@ -10,46 +10,18 @@ replication
         NewNet_ServerStartFire;
 }
 
-simulated event PreBeginPlay()
-{
-    Super.PreBeginPlay();
-    ForEach DynamicActors(class'HxNTClock', NETClock) break;
-}
+#include Classes\Include\WeaponBaseFunctions.uci
 
-simulated function ValidateNETClockPointer()
+simulated function ClientStartFire(int Mode)
 {
-    if (NETClock == None)
+    if (Mode == 0 && class'HxNTClient'.static.IsEnhancedNetcodeEnabled(Level))
     {
-        ForEach DynamicActors(class'HxNTClock', NETClock) break;
-    }
-}
-
-function DisableNet()
-{
-    NewNet_ClassicSniperFire(FireMode[0]).bUseEnhancedNetCode = false;
-    NewNet_ClassicSniperFire(FireMode[0]).PingDT = 0.00;
-}
-
-simulated function ClientStartFire(int mode)
-{
-    if (mode == 1)
-    {
-        FireMode[mode].bIsFiring = true;
-        if( Instigator.Controller.IsA( 'PlayerController' ) )
-            PlayerController(Instigator.Controller).ToggleZoom();
+        NewNet_ClientStartFire(Mode);
     }
     else
     {
-        SuperClientStartFire(mode);
+        Super.ClientStartFire(Mode);
     }
-}
-
-simulated event SuperClientStartFire(int Mode)
-{
-    if(Level.NetMode!=NM_Client || !class'HxNTClient'.static.IsEnhancedNetcodeEnabled())
-        super(Weapon).ClientStartFire(mode);
-    else
-        NewNet_ClientStartFire(mode);
 }
 
 simulated event NewNet_ClientStartFire(int Mode)
@@ -61,7 +33,7 @@ simulated event NewNet_ClientStartFire(int Mode)
         if (StartFire(Mode))
         {
             ValidateNETClockPointer();
-            NewNet_ServerStartFire(mode, NETClock.ClientCounter, NETClock.DT);
+            NewNet_ServerStartFire(Mode, NETClock.ClientCounter, NETClock.DT);
         }
     }
     else

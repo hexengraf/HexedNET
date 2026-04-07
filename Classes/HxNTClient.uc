@@ -182,9 +182,9 @@ static function FixWeaponInstigator(PlayerController PC)
     }
 }
 
-static function bool IsEnhancedNetcodeEnabled()
+static function bool IsEnhancedNetcodeEnabled(LevelInfo Level)
 {
-    return default.bEnhancedNetCode;
+    return default.bEnhancedNetCode && Level.NetMode == NM_Client;
 }
 
 defaultproperties

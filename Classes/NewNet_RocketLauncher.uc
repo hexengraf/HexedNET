@@ -35,38 +35,25 @@ replication
 
 #include Classes\Include\TimeTravelFunctions.uci
 
-simulated event PreBeginPlay()
+event PreBeginPlay()
 {
     Super.PreBeginPlay();
     ForEach DynamicActors(class'MutHexedNET', HexedNET) break;
-    ForEach DynamicActors(class'HxNTClock', NETClock) break;
 }
 
-simulated function ValidateNETClockPointer()
-{
-    if (NETClock == None)
-    {
-        ForEach DynamicActors(class'HxNTClock', NETClock) break;
-    }
-}
-
-function DisableNet()
-{
-    NewNet_RocketFire(FireMode[0]).bUseEnhancedNetCode = false;
- //   NewNet_RocketFire(FireMode[0]).PingDT = 0.00;
-    NewNet_RocketMultiFire(FireMode[1]).bUseEnhancedNetCode = false;
-    bUseEnhancedNetCode=false;
-    PingDT = 0.00;
-  //  NewNet_RocketMultiFire(FireMode[1]).PingDT = 0.00;
-}
+#include Classes\Include\WeaponBaseFunctions.uci
 
 //// client only ////
 simulated event ClientStartFire(int Mode)
 {
-    if(Level.NetMode!=NM_Client || !class'HxNTClient'.static.IsEnhancedNetcodeEnabled())
-        super.ClientStartFire(mode);
-    else
+    if (class'HxNTClient'.static.IsEnhancedNetcodeEnabled(Level))
+    {
         NewNet_ClientStartFire(mode);
+    }
+    else
+    {
+        Super.ClientStartFire(mode);
+    }
 }
 
 simulated event NewNet_ClientStartFire(int Mode)

@@ -24,17 +24,19 @@ const SLACK = 0.035;
 
 function PlayFiring()
 {
-   super.PlayFiring();
-
-   if(Level.NetMode != NM_Client || !class'HxNTClient'.static.IsEnhancedNetcodeEnabled())
-       return;
-   if(!bSkipNextEffect)
-       CheckFireEffect();
-   else
-   {
-      bSkipNextEffect=false;
-      Weapon.ClientStopFire(0);
-   }
+    Super.PlayFiring();
+    if (class'HxNTClient'.static.IsEnhancedNetcodeEnabled(Level))
+    {
+        if (bSkipNextEffect)
+        {
+            bSkipNextEffect = false;
+            Weapon.ClientStopFire(0);
+        }
+        else
+        {
+            CheckFireEffect();
+        }
+    }
 }
 
 function CheckFireEffect()
