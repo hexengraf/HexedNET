@@ -9,9 +9,7 @@ var PawnCollisionCopy PCC;
 
 var const private class<Weapon> WeaponClasses[13];
 var const private class<Weapon> NewNetWeaponClasses[13];
-
 var private bool bEnhancedNetcodeActive;
-var private bool bDefaultWeaponsChanged;
 
 event PreBeginPlay()
 {
@@ -19,25 +17,51 @@ event PreBeginPlay()
     if (bAllowEnhancedNetcode && Level.NetMode != NM_Standalone)
     {
         NETClock = Spawn(class'HxNTClock', Self);
-        SetupInstagib();
+        ApplyNewNetWeaponsOnMutators();
         bEnhancedNetcodeActive = true;
     }
 }
 
-function SetupInstagib()
+function ApplyNewNetWeaponsOnMutators()
 {
-    local MutInstagib Instagib;
+    local Mutator M;
 
-    ForEach DynamicActors(class'MutInstagib', Instagib) break;
-
-    if (Instagib != None)
+    for (M = Level.Game.BaseMutator; M != None; M = M.NextMutator)
     {
-        Instagib.Default.WeaponName = 'NewNet_SuperShockRifle';
-        Instagib.Default.WeaponString = string(class'NewNet_SuperShockRifle');
-        Instagib.Default.DefaultWeaponName = string(class'NewNet_SuperShockRifle');
-        Instagib.WeaponName = 'NewNet_SuperShockRifle';
-        Instagib.WeaponString = string(class'NewNet_SuperShockRifle');
-        Instagib.DefaultWeaponName = string(class'NewNet_SuperShockRifle');
+        if (M.DefaultWeaponName != "")
+        {
+            ApplyNewNetWeapons(M);
+        }
+    }
+}
+
+function ApplyNewNetWeapons(Mutator M)
+{
+    local int i;
+
+    for (i = 0; i < ArrayCount(WeaponClasses); ++i)
+    {
+        if (M.DefaultWeaponName ~= string(WeaponClasses[i]))
+        {
+            M.DefaultWeaponName = string(NewNetWeaponClasses[i]);
+            M.default.DefaultWeaponName = string(NewNetWeaponClasses[i]);
+            if (MutInstaGib(M) != None)
+            {
+                MutInstaGib(M).default.WeaponName = NewNetWeaponClasses[i].Name;
+                MutInstaGib(M).default.WeaponString = M.DefaultWeaponName;
+                MutInstaGib(M).WeaponName = NewNetWeaponClasses[i].Name;
+                MutInstaGib(M).WeaponString = M.DefaultWeaponName;
+            }
+        }
+    }
+}
+
+function AddMutator(Mutator M)
+{
+    Super.AddMutator(M);
+    if (M.DefaultWeaponName != "")
+    {
+        ApplyNewNetWeapons(M);
     }
 }
 
@@ -112,36 +136,6 @@ static function bool IsPredicted(Actor A)
 {
     // Fix up vehicle a bit, we still wanna predict if its in the list w/o a driver
     return A == None || A.IsA('xPawn') || (A.IsA('Vehicle') && Vehicle(A).Driver != None);
-}
-
-function ReplaceOtherMutatorWeapons()
-{
-    local Mutator M;
-    local int i;
-
-    bDefaultWeaponsChanged = true;
-    // replace DefaultWeaponName (fix for simple Arena mutators)
-    for (M = Level.Game.BaseMutator; M != None; M = M.NextMutator)
-    {
-        if (M.DefaultWeaponName != "")
-        {
-            for (i = 0; i < ArrayCount(WeaponClasses); ++i)
-            {
-                if (M.DefaultWeaponName ~= string(WeaponClasses[i]))
-                {
-                    M.DefaultWeaponName = string(NewNetWeaponClasses[i]);
-                }
-            }
-        }
-    }
-}
-
-function Tick(float DeltaTime)
-{
-    if (bEnhancedNetcodeActive && !bDefaultWeaponsChanged)
-    {
-        ReplaceOtherMutatorWeapons();
-    }
 }
 
 function bool CheckReplacement(Actor Other, out byte bSuperRelevant)
