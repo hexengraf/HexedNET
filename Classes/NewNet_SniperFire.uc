@@ -75,7 +75,7 @@ function DoClientTrace(Vector Start, Rotator Dir)
 
     arcsRemaining = NumArcs;
 
-    tmpHitEmitClass = class'NewNet_Client_LightningBolt';
+    tmpHitEmitClass = HitEmitterClass;
     tmpTraceRange = TraceRange;
 
     ReflectNum = 0;

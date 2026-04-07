@@ -75,18 +75,23 @@ simulated function SpawnEffects()
     {
 	    Coil = Spawn(CoilClass,Owner,, Location, Rotation);
 	    if (Coil != None)
+        {
+            Coil.bOwnerNoSee = True;
 		    Coil.mSpawnVecA = mSpawnVecA;
+        }
     }
 
     E = Spawn(ExtraBeamClass, Owner);
-    if ( E != None )
+    if (E != None)
+    {
+        E.bOwnerNoSee = true;
         E.AimAt(mSpawnVecA, HitNormal);
+    }
 }
 
 
 defaultproperties
 {
-     CoilClass=Class'NewNet_ShockBeamCoilB'
-     ExtraBeamClass=class'NewNet_ExtraRedBeam'
+     ExtraBeamClass=class'XWeapons.ExtraRedBeam'
      Skins(0)=ColorModifier'InstagibEffects.Effects.RedSuperShockBeam'
 }

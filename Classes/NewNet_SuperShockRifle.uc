@@ -266,13 +266,14 @@ simulated function SpawnBeamEffect(vector HitLocation, vector HitNormal, vector 
         Instigator.PlayerReplicationInfo.Team != None &&
         Instigator.PlayerReplicationInfo.Team.TeamIndex == 1
     ) {
-        Beam = Spawn(class'NewNet_Client_BlueSuperShockBeam',,, Start, Dir);
+        Beam = Spawn(class'XWeapons.BlueSuperShockBeam',,, Start, Dir);
     } else {
-        Beam = Spawn(class'NewNet_Client_SuperShockBeamEffect',,, Start, Dir);
+        Beam = Spawn(class'XWeapons.SuperShockBeamEffect',,, Start, Dir);
     }
 
     if (Beam == none) return;
 
+    Beam.RemoteRole = ROLE_None;
     if (ReflectNum != 0) Beam.Instigator = None; // prevents client side repositioning of beam start
     Beam.AimAt(HitLocation, HitNormal);
 }

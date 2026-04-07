@@ -72,12 +72,14 @@ simulated function SpawnEffects()
     {
 	    Coil = Spawn(CoilClass,Owner,, Location, Rotation);
 	    if (Coil != None)
-		    Coil.mSpawnVecA = mSpawnVecA;
+        {
+            Coil.bOwnerNoSee = True;
+            Coil.mSpawnVecA = mSpawnVecA;
+        }
     }
 }
 
 
 defaultproperties
 {
-     CoilClass=Class'NewNet_ShockBeamCoil'
 }

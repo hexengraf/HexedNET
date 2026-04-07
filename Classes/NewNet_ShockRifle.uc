@@ -263,10 +263,11 @@ simulated function SpawnBeamEffect(vector HitLocation, vector HitNormal, vector 
     {
         Start.Z = Start.Z - 64.0;
     }
-    Beam = Spawn(class'NewNet_Client_ShockBeamEffect',,, Start, Dir);
+    Beam = Spawn(class'XWeapons.ShockBeamEffect',,, Start, Dir);
+    Beam.RemoteRole = ROLE_None;
 
     if (ReflectNum != 0) Beam.Instigator = None; // prevents client side repositioning of beam start
-       Beam.AimAt(HitLocation, HitNormal);
+    Beam.AimAt(HitLocation, HitNormal);
 }
 
 DefaultProperties

@@ -236,10 +236,7 @@ defaultproperties
     WeaponClasses(6)=class'BioRifle'
     WeaponClasses(7)=class'AssaultRifle'
     WeaponClasses(8)=class'ClassicSniperRifle'
-    WeaponClasses(9)=class'ONSAVRiL'
-    WeaponClasses(10)=class'ONSMineLayer'
-    WeaponClasses(11)=class'ONSGrenadeLauncher'
-    WeaponClasses(12)=class'SuperShockRifle'
+    WeaponClasses(9)=class'SuperShockRifle'
     // replaced NewNet classes
     NewNetWeaponClasses(0)=class'NewNet_ShockRifle'
     NewNetWeaponClasses(1)=class'NewNet_LinkGun'
@@ -250,8 +247,5 @@ defaultproperties
     NewNetWeaponClasses(6)=class'NewNet_BioRifle'
     NewNetWeaponClasses(7)=class'NewNet_AssaultRifle'
     NewNetWeaponClasses(8)=class'NewNet_ClassicSniperRifle'
-    NewNetWeaponClasses(9)=class'NewNet_ONSAVRiL'
-    NewNetWeaponClasses(10)=class'NewNet_ONSMineLayer'
-    NewNetWeaponClasses(11)=class'NewNet_ONSGrenadeLauncher'
-    NewNetWeaponClasses(12)=class'NewNet_SuperShockRifle'
+    NewNetWeaponClasses(9)=class'NewNet_SuperShockRifle'
 }
