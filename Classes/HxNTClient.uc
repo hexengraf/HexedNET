@@ -160,7 +160,7 @@ simulated function SetProperty(int Index, string Value)
     }
 }
 
-function SetEnhancedNetCode(coerce bool bEnable)
+simulated function SetEnhancedNetCode(coerce bool bEnable)
 {
     if (!bEnable)
     {
