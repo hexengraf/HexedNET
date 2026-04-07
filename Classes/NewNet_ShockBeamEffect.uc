@@ -1,84 +1,112 @@
-
 class NewNet_ShockBeamEffect extends ShockBeamEffect;
+
+var class<ShockBeamEffect> ExtraBeamClass;
 
 function AimAt(Vector hl, Vector hn)
 {
-    if(bNetOwner && Level.NetMode == NM_Client)
+    if (bNetOwner && Level.NetMode == NM_Client)
+    {
         return;
-    super.AimAt(hl,hn);
+    }
+    Super.AimAt(hl,hn);
 }
 
 simulated function PostBeginPlay()
 {
-    if(bNetOwner && Level.NetMode == NM_Client)
+    if (bNetOwner && Level.NetMode == NM_Client)
+    {
         return;
-    super.PostBeginPlay();
+    }
+    Super.PostBeginPlay();
 }
 
 simulated function PostNetBeginPlay()
 {
-    local playercontroller pc;
-    super.PostNetBeginPlay();
-    if(Level.NetMode != NM_Client)
-        return;
-    PC = Level.GetLocalPlayerController();
+    local PLayerController PC;
 
-    if(PC!=None && PC.Pawn!=None && PC.Pawn == Instigator)
+    Super.PostNetBeginPlay();
+    if(Level.NetMode == NM_Client)
     {
-        Destroy();
+        PC = Level.GetLocalPlayerController();
+        if (PC != None && PC.Pawn != None && PC.Pawn == Instigator)
+        {
+            Destroy();
+        }
     }
 }
 
 simulated function SpawnEffects()
 {
-    local ShockBeamCoil Coil;
+    local PLayerController PC;
     local xWeaponAttachment Attachment;
-    local playercontroller pc;
-    if(Level.NetMode == NM_Client)
+    local ShockBeamCoil Coil;
+    local ShockBeamEffect ExtraCoil;
+    local Vector EffectLoc;
+
+    if (Level.NetMode == NM_Client)
     {
         PC = Level.GetLocalPlayerController();
-        if(PC!=None && PC.Pawn!=None && PC.Pawn == Instigator)
+        if(PC != None && PC.Pawn != None && PC.Pawn == Instigator)
         {
             return;
         }
     }
-
     if (Instigator != None)
     {
-        if ( Instigator.IsFirstPerson() )
+        if (Instigator.IsFirstPerson())
         {
-			if ( (Instigator.Weapon != None) && (Instigator.Weapon.Instigator == Instigator) )
-				SetLocation(Instigator.Weapon.GetEffectStart());
-			else
-				SetLocation(Instigator.Location);
+            if (Instigator.Weapon != None && Instigator.Weapon.Instigator == Instigator)
+            {
+                SetLocation(Instigator.Weapon.GetEffectStart());
+            }
+            else
+            {
+                SetLocation(Instigator.Location);
+            }
             Spawn(MuzFlashClass,,, Location);
         }
         else
         {
             Attachment = xPawn(Instigator).WeaponAttachment;
             if (Attachment != None && (Level.TimeSeconds - Attachment.LastRenderTime) < 1)
+            {
                 SetLocation(Attachment.GetTipLocation());
+            }
             else
-                SetLocation(Instigator.Location + Instigator.EyeHeight*Vect(0,0,1) + Normal(mSpawnVecA - Instigator.Location) * 25.0);
+            {
+                SetLocation(
+                    Instigator.Location + Instigator.EyeHeight * Vect(0,0,1)
+                    + Normal(mSpawnVecA - Instigator.Location) * 25.0);
+            }
             Spawn(MuzFlash3Class);
         }
     }
-
-    if ( EffectIsRelevant(mSpawnVecA + HitNormal*2,false) && (HitNormal != Vect(0,0,0)) )
-		SpawnImpactEffects(Rotator(HitNormal),mSpawnVecA + HitNormal*2);
-
-    if ( (!Level.bDropDetail && (Level.DetailMode != DM_Low) && (VSize(Location - mSpawnVecA) > 40) && !Level.GetLocalPlayerController().BeyondViewDistance(Location,0))
-		|| ((Instigator != None) && Instigator.IsFirstPerson()) )
+    EffectLoc = mSpawnVecA + HitNormal * 2;
+    if (EffectIsRelevant(EffectLoc, false) && HitNormal != Vect(0,0,0))
     {
-	    Coil = Spawn(CoilClass,Owner,, Location, Rotation);
-	    if (Coil != None)
+        SpawnImpactEffects(Rotator(HitNormal), EffectLoc);
+    }
+    if ((Instigator != None && Instigator.IsFirstPerson())
+        || (!Level.bDropDetail && Level.DetailMode != DM_Low && VSize(Location - mSpawnVecA) > 40
+            && !Level.GetLocalPlayerController().BeyondViewDistance(Location, 0)))
+    {
+        Coil = Spawn(CoilClass,Owner,, Location, Rotation);
+        if (Coil != None)
         {
             Coil.bOwnerNoSee = True;
             Coil.mSpawnVecA = mSpawnVecA;
         }
     }
+    if (ExtraBeamClass != None)
+    {
+        ExtraCoil = Spawn(ExtraBeamClass, Owner);
+        if (ExtraCoil != None)
+        {
+            ExtraCoil.bOwnerNoSee = true;
+            ExtraCoil.AimAt(mSpawnVecA, HitNormal);
+        }
+    }
 }
-
 
 defaultproperties
 {
