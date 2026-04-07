@@ -10,7 +10,7 @@ var bool bUseEnhancedNetCode;
 var bool bBelievesHit;
 var Actor BelievedHitActor;
 var vector BelievedHitLocation;
-var float averdt;
+var float AverDT;
 var bool bFirstGo;
 
 function PlayFiring()

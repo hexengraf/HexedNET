@@ -20,19 +20,33 @@ struct ReplicatedVector
     var float Z;
 };
 
-var HxNTClock C;
 var MutHexedNET M;
+var private HxNTClock NETClock;
 
 var float PingDT;
 var bool bUseEnhancedNetCode;
 
 var float lastDT;
 
-
 replication
 {
     reliable if(Role < Role_Authority)
         NewNet_ServerStartFire;
+}
+
+simulated event PreBeginPlay()
+{
+    Super.PreBeginPlay();
+    ForEach DynamicActors(class'MutHexedNET', M) break;
+    ForEach DynamicActors(class'HxNTClock', NETClock) break;
+}
+
+simulated function ValidateNETClockPointer()
+{
+    if (NETClock == None)
+    {
+        ForEach DynamicActors(class'HxNTClock', NETClock) break;
+    }
 }
 
 function DisableNet()
@@ -93,9 +107,7 @@ simulated function NewNet_AltClientStartFire(int mode)
     {
         if (StartFire(Mode))
         {
-            if(C==None)
-                foreach DynamicActors(class'HxNTClock', C)
-                     break;
+            ValidateNETClockPointer();
          /*   if(NewNet_RocketMultiFire(FireMode[Mode])!=None)
                 NewNet_RocketMultiFire(FireMode[Mode]).DoInstantFireEffect();
             else*/ if(NewNet_RocketFire(FireMode[Mode])!=None)
@@ -108,7 +120,7 @@ simulated function NewNet_AltClientStartFire(int mode)
             V.Y = Start.Y;
             V.Z = Start.Z;
 
-            NewNet_ServerStartFire(mode, C.ClientCounter,C.DT, R, V);
+            NewNet_ServerStartFire(mode, NETClock.ClientCounter,NETClock.DT, R, V);
         }
     }
     else
@@ -149,10 +161,7 @@ simulated function bool AltReadyToFire(int Mode)
 
 function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float dt, ReplicatedRotator R, ReplicatedVector V)
 {
-    if(M==None)
-        foreach DynamicActors(class'MutHexedNET', M)
-	        break;
-
+    ValidateNETClockPointer();
     if ( (Instigator != None) && (Instigator.Weapon != self) )
 	{
 		if ( Instigator.Weapon == None )
@@ -162,16 +171,16 @@ function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float dt, Replica
 		return;
 	}
 
-    PingDT = FMin(M.ClientTimeStamp - M.GetTimestamp(ClientCounter)-DT + 0.5*M.AverDT, MAX_PROJECTILE_FUDGE);
+    PingDT = FMin(NETClock.GetPingDT(ClientCounter, DT), MAX_PROJECTILE_FUDGE);
     bUseEnhancedNetCode=true;
     if(NewNet_RocketFire(FireMode[Mode])!=None)
     {
-       // NewNet_RocketFire(FireMode[Mode]).PingDT = FMin(M.ClientTimeStamp - ClientTimeStamp + 1.75*M.AverDT, MAX_PROJECTILE_FUDGE_ALT);
+       // NewNet_RocketFire(FireMode[Mode]).PingDT = FMin(NETClock.ServerTimestamp - NETClock.GetTimestamp(ClientCounter) + 1.75*NETClock.ServerAverDT, MAX_PROJECTILE_FUDGE_ALT);
         NewNet_RocketFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
     else if(NewNet_RocketMultiFire(FireMode[Mode])!=None)
     {
-     //   NewNet_RocketMultiFire(FireMode[Mode]).PingDT = FMin(M.ClientTimeStamp - ClientTimeStamp + 1.75*M.AverDT, MAX_PROJECTILE_FUDGE);
+     //   NewNet_RocketMultiFire(FireMode[Mode]).PingDT = FMin(NETClock.ServerTimestamp - NETClock.GetTimestamp(ClientCounter) + 1.75*NETClock.ServerAverDT, MAX_PROJECTILE_FUDGE);
         NewNet_RocketMultiFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
 

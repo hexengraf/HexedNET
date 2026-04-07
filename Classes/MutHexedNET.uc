@@ -4,28 +4,23 @@ var config bool bAllowEnhancedNetcode;
 var config float TimeBetweenPings;
 var config float PawnCollisionTimeWindow;
 
+var HxNTClock NETClock;
 var PawnCollisionCopy PCC;
-var float ClientTimeStamp;
-var float AverDT;
 
 var const private class<Weapon> WeaponClasses[13];
 var const private class<Weapon> NewNetWeaponClasses[13];
 
-var private HxNTClock NETClock;
 var private bool bEnhancedNetcodeActive;
 var private bool bDefaultWeaponsChanged;
 
 event PreBeginPlay()
 {
     Super.PreBeginPlay();
-    if (Level.NetMode != NM_Standalone)
+    if (bAllowEnhancedNetcode && Level.NetMode != NM_Standalone)
     {
-        if (bAllowEnhancedNetcode)
-        {
-            NETClock = Spawn(class'HxNTClock', Self);
-            SetupInstagib();
-            bEnhancedNetcodeActive = true;
-        }
+        NETClock = Spawn(class'HxNTClock', Self);
+        SetupInstagib();
+        bEnhancedNetcodeActive = true;
     }
 }
 
@@ -59,7 +54,7 @@ function SpawnCollisionCopy(Pawn Other)
 {
     if (PCC == None)
     {
-        PCC = Spawn(class'PawnCollisionCopy');
+        PCC = Spawn(class'PawnCollisionCopy', Self);
         PCC.SetPawn(Other);
     }
     else
@@ -143,21 +138,10 @@ function ReplaceOtherMutatorWeapons()
 
 function Tick(float DeltaTime)
 {
-    if (bEnhancedNetcodeActive)
+    if (bEnhancedNetcodeActive && !bDefaultWeaponsChanged)
     {
-        if (!bDefaultWeaponsChanged)
-        {
-            ReplaceOtherMutatorWeapons();
-        }
-        ClientTimeStamp += DeltaTime;
-        AverDT = (9.0 * AverDT + DeltaTime) * 0.1;
-        NETClock.Update(ClientTimeStamp, AverDT);
+        ReplaceOtherMutatorWeapons();
     }
-}
-
-function float GetTimestamp(byte Index)
-{
-   return NETClock.GetTimestamp(Index);
 }
 
 function bool CheckReplacement(Actor Other, out byte bSuperRelevant)

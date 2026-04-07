@@ -2,8 +2,8 @@ class NewNet_SuperShockRifle extends SuperShockRifle
 	HideDropDown
 	CacheExempt;
 
-var HxNTClock C;
 var MutHexedNET M;
+var private HxNTClock NETClock;
 var float LastDT;
 
 struct ReplicatedRotator
@@ -25,6 +25,21 @@ replication
         NewNet_ServerStartFire,NewNet_OldServerStartFire;
     unreliable if(bDemoRecording)
         SpawnBeamEffect;
+}
+
+simulated event PreBeginPlay()
+{
+    Super.PreBeginPlay();
+    ForEach DynamicActors(class'MutHexedNET', M) break;
+    ForEach DynamicActors(class'HxNTClock', NETClock) break;
+}
+
+simulated function ValidateNETClockPointer()
+{
+    if (NETClock == None)
+    {
+        ForEach DynamicActors(class'HxNTClock', NETClock) break;
+    }
 }
 
 function DisableNet()
@@ -59,12 +74,10 @@ simulated event NewNet_ClientStartFire(int Mode)
     {
         if (AltReadyToFire(Mode) && StartFire(Mode))
         {
-            if(C==None)
-                foreach DynamicActors(class'HxNTClock', C)
-                        break;
+            ValidateNETClockPointer();
             if(!ReadyToFire(Mode))
             {
-                NewNet_OldServerStartFire(Mode,C.ClientCounter, C.DT);
+                NewNet_OldServerStartFire(Mode,NETClock.ClientCounter, NETClock.DT);
              //   Log("This should never execute");
                 return;
             }
@@ -84,7 +97,7 @@ simulated event NewNet_ClientStartFire(int Mode)
                     b=true;
             }
 
-            NewNet_ServerStartFire(Mode, C.ClientCounter, C.DT, R, V,b,A);
+            NewNet_ServerStartFire(Mode, NETClock.ClientCounter, NETClock.DT, R, V,b,A);
         }
     }
     else
@@ -182,14 +195,10 @@ function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT, Replica
 			Instigator.Weapon.SynchronizeWeapon(self);
 		return;
 	}
-
-    if(M==None)
-        foreach DynamicActors(class'MutHexedNET', M)
-            break;
-
-    NewNet_SuperShockBeamFire(FireMode[Mode]).PingDT = M.ClientTimeStamp - M.GetTimestamp(ClientCounter)-DT + 0.5*M.AverDT;
+    ValidateNETClockPointer();
+    NewNet_SuperShockBeamFire(FireMode[Mode]).PingDT = NETClock.GetPingDT(ClientCounter, DT);
     NewNet_SuperShockBeamFire(FireMode[Mode]).bUseEnhancedNetCode = true;
-    NewNet_SuperShockBeamFire(FireMode[Mode]).AverDT = M.AverDT;
+    NewNet_SuperShockBeamFire(FireMode[Mode]).AverDT = NETClock.ServerAverDT;
 
     if(bBelievesHit)
     {
@@ -224,10 +233,8 @@ function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT, Replica
 
 function NewNet_OldServerStartFire(byte Mode, byte ClientCounter, float dt)
 {
-    if(M==None)
-        foreach DynamicActors(class'MutHexedNET', M)
-            break;
-    NewNet_SuperShockBeamFire(FireMode[Mode]).PingDT = M.ClientTimeStamp - M.GetTimestamp(ClientCounter)-DT + 0.5*M.AverDT;
+    ValidateNETClockPointer();
+    NewNet_SuperShockBeamFire(FireMode[Mode]).PingDT = NETClock.GetPingDT(ClientCounter, DT);
     NewNet_SuperShockBeamFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     ServerStartFire(mode);
 }

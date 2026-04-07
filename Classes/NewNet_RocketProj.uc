@@ -23,7 +23,6 @@ const INTERP_TIME = 0.50;
 
 simulated function PostNetBeginPlay()
 {
-   // local timestamp ts;
     super.PostNetBeginPlay();
     if(Level.NetMode != NM_Client)
         return;
@@ -31,9 +30,6 @@ simulated function PostNetBeginPlay()
     PC = Level.GetLocalPlayerController();
     if (CheckOwned())
        CheckForFakeProj();
-
-  //  foreach DynamicActors(class'HxNTClock', TS)
-   //    Log(TS.ClientTimeStamp);
 }
 
 simulated function bool CheckOwned()

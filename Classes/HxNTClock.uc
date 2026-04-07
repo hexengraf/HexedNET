@@ -2,6 +2,9 @@ class HxNTClock extends Actor;
 
 const AVERDT_SEND_PERIOD = 4.00;
 
+var float ServerAverDT;
+var float ServerTimestamp;
+
 var float DT;
 var float AverDT;
 var byte ClientCounter;
@@ -24,6 +27,7 @@ simulated function PostBeginPlay()
 
 simulated function Tick(float DeltaTime)
 {
+    Update(DeltaTime);
     DT += DeltaTime;
     if ((ServerCounter - ClientCounter) % 256 < 128)
     {
@@ -33,20 +37,27 @@ simulated function Tick(float DeltaTime)
     default.AverDT = AverDT;
 }
 
-function Update(float CurrentTimestamp, float CurrentAverDT)
+function Update(float DeltaTime)
 {
-    if (CurrentTimestamp > LastReplicatedAverDT + AVERDT_SEND_PERIOD)
+    ServerTimestamp += DeltaTime;
+    ServerAverDT = (9.0 * ServerAverDT + DeltaTime) * 0.1;
+    if (ServerTimestamp > LastReplicatedAverDT + AVERDT_SEND_PERIOD)
     {
-        AverDT = CurrentAverDT;
-        LastReplicatedAverDT = CurrentTimestamp;
+        AverDT = ServerAverDT;
+        LastReplicatedAverDT = ServerTimestamp;
     }
     ++ServerCounter;
-    Timestamps[ServerCounter] = CurrentTimestamp;
+    Timestamps[ServerCounter] = ServerTimestamp;
 }
 
 function float GetTimestamp(byte Index)
 {
     return Timestamps[Index];
+}
+
+function float GetPingDT(byte ClientCounter, float DT)
+{
+    return ServerTimestamp - Timestamps[ClientCounter] - DT + (0.5 * ServerAverDT);
 }
 
 defaultproperties

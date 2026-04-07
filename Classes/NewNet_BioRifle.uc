@@ -5,8 +5,8 @@ class NewNet_BioRifle extends BioRifle
 
 const MAX_PROJECTILE_FUDGE = 0.075;
 
-var HxNTClock C;
 var MutHexedNET M;
+var private HxNTClock NETClock;
 
 var int CurIndex;
 var int ClientCurIndex;
@@ -17,6 +17,21 @@ replication
         NewNet_ServerStartFire;
     unreliable if(Role == Role_Authority && bNetOwner)
         CurIndex;
+}
+
+simulated event PreBeginPlay()
+{
+    Super.PreBeginPlay();
+    ForEach DynamicActors(class'MutHexedNET', M) break;
+    ForEach DynamicActors(class'HxNTClock', NETClock) break;
+}
+
+simulated function ValidateNETClockPointer()
+{
+    if (NETClock == None)
+    {
+        ForEach DynamicActors(class'HxNTClock', NETClock) break;
+    }
 }
 
 function DisableNet()
@@ -44,11 +59,8 @@ simulated event NewNet_ClientStartFire(int Mode)
     {
         if (StartFire(Mode))
         {
-            if(C==None)
-                foreach DynamicActors(class'HxNTClock', C)
-                     break;
-
-            NewNet_ServerStartFire(mode, C.ClientCounter, C.Dt);
+            ValidateNETClockPointer();
+            NewNet_ServerStartFire(mode, NETClock.ClientCounter, NETClock.DT);
         }
     }
     else
@@ -59,18 +71,15 @@ simulated event NewNet_ClientStartFire(int Mode)
 
 function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT)
 {
-    if(M==None)
-        foreach DynamicActors(class'MutHexedNET', M)
-	        break;
-
+    ValidateNETClockPointer();
     if(NewNet_BioFire(FireMode[Mode])!=None)
     {
-        NewNet_BioFire(FireMode[Mode]).PingDT = FMin(M.ClientTimeStamp - M.GetTimestamp(ClientCounter)-DT + 0.5*M.AverDT, MAX_PROJECTILE_FUDGE);
+        NewNet_BioFire(FireMode[Mode]).PingDT = FMin(NETClock.GetPingDT(ClientCounter, DT), MAX_PROJECTILE_FUDGE);
         NewNet_BioFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
     else if(NewNet_BioChargedFire(FireMode[Mode])!=None)
     {
-        NewNet_BioChargedFire(FireMode[Mode]).PingDT = FMin(M.ClientTimeStamp - M.GetTimestamp(ClientCounter)-DT + 0.5*M.AverDT, MAX_PROJECTILE_FUDGE);
+        NewNet_BioChargedFire(FireMode[Mode]).PingDT = FMin(NETClock.GetPingDT(ClientCounter, DT), MAX_PROJECTILE_FUDGE);
         NewNet_BioChargedFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
 

@@ -16,7 +16,8 @@ var PawnCollisionCopy Next;
 var float CrouchHeight;
 var float CrouchRadius;
 
-var MutHexedNET M;
+var MutHexedNET HexedNET;
+var HxNTClock NETClock;
 
 var Pawn CopiedPawn;
 var bool bNormalDestroy;
@@ -33,7 +34,7 @@ struct PawnHistoryElement
 var array<PawnHistoryElement> PawnHistory;
 
 //Furthest we will allow backtracking
-var float MAX_HISTORY_LENGTH;
+var float MaxHistoryLength;
 
 var bool bCrouched;
 
@@ -43,14 +44,9 @@ var InterpCurve LocCurveX, LocCurveY,LocCurveZ;
 function PostBeginPlay()
 {
     super.PostBeginPlay();
-    if(M==None)
-        foreach DynamicActors(class'MutHexedNET', M)
-            break;
-
-    if(M != None)
-    {
-        MAX_HISTORY_LENGTH = M.PawnCollisionTimeWindow;
-    }
+    HexedNET = MutHexedNET(Owner);
+    NETClock = HexedNET.NETClock;
+    MaxHistoryLength = HexedNET.PawnCollisionTimeWindow;
 }
 
 /* Set up the collision properties of our copy */
@@ -68,9 +64,6 @@ function SetPawn(Pawn Other)
  //   if(CopiedPawn==None)
     CopiedPawn=Other;
 
-    if(M==None)
-        foreach DynamicActors(class'MutHexedNET', M)
-            break;
     CrouchHeight=CopiedPawn.CrouchHeight;
     CrouchRadius=CopiedPawn.CrouchRadius;
     bUseCylinderCollision = CopiedPawn.bUseCylinderCollision;
@@ -120,7 +113,7 @@ function GoToPawn()
 /*
 What happens if its not an xpawn and its changing shapes?
 */
-function TimeTravelPawn(float dt)
+function TimeTravelPawn(float DT)
 {
     local int i, Floor, Ceiling;
     local bool bFloor, bCeiling;
@@ -132,7 +125,7 @@ function TimeTravelPawn(float dt)
 
     if(CopiedPawn == none || CopiedPawn.DrivenVehicle!=None)
        return;
-    StampDT = M.ClientTimeStamp - dt;
+    StampDT = NETClock.ServerTimestamp - DT;
     SetCollision(false);
 
     //We cant backtrack, too recent, just go straight to the pawn
@@ -243,18 +236,15 @@ function TurnOffCollision()
 
 function AddPawnToList(Pawn Other)
 {
-    // Already got it, dont bother.
-    // snarf this was commented out, uncommenting since it might be needed?
-    // if(Other == CopiedPawn)
-    //    return;
-
-    if(next==None)
+    if (Next == None)
     {
-        Next = Spawn(class'PawnCollisionCopy');
+        Next = Spawn(class'PawnCollisionCopy', HexedNET);
         Next.SetPawn(Other);
     }
     else
+    {
        Next.AddPawnToList(Other);
+    }
 }
 
 //snarf
@@ -350,20 +340,20 @@ function AddHistory()
     PawnHistory[i].Location = CopiedPawn.Location;
     PawnHistory[i].Rotation = CopiedPawn.Rotation;
     PawnHistory[i].bCrouched = CopiedPawn.bIsCrouched;
-    PawnHistory[i].TimeStamp = M.ClientTimeStamp;
+    PawnHistory[i].TimeStamp = NETClock.ServerTimestamp;
     //PawnHistory[i].Physics = CopiedPawn.Physics;
 
-    XPoint.InVal = M.ClientTimeStamp;
+    XPoint.InVal = NETClock.ServerTimestamp;
     XPoint.OutVal = CopiedPawn.Location.X;
     LocCurveX.Points.Insert(LocCurveX.Points.Length,1);
     LocCurveX.Points[LocCurveX.Points.Length-1]=XPoint;
 
-    YPoint.InVal = M.ClientTimeStamp;
+    YPoint.InVal = NETClock.ServerTimestamp;
     YPoint.OutVal = CopiedPawn.Location.Y;
     LocCurveY.Points.Insert(LocCurveY.Points.Length,1);
     LocCurveY.Points[LocCurveY.Points.Length-1]=YPoint;
 
-    ZPoint.InVal = M.ClientTimeStamp;
+    ZPoint.InVal = NETClock.ServerTimestamp;
     ZPoint.OutVal = CopiedPawn.Location.Z;
     LocCurveZ.Points.Insert(LocCurveZ.Points.Length,1);
     LocCurveZ.Points[LocCurveZ.Points.Length-1]=ZPoint;
@@ -371,9 +361,9 @@ function AddHistory()
 
 function RemoveOutdatedHistory()
 {
-    while(PawnHistory.Length > 0 && PawnHistory[0].TimeStamp + MAX_HISTORY_LENGTH < M.ClientTimeStamp )
+    while(PawnHistory.Length > 0 && PawnHistory[0].TimeStamp + MaxHistoryLength < NETClock.ServerTimestamp )
        PawnHistory.Remove(0,1);
-    while(LocCurveX.Points.Length > 0 &&  LocCurveX.Points[0].InVal + MAX_HISTORY_LENGTH < M.ClientTimeStamp)
+    while(LocCurveX.Points.Length > 0 &&  LocCurveX.Points[0].InVal + MaxHistoryLength < NETClock.ServerTimestamp)
     {
         LocCurveX.Points.Remove(0,1);
         LocCurveY.Points.Remove(0,1);
@@ -406,5 +396,5 @@ defaultproperties
 
     CrouchHeight=29.000000   //Direct copies from xPawn
     CrouchRadius=25.000000
-    MAX_HISTORY_LENGTH=0.35
+    MaxHistoryLength=0.35
 }

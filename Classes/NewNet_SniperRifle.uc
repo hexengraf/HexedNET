@@ -16,8 +16,8 @@ struct ReplicatedVector
     var float Z;
 };
 
-var HxNTClock C;
 var MutHexedNET M;
+var private HxNTClock NETClock;
 var float lastDT;
 
 replication
@@ -26,6 +26,21 @@ replication
         NewNet_ServerStartFire;
     unreliable if(bDemoRecording)
         SpawnLGEffect;
+}
+
+simulated event PreBeginPlay()
+{
+    Super.PreBeginPlay();
+    ForEach DynamicActors(class'MutHexedNET', M) break;
+    ForEach DynamicActors(class'HxNTClock', NETClock) break;
+}
+
+simulated function ValidateNETClockPointer()
+{
+    if (NETClock == None)
+    {
+        ForEach DynamicActors(class'HxNTClock', NETClock) break;
+    }
 }
 
 function DisableNet()
@@ -90,10 +105,7 @@ simulated function NewNet_ClientStartFire(int mode)
             V.Y = Start.Y;
             V.Z = Start.Z;
 
-            if(C==None)
-                foreach DynamicActors(class'HxNTClock', C)
-                     break;
-
+            ValidateNETClockPointer();
             NewNet_SniperFire(FireMode[mode]).DoInstantFireEffect();
             A = Trace(HN,HL,Start+Vector(Pawn(Owner).Controller.Rotation)*40000.0,Start,true);
             if(A!=None && (A.IsA('xPawn') || A.IsA('Vehicle')))
@@ -101,7 +113,7 @@ simulated function NewNet_ClientStartFire(int mode)
                 b=true;
             }
 
-            NewNet_ServerStartFire(Mode, C.ClientCounter, C.dt, R, V,b,A);
+            NewNet_ServerStartFire(Mode, NETClock.ClientCounter, NETClock.DT, R, V,b,A);
         }
     }
     else
@@ -150,13 +162,10 @@ function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT, Replica
 		return;
 	}
 
-	if(M==None)
-        foreach DynamicActors(class'MutHexedNET', M)
-	        break;
-
-    NewNet_SniperFire(FireMode[Mode]).PingDT = M.ClientTimeStamp - M.GetTimestamp(ClientCounter)-DT + 0.5*M.AverDT;
-    NewNet_SniperFire(FireMode[Mode]).AverDT = M.AverDT;
-    //Log("Firing with"@M.ClientTimeStamp@M.GetTimestamp(ClientCounter)@DT);
+    ValidateNETClockPointer();
+    NewNet_SniperFire(FireMode[Mode]).PingDT = NETClock.GetPingDT(ClientCounter, DT);
+    NewNet_SniperFire(FireMode[Mode]).AverDT = NETClock.ServerAverDT;
+    //Log("Firing with"@NETClock.ServerTimestamp@NETClock.GetTimestamp(ClientCounter)@DT);
    // Log(PlayerController(Pawn(Owner).Controller).ExactPing);
     if(bBelievesHit)
     {
@@ -208,7 +217,7 @@ function bool IsReasonable(Vector V)
     LocDiff = V - (Pawn(Owner).Location + Pawn(Owner).EyePosition());
     clErr = (LocDiff dot LocDiff);
 
-//    if(clErr > 500.0*M.AverDT)
+//    if(clErr > 500.0*NETClock.ServerAverDT)
 //    PlayerController(Pawn(Owner).Controller).ClientMessage("Exceeded error"@clErr);
 //    Log(ClErr@(Pawn(Owner).Velocity dot Pawn(Owner).Velocity));
    // if(clErr>=750)

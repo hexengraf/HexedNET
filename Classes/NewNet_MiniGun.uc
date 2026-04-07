@@ -2,13 +2,28 @@ class NewNet_MiniGun extends MiniGun
 	HideDropDown
 	CacheExempt;
 
-var HxNTClock C;
 var MutHexedNET M;
+var private HxNTClock NETClock;
 
 replication
 {
     reliable if( Role<ROLE_Authority )
         NewNet_ServerStartFire;
+}
+
+simulated event PreBeginPlay()
+{
+    Super.PreBeginPlay();
+    ForEach DynamicActors(class'MutHexedNET', M) break;
+    ForEach DynamicActors(class'HxNTClock', NETClock) break;
+}
+
+simulated function ValidateNETClockPointer()
+{
+    if (NETClock == None)
+    {
+        ForEach DynamicActors(class'HxNTClock', NETClock) break;
+    }
 }
 
 function DisableNet()
@@ -36,11 +51,8 @@ simulated event NewNet_ClientStartFire(int Mode)
     {
         if (StartFire(Mode))
         {
-            if(C==None)
-                foreach DynamicActors(class'HxNTClock', C)
-                     break;
-
-            NewNet_ServerStartFire(mode, C.ClientCounter, C.dt);
+            ValidateNETClockPointer();
+            NewNet_ServerStartFire(mode, NETClock.ClientCounter, NETClock.DT);
         }
     }
     else
@@ -51,24 +63,20 @@ simulated event NewNet_ClientStartFire(int Mode)
 
 function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float dt)
 {
-    if(M==None)
-        foreach DynamicActors(class'MutHexedNET', M)
-	        break;
-
+    ValidateNETClockPointer();
     if(NewNet_MiniGunFire(FireMode[Mode])!=None)
     {
-        NewNet_MiniGunFire(FireMode[Mode]).PingDT = M.ClientTimeStamp - M.GetTimestamp(ClientCounter)-DT + 0.5*M.AverDT;
+        NewNet_MiniGunFire(FireMode[Mode]).PingDT = NETClock.GetPingDT(ClientCounter, DT);
         NewNet_MiniGunFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
     else if(NewNet_MiniGunAltFire(FireMode[Mode])!=None)
     {
-        NewNet_MiniGunAltFire(FireMode[Mode]).PingDT = M.ClientTimeStamp - M.GetTimestamp(ClientCounter)-DT + 0.5*M.AverDT;
+        NewNet_MiniGunAltFire(FireMode[Mode]).PingDT = NETClock.GetPingDT(ClientCounter, DT);
         NewNet_MiniGunAltFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
 
     ServerStartFire(Mode);
 }
-
 
 DefaultProperties
 {
