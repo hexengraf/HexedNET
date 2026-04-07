@@ -2,7 +2,6 @@ class NewNet_SuperShockRifle extends SuperShockRifle
 	HideDropDown
 	CacheExempt;
 
-var MutHexedNET M;
 var private HxNTClock NETClock;
 var float LastDT;
 
@@ -30,7 +29,6 @@ replication
 simulated event PreBeginPlay()
 {
     Super.PreBeginPlay();
-    ForEach DynamicActors(class'MutHexedNET', M) break;
     ForEach DynamicActors(class'HxNTClock', NETClock) break;
 }
 

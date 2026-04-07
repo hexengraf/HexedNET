@@ -1,4 +1,3 @@
-
 class NewNet_RocketLauncher extends RocketLauncher
     HideDropDown
 	CacheExempt;
@@ -20,7 +19,7 @@ struct ReplicatedVector
     var float Z;
 };
 
-var MutHexedNET M;
+var MutHexedNET HexedNET;
 var private HxNTClock NETClock;
 
 var float PingDT;
@@ -34,10 +33,12 @@ replication
         NewNet_ServerStartFire;
 }
 
+#include Classes\Include\TimeTravelFunctions.uci
+
 simulated event PreBeginPlay()
 {
     Super.PreBeginPlay();
-    ForEach DynamicActors(class'MutHexedNET', M) break;
+    ForEach DynamicActors(class'MutHexedNET', HexedNET) break;
     ForEach DynamicActors(class'HxNTClock', NETClock) break;
 }
 
@@ -314,7 +315,7 @@ function Projectile SpawnProjectile(Vector Start, Rotator Dir)
                 //Put pawns there
                 TimeTravel(pingdt - g);
                 //Trace between the start and extrapolated end
-                Other = DoTimeTravelTrace(HitLocation, HitNormal, End, Start);
+                Other = class'PawnCollisionCopy'.static.TimeTravelTrace(Self, HitLocation, HitNormal, End, Start);
                 if(Other!=None)
                 {
                     break;
@@ -367,7 +368,7 @@ function Projectile SpawnProjectile(Vector Start, Rotator Dir)
                 //Put pawns there
                 TimeTravel(pingdt - g);
                 //Trace between the start and extrapolated end
-                Other = DoTimeTravelTrace(HitLocation, HitNormal, End, Start);
+                Other = class'PawnCollisionCopy'.static.TimeTravelTrace(Self, HitLocation, HitNormal, End, Start);
                 if(Other!=None)
                 {
                     break;
@@ -399,81 +400,6 @@ function Projectile SpawnProjectile(Vector Start, Rotator Dir)
 function vector Extrapolate(out rotator Dir, float dF)
 {
     return vector(Dir)*class'NewNet_RocketProj'.default.speed*dF;
-}
-
-// We need to do 2 traces. First, one that ignores the things which have already been copied
-// and a second one that looks only for things that are copied
-function Actor DoTimeTravelTrace(Out vector Hitlocation, out vector HitNormal, vector End, vector Start)
-{
-    local Actor Other;
-    local bool bFoundPCC;
-    local vector NewEnd, WorldHitNormal,WorldHitLocation;
-    local vector PCCHitNormal,PCCHitLocation;
-    local PawnCollisionCopy PCC, returnPCC;
-
-    //First, lets set the extent of our trace.  End once we hit an actor which won't
-    //be checked by an unlagged copy.
-    foreach Owner.TraceActors(class'Actor', Other,WorldHitLocation,WorldHitNormal,End,Start)
-    {
-       if((Other.bBlockActors || Other.bProjTarget || Other.bWorldGeometry) && !class'MutHexedNET'.static.IsPredicted(Other))
-       {
-           break;
-       }
-       Other=None;
-    }
-    if(Other!=None)
-        NewEnd=WorldHitlocation;
-    else
-        NewEnd=End;
-
-
-    //Now, lets see if we run into any copies, we stop at the location
-    //determined by the previous trace.
-    foreach Owner.TraceActors(class'PawnCollisionCopy', PCC, PCCHitLocation, PCCHitNormal, NewEnd,Start)
-    {
-        if(PCC!=None && PCC.CopiedPawn!=None && PCC.CopiedPawn!=Instigator)
-        {
-            bFoundPCC=True;
-            returnPCC=PCC;
-            break;
-        }
-    }
-
-    // Give back the corresponding info depending on whether or not
-    // we found a copy
-
-    if(bFoundPCC)
-    {
-        HitLocation = PCCHitLocation;
-        HitNormal = PCCHitNormal;
-        return returnPCC;
-    }
-    else
-    {
-        HitLocation = WorldHitLocation;
-        HitNormal = WorldHitNormal;
-        return Other;
-    }
-}
-
-function TimeTravel(float delta)
-{
-    local PawnCollisionCopy PCC;
-
-    if(M == none)
-        foreach DynamicActors(class'MutHexedNET',M)
-            break;
-
-    for(PCC = M.PCC; PCC!=None; PCC=PCC.Next)
-        PCC.TimeTravelPawn(Delta);
-}
-
-function UnTimeTravel()
-{
-    local PawnCollisionCopy PCC;
-    //Now, lets turn off the old hits
-    for(PCC = M.PCC; PCC!=None; PCC=PCC.Next)
-        PCC.TurnOffCollision();
 }
 
 DefaultProperties

@@ -1,25 +1,21 @@
-
-//-----------------------------------------------------------
-//   First weapon implimentation for the lag compensated firing.
-//-----------------------------------------------------------
 class NewNet_SniperFire extends SniperFire;
 
 var bool bUseReplicatedInfo;
 var rotator savedRot;
 var vector savedVec;
 
-var float PingDT;
 var bool bSkipNextEffect;
 //var bool bBelievesHit;
 //var float Correct, Wrong;
 //var bool bCount;
-var bool bUseEnhancedNetCode;
 var bool bBelievesHit;
 var Actor BelievedHitActor;
 var vector BelievedHitLocation;
 var float AverDT;
 var bool bFirstGo;
 //var vector BelievedHLDelta;
+
+#include Classes\Include\WeaponFireBase.uci
 
 function PlayFiring()
 {
@@ -273,7 +269,7 @@ function DoTrace(Vector Start, Rotator Dir)
         if(PingDT <=0.0)
             Other = Weapon.Trace(HitLocation,HitNormal,End,Start,true);
         else
-            Other = DoTimeTravelTrace(HitLocation, HitNormal, End, Start);
+            Other = class'PawnCollisionCopy'.static.TimeTravelTrace(Weapon, HitLocation, HitNormal, End, Start);
 
         if(Other!=None && Other.IsA('PawnCollisionCopy'))
         {
@@ -305,7 +301,7 @@ function DoTrace(Vector Start, Rotator Dir)
                     if((PingDT-f) <=0.0)
                           AltOther = Weapon.Trace(AltHitLocation,AltHitNormal,End,Start,true);
                     else
-                          AltOther = DoTimeTravelTrace(AltHitLocation, AltHitNormal, End, Start);
+                          AltOther = class'PawnCollisionCopy'.static.TimeTravelTrace(Weapon, AltHitLocation, AltHitNormal, End, Start);
 
                     if(AltOther!=None && AltOther.IsA('PawnCollisionCopy'))
                     {
@@ -346,7 +342,7 @@ function DoTrace(Vector Start, Rotator Dir)
                     if((PingDT-f) <=0.0)
                           AltOther = Weapon.Trace(AltHitLocation,AltHitNormal,End,Start,true);
                     else
-                          AltOther = DoTimeTravelTrace(AltHitLocation, AltHitNormal, End, Start);
+                          AltOther = class'PawnCollisionCopy'.static.TimeTravelTrace(Weapon, AltHitLocation, AltHitNormal, End, Start);
 
                     if(AltOther!=None && AltOther.IsA('PawnCollisionCopy'))
                     {
@@ -391,7 +387,7 @@ function DoTrace(Vector Start, Rotator Dir)
                for(f=PingDT+0.13; f>=PingDt-0.13; f-=0.01)
                {
                   TimeTravel(f);
-                  Other = DoTimeTravelTrace(HitLocation, HitNormal, End, Start);
+                  Other = class'PawnCollisionCopy'.static.TimeTravelTrace(Weapon, HitLocation, HitNormal, End, Start);
                   if(Other!=None && Other.IsA('PawnCollisionCopy'))
                   {
                         //Maintain the same ray, but move to the real pawn
@@ -490,80 +486,6 @@ function DoTrace(Vector Start, Rotator Dir)
         }
     }
     UnTimeTravel();
-}
-
-// We need to do 2 traces. First, one that ignores the things which have already been copied
-// and a second one that looks only for things that are copied
-function Actor DoTimeTravelTrace(Out vector Hitlocation, out vector HitNormal, vector End, vector Start)
-{
-    local Actor Other;
-    local bool bFoundPCC;
-    local vector NewEnd, WorldHitNormal,WorldHitLocation;
-    local vector PCCHitNormal,PCCHitLocation;
-    local PawnCollisionCopy PCC, returnPCC;
-
-    //First, lets set the extent of our trace.  End once we hit an actor which won't
-    //be checked by an unlagged copy.
-    foreach Weapon.TraceActors(class'Actor', Other,WorldHitLocation,WorldHitNormal,End,Start)
-    {
-       if((Other.bBlockActors || Other.bProjTarget || Other.bWorldGeometry) && !class'MutHexedNET'.static.IsPredicted(Other))
-       {
-           break;
-       }
-       Other=None;
-    }
-    if(Other!=None)
-        NewEnd=WorldHitlocation;
-    else
-        NewEnd=End;
-
-    //Now, lets see if we run into any copies, we stop at the location
-    //determined by the previous trace.
-    foreach Weapon.TraceActors(class'PawnCollisionCopy', PCC, PCCHitLocation, PCCHitNormal, NewEnd,Start)
-    {
-        if(PCC!=None && PCC.CopiedPawn!=None && PCC.CopiedPawn!=Instigator)
-        {
-            bFoundPCC=True;
-            returnPCC=PCC;
-            break;
-        }
-    }
-
-    // Give back the corresponding info depending on whether or not
-    // we found a copy
-
-    if(bFoundPCC)
-    {
-        HitLocation = PCCHitLocation;
-        HitNormal = PCCHitNormal;
-        return returnPCC;
-    }
-    else
-    {
-        HitLocation = WorldHitLocation;
-        HitNormal = WorldHitNormal;
-        return Other;
-    }
-}
-
-function TimeTravel(float delta)
-{
-    local PawnCollisionCopy PCC;
-
-    if(NewNet_SniperRifle(Weapon).M == none)
-        foreach Weapon.DynamicActors(class'MutHexedNET',NewNet_SniperRifle(Weapon).M)
-            break;
-
-    for(PCC = NewNet_SniperRifle(Weapon).M.PCC; PCC!=None; PCC=PCC.Next)
-        PCC.TimeTravelPawn(Delta);
-}
-
-function UnTimeTravel()
-{
-    local PawnCollisionCopy PCC;
-    //Now, lets turn off the old hits
-    for(PCC = NewNet_SniperRifle(Weapon).M.PCC; PCC!=None; PCC=PCC.Next)
-        PCC.TurnOffCollision();
 }
 
 DefaultProperties

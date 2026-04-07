@@ -1,13 +1,6 @@
-
-//-----------------------------------------------------------
-//
-//-----------------------------------------------------------
 class NewNet_FlakAltFire extends FlakAltFire;
 
-var float PingDT;
-var bool bUseEnhancedNetCode;
 var bool bSkipNextEffect;
-
 var bool bUseReplicatedInfo;
 var rotator savedRot;
 var vector savedVec;
@@ -23,6 +16,8 @@ var vector OldInstigatorLocation;
 var Vector OldInstigatorEyePosition;
 var vector OldXAxis,OldYAxis, OldZAxis;
 var rotator OldAim;
+
+#include Classes\Include\WeaponFireBase.uci
 
 function PlayFiring()
 {
@@ -174,7 +169,7 @@ function projectile SpawnProjectile(Vector Start, Rotator Dir)
                 //Put pawns there
                 TimeTravel(pingdt - g);
                 //Trace between the start and extrapolated end
-                Other = DoTimeTravelTrace(HitLocation, HitNormal, End, Start);
+                Other = class'PawnCollisionCopy'.static.TimeTravelTrace(Weapon, HitLocation, HitNormal, End, Start);
                 if(Other!=None)
                 {
                     break;
@@ -251,80 +246,6 @@ function vector Extrapolate(out rotator Dir, out float speed, float dF, bool bTo
     }
      else
         return (vector(OldDir)*Speed*dF + 0.5*Square(dF)*Weapon.Owner.PhysicsVolume.Gravity);
-}
-
-// We need to do 2 traces. First, one that ignores the things which have already been copied
-// and a second one that looks only for things that are copied
-function Actor DoTimeTravelTrace(Out vector Hitlocation, out vector HitNormal, vector End, vector Start)
-{
-    local Actor Other;
-    local bool bFoundPCC;
-    local vector NewEnd, WorldHitNormal,WorldHitLocation;
-    local vector PCCHitNormal,PCCHitLocation;
-    local PawnCollisionCopy PCC, returnPCC;
-
-    //First, lets set the extent of our trace.  End once we hit an actor which won't
-    //be checked by an unlagged copy.
-    foreach Weapon.TraceActors(class'Actor', Other,WorldHitLocation,WorldHitNormal,End,Start)
-    {
-       if((Other.bBlockActors || Other.bProjTarget || Other.bWorldGeometry) && !class'MutHexedNET'.static.IsPredicted(Other))
-       {
-           break;
-       }
-       Other=None;
-    }
-    if(Other!=None)
-        NewEnd=WorldHitlocation;
-    else
-        NewEnd=End;
-
-    //Now, lets see if we run into any copies, we stop at the location
-    //determined by the previous trace.
-    foreach Weapon.TraceActors(class'PawnCollisionCopy', PCC, PCCHitLocation, PCCHitNormal, NewEnd,Start)
-    {
-        if(PCC!=None && PCC.CopiedPawn!=None && PCC.CopiedPawn!=Instigator)
-        {
-            bFoundPCC=True;
-            returnPCC=PCC;
-            break;
-        }
-    }
-
-    // Give back the corresponding info depending on whether or not
-    // we found a copy
-
-    if(bFoundPCC)
-    {
-        HitLocation = PCCHitLocation;
-        HitNormal = PCCHitNormal;
-        return returnPCC;
-    }
-    else
-    {
-        HitLocation = WorldHitLocation;
-        HitNormal = WorldHitNormal;
-        return Other;
-    }
-}
-
-function TimeTravel(float delta)
-{
-    local PawnCollisionCopy PCC;
-
-    if(NewNet_FlakCannon(Weapon).M == none)
-        foreach Weapon.DynamicActors(class'MutHexedNET',NewNet_FlakCannon(Weapon).M)
-            break;
-
-    for(PCC = NewNet_FlakCannon(Weapon).M.PCC; PCC!=None; PCC=PCC.Next)
-        PCC.TimeTravelPawn(Delta);
-}
-
-function UnTimeTravel()
-{
-    local PawnCollisionCopy PCC;
-    //Now, lets turn off the old hits
-    for(PCC = NewNet_FlakCannon(Weapon).M.PCC; PCC!=None; PCC=PCC.Next)
-        PCC.TurnOffCollision();
 }
 
 simulated function projectile SpawnFakeProjectile(Vector Start, Rotator Dir)

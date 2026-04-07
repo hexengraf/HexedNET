@@ -1,9 +1,7 @@
-
 class NewNet_ClassicSniperRifle extends ClassicSniperRifle
     HideDropDown
 	CacheExempt;
 
-var MutHexedNET M;
 var private HxNTClock NETClock;
 
 replication
@@ -15,7 +13,6 @@ replication
 simulated event PreBeginPlay()
 {
     Super.PreBeginPlay();
-    ForEach DynamicActors(class'MutHexedNET', M) break;
     ForEach DynamicActors(class'HxNTClock', NETClock) break;
 }
 

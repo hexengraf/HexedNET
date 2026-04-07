@@ -1,0 +1,15 @@
+function TimeTravel(float delta)
+{
+    if (HexedNET.PCC != None)
+    {
+        HexedNET.PCC.TimeTravel(Delta);
+    }
+}
+
+function UnTimeTravel()
+{
+    if (HexedNET.PCC != None)
+    {
+        HexedNET.PCC.UnTimeTravel();
+    }
+}

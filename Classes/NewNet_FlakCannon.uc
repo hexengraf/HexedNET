@@ -1,7 +1,3 @@
-
-//-----------------------------------------------------------
-//
-//-----------------------------------------------------------
 class NewNet_FlakCannon extends FlakCannon
     HideDropDown
 	CacheExempt;
@@ -22,7 +18,6 @@ struct ReplicatedVector
     var float Z;
 };
 
-var MutHexedNET M;
 var private HxNTClock NETClock;
 
 var rotator RandSeed[9];
@@ -41,7 +36,6 @@ replication
 simulated event PreBeginPlay()
 {
     Super.PreBeginPlay();
-    ForEach DynamicActors(class'MutHexedNET', M) break;
     ForEach DynamicActors(class'HxNTClock', NETClock) break;
 }
 

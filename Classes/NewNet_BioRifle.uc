@@ -1,11 +1,9 @@
-//-----------------------------------------------------------
 class NewNet_BioRifle extends BioRifle
 	HideDropDown
 	CacheExempt;
 
 const MAX_PROJECTILE_FUDGE = 0.075;
 
-var MutHexedNET M;
 var private HxNTClock NETClock;
 
 var int CurIndex;
@@ -22,7 +20,6 @@ replication
 simulated event PreBeginPlay()
 {
     Super.PreBeginPlay();
-    ForEach DynamicActors(class'MutHexedNET', M) break;
     ForEach DynamicActors(class'HxNTClock', NETClock) break;
 }
 

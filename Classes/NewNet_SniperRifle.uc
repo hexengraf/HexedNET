@@ -1,4 +1,3 @@
-
 class NewNet_SniperRifle extends SniperRifle
     HideDropDown
 	CacheExempt;
@@ -16,7 +15,6 @@ struct ReplicatedVector
     var float Z;
 };
 
-var MutHexedNET M;
 var private HxNTClock NETClock;
 var float lastDT;
 
@@ -31,7 +29,6 @@ replication
 simulated event PreBeginPlay()
 {
     Super.PreBeginPlay();
-    ForEach DynamicActors(class'MutHexedNET', M) break;
     ForEach DynamicActors(class'HxNTClock', NETClock) break;
 }
 

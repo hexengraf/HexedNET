@@ -1,9 +1,7 @@
-
 class NewNet_LinkGun extends LinkGun
 	HideDropDown
 	CacheExempt;
 
-var MutHexedNET M;
 var private HxNTClock NETClock;
 
 const MAX_PROJECTILE_FUDGE = 0.075;
@@ -23,7 +21,6 @@ replication
 simulated event PreBeginPlay()
 {
     Super.PreBeginPlay();
-    ForEach DynamicActors(class'MutHexedNET', M) break;
     ForEach DynamicActors(class'HxNTClock', NETClock) break;
 }
 
