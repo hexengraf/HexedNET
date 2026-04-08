@@ -20,7 +20,6 @@ function DisableNet()
     }
 }
 
-//// client only ////
 simulated event ClientStartFire(int Mode)
 {
     if (!class'HxNTClient'.static.IsEnhancedNetcodeEnabled(Level)
@@ -33,4 +32,21 @@ simulated event ClientStartFire(int Mode)
     {
         NewNet_ClientStartFire(Mode);
     }
+}
+
+function bool ServerShouldStartFire()
+{
+    if (Instigator != None && Instigator.Weapon != Self)
+    {
+        if (Instigator.Weapon == None)
+        {
+            Instigator.ServerChangedWeapon(None, Self);
+        }
+        else
+        {
+            Instigator.Weapon.SynchronizeWeapon(Self);
+        }
+        return false;
+    }
+    return true;
 }

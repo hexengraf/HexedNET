@@ -103,17 +103,11 @@ simulated function bool AltReadyToFire(int Mode)
 
 function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float dt, ReplicatedRotator R, ReplicatedVector V)
 {
+    if (!ServerShouldStartFire())
+    {
+        return;
+    }
     ValidateNETClockPointer();
-    if ( (Instigator != None) && (Instigator.Weapon != self) )
-	{
-		if ( Instigator.Weapon == None )
-			Instigator.ServerChangedWeapon(None,self);
-		else
-			Instigator.Weapon.SynchronizeWeapon(self);
-		return;
-	}
-
-
     if(NewNet_FlakFire(FireMode[Mode])!=None)
     {
         NewNet_FlakFire(FireMode[Mode]).PingDT = FMin(NETClock.GetPingDT(ClientCounter, DT), MAX_PROJECTILE_FUDGE_ALT);
@@ -138,7 +132,7 @@ function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float dt, Replica
             NewNet_FlakFire(FireMode[Mode]).SavedVec.Z = V.Z;
             NewNet_FlakFire(FireMode[Mode]).SavedRot.Yaw = R.Yaw;
             NewNet_FlakFire(FireMode[Mode]).SavedRot.Pitch = R.Pitch;
-            NewNet_FlakFire(FireMode[Mode]).bUseReplicatedInfo=IsReasonable(NewNet_FlakFire(FireMode[Mode]).SavedVec);
+            NewNet_FlakFire(FireMode[Mode]).bUseReplicatedInfo=NETClock.IsReasonable(Self, NewNet_FlakFire(FireMode[Mode]).SavedVec);
         }
         else if(NewNet_FlakAltFire(FireMode[Mode])!=None)
         {
@@ -147,7 +141,7 @@ function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float dt, Replica
             NewNet_FlakAltFire(FireMode[Mode]).SavedVec.Z = V.Z;
             NewNet_FlakAltFire(FireMode[Mode]).SavedRot.Yaw = R.Yaw;
             NewNet_FlakAltFire(FireMode[Mode]).SavedRot.Pitch = R.Pitch;
-            NewNet_FlakAltFire(FireMode[Mode]).bUseReplicatedInfo=IsReasonable(NewNet_FlakAltFire(FireMode[Mode]).SavedVec);
+            NewNet_FlakAltFire(FireMode[Mode]).bUseReplicatedInfo=NETClock.IsReasonable(Self, NewNet_FlakAltFire(FireMode[Mode]).SavedVec);
         }
     }
     else if ( FireMode[Mode].AllowFire() )
@@ -156,19 +150,6 @@ function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float dt, Replica
 	}
 	else
 		ClientForceAmmoUpdate(Mode, AmmoAmount(Mode));
-}
-
-function bool IsReasonable(Vector V)
-{
-    local vector LocDiff;
-    local float clErr;
-
-    if(Owner == none || Pawn(Owner) == none)
-        return true;
-
-    LocDiff = V - (Pawn(Owner).Location + Pawn(Owner).EyePosition());
-    clErr = (LocDiff dot LocDiff);
-    return clErr < 1250.0;
 }
 
 function SendNewRandSeed()

@@ -112,15 +112,10 @@ simulated function bool AltReadyToFire(int Mode)
 
 function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT, ReplicatedRotator R, ReplicatedVector V, bool bBelievesHit, optional actor A)
 {
-	if ( (Instigator != None) && (Instigator.Weapon != self) )
-	{
-		if ( Instigator.Weapon == None )
-			Instigator.ServerChangedWeapon(None,self);
-		else
-			Instigator.Weapon.SynchronizeWeapon(self);
-		return;
-	}
-
+    if (!ServerShouldStartFire())
+    {
+        return;
+    }
     ValidateNETClockPointer();
     NewNet_SniperFire(FireMode[Mode]).PingDT = NETClock.GetPingDT(ClientCounter, DT);
     NewNet_SniperFire(FireMode[Mode]).AverDT = NETClock.ServerAverDT;
@@ -147,7 +142,7 @@ function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT, Replica
         NewNet_SniperFire(FireMode[Mode]).SavedVec.Z = V.Z;
         NewNet_SniperFire(FireMode[Mode]).SavedRot.Yaw = R.Yaw;
         NewNet_SniperFire(FireMode[Mode]).SavedRot.Pitch = R.Pitch;
-        NewNet_SniperFire(FireMode[Mode]).bUseReplicatedInfo=IsReasonable(NewNet_SniperFire(FireMode[Mode]).SavedVec);
+        NewNet_SniperFire(FireMode[Mode]).bUseReplicatedInfo=NETClock.IsReasonable(Self, NewNet_SniperFire(FireMode[Mode]).SavedVec);
    //     NewNet_SniperFire(FireMode[Mode]).bBelievesHit=bBelievesHit;
    //     NewNet_SniperFire(FireMode[Mode]).bCount=true;
    /*     NewNet_SniperFire(FireMode[Mode]).BelievedHLDelta.X = BelievedHLDelta.X;
@@ -163,25 +158,6 @@ function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT, Replica
 	}
 	else
 		ClientForceAmmoUpdate(Mode, AmmoAmount(Mode));
-}
-
-function bool IsReasonable(Vector V)
-{
-    local vector LocDiff;
-    local float clErr;
-
-    if(Owner == none || Pawn(Owner) == none)
-        return true;
-
-    LocDiff = V - (Pawn(Owner).Location + Pawn(Owner).EyePosition());
-    clErr = (LocDiff dot LocDiff);
-
-//    if(clErr > 500.0*NETClock.ServerAverDT)
-//    PlayerController(Pawn(Owner).Controller).ClientMessage("Exceeded error"@clErr);
-//    Log(ClErr@(Pawn(Owner).Velocity dot Pawn(Owner).Velocity));
-   // if(clErr>=750)
-    //   Log("ERROR TOO GREAT");
-    return clErr < 1250.0;
 }
 
 simulated function Weapontick(float deltatime)

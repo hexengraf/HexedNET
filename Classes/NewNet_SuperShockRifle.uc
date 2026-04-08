@@ -37,7 +37,7 @@ function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT, Replica
         NewNet_SuperShockBeamFire(FireMode[Mode]).SavedRot.Yaw = R.Yaw;
         NewNet_SuperShockBeamFire(FireMode[Mode]).SavedRot.Pitch = R.Pitch;
         NewNet_SuperShockBeamFire(FireMode[Mode]).bUseReplicatedInfo =
-            IsReasonable(NewNet_SuperShockBeamFire(FireMode[Mode]).SavedVec);
+            NETClock.IsReasonable(Self, NewNet_SuperShockBeamFire(FireMode[Mode]).SavedVec);
     }
     else if (FireMode[Mode].AllowFire())
     {

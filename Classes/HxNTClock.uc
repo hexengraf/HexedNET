@@ -60,6 +60,23 @@ function float GetPingDT(byte ClientCounter, float DT)
     return ServerTimestamp - Timestamps[ClientCounter] - DT + (0.5 * ServerAverDT);
 }
 
+function bool IsReasonable(Weapon W, Vector V)
+{
+    local vector LocDiff;
+
+    if (Pawn(W.Owner) == None)
+    {
+        return true;
+    }
+    LocDiff = V - (Pawn(W.Owner).Location + Pawn(W.Owner).EyePosition());
+    // clErr = (LocDiff dot LocDiff);
+    // if (clErr > 500.0*NETClock.ServerAverDT)
+        // PlayerController(Pawn(Owner).Controller).ClientMessage("Exceeded error"@clErr);
+    // Log(ClErr@(Pawn(Owner).Velocity dot Pawn(Owner).Velocity));
+    // if(clErr >= 750) Log("ERROR TOO GREAT");
+    return (LocDiff dot LocDiff) < 1250.0;
+}
+
 defaultproperties
 {
     bAlwaysRelevant=True

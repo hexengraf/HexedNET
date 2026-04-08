@@ -126,16 +126,11 @@ simulated function bool AltReadyToFire(int Mode)
 
 function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float dt, ReplicatedRotator R, ReplicatedVector V)
 {
+    if (!ServerShouldStartFire())
+    {
+        return;
+    }
     ValidateNETClockPointer();
-    if ( (Instigator != None) && (Instigator.Weapon != self) )
-	{
-		if ( Instigator.Weapon == None )
-			Instigator.ServerChangedWeapon(None,self);
-		else
-			Instigator.Weapon.SynchronizeWeapon(self);
-		return;
-	}
-
     PingDT = FMin(NETClock.GetPingDT(ClientCounter, DT), MAX_PROJECTILE_FUDGE);
     bUseEnhancedNetCode=true;
     if(NewNet_RocketFire(FireMode[Mode])!=None)
@@ -162,7 +157,7 @@ function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float dt, Replica
             NewNet_RocketFire(FireMode[Mode]).SavedVec.Z = V.Z;
             NewNet_RocketFire(FireMode[Mode]).SavedRot.Yaw = R.Yaw;
             NewNet_RocketFire(FireMode[Mode]).SavedRot.Pitch = R.Pitch;
-            NewNet_RocketFire(FireMode[Mode]).bUseReplicatedInfo=IsReasonable(NewNet_RocketFire(FireMode[Mode]).SavedVec);
+            NewNet_RocketFire(FireMode[Mode]).bUseReplicatedInfo=NETClock.IsReasonable(Self, NewNet_RocketFire(FireMode[Mode]).SavedVec);
 
         }
     }
@@ -218,19 +213,6 @@ simulated function bool StartFire(int Mode)
         FireMode[Mode].FireCount = 0;
     }
     return true;
-}
-
-function bool IsReasonable(Vector V)
-{
-    local vector LocDiff;
-    local float clErr;
-
-    if(Owner == none || Pawn(Owner) == none)
-        return true;
-
-    LocDiff = V - (Pawn(Owner).Location + Pawn(Owner).EyePosition());
-    clErr = (LocDiff dot LocDiff);
-    return clErr < 1250.0;
 }
 
 function Projectile SpawnProjectile(Vector Start, Rotator Dir)

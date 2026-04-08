@@ -72,23 +72,6 @@ simulated event NewNet_ClientStartFire(int Mode)
     }
 }
 
-function bool ServerShouldStartFire()
-{
-    if (Instigator != None && Instigator.Weapon != Self)
-    {
-        if (Instigator.Weapon == None)
-        {
-            Instigator.ServerChangedWeapon(None, Self);
-        }
-        else
-        {
-            Instigator.Weapon.SynchronizeWeapon(Self);
-        }
-        return false;
-    }
-    return true;
-}
-
 simulated function bool AltReadyToFire(int Mode)
 {
     local int Alt;
@@ -155,18 +138,4 @@ simulated function bool StartFire(int Mode)
         FireMode[Mode].FireCount = 0;
     }
     return true;
-}
-
-function bool IsReasonable(Vector V)
-{
-    local vector LocDiff;
-
-    if (Pawn(Owner) == None)
-    {
-        return true;
-    }
-    LocDiff = V - (Pawn(Owner).Location + Pawn(Owner).EyePosition());
-    // clErr = (LocDiff dot LocDiff);
-    // if(clErr >= 750) Log("ERROR TOO GREAT");
-    return (LocDiff dot LocDiff) < 1250.0;
 }
