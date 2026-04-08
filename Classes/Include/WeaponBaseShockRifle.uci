@@ -35,7 +35,11 @@ simulated event NewNet_ClientStartFire(int Mode)
     local actor A;
     local vector HN,HL;
 
-    if (Role < ROLE_Authority)
+    if (ShockBeamFire(FireMode[Mode]) == None)
+    {
+        Super.ClientStartFire(Mode);
+    }
+    else if (Role < ROLE_Authority)
     {
         if (AltReadyToFire(Mode) && StartFire(Mode))
         {
