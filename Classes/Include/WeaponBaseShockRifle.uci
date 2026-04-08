@@ -17,8 +17,7 @@ struct ReplicatedVector
 replication
 {
     reliable if (Role < ROLE_Authority)
-        NewNet_ServerStartFire,
-        NewNet_OldServerStartFire;
+        NewNet_ServerStartFire;
 }
 
 #include Classes\Include\WeaponBaseFunctions.uci
@@ -38,15 +37,9 @@ simulated event NewNet_ClientStartFire(int Mode)
     }
     else if (Role < ROLE_Authority)
     {
-        if (AltReadyToFire(Mode) && StartFire(Mode))
+        if (ReadyToFire(Mode) && StartFire(Mode))
         {
             ValidateNETClockPointer();
-            if (!ReadyToFire(Mode))
-            {
-                NewNet_OldServerStartFire(Mode, NETClock.ClientCounter, NETClock.DT);
-                // Log("This should never execute");
-                return;
-            }
             R.Pitch = Pawn(Owner).Controller.Rotation.Pitch;
             R.Yaw = Pawn(Owner).Controller.Rotation.Yaw;
             STart = Pawn(Owner).Location + Pawn(Owner).EyePosition();
@@ -67,32 +60,6 @@ simulated event NewNet_ClientStartFire(int Mode)
     {
         StartFire(Mode);
     }
-}
-
-simulated function bool AltReadyToFire(int Mode)
-{
-    local int Alt;
-    local float f;
-
-    //There is a very slight descynchronization error on the server
-    // with weapons due to differing deltatimes which accrues to a pretty big
-    // error if people just hold down the button...
-    // This will never cause the weapon to actually fire slower
-    return ReadyToFire(Mode);
-    f = 0.015;
-
-    if (!ReadyToFire(Mode))
-    {
-        return false;
-    }
-    Alt = 1 - Mode;
-    if ((FireMode[Alt] != FireMode[Mode] && FireMode[Alt].bModeExclusive && FireMode[Alt].bIsFiring)
-        || !FireMode[Mode].AllowFire()
-        || (FireMode[Mode].NextFireTime > Level.TimeSeconds + FireMode[Mode].PreFireTime - f))
-    {
-        return false;
-    }
-    return true;
 }
 
 simulated function WeaponTick(float DeltaTime)

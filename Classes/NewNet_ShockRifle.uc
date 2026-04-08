@@ -49,14 +49,6 @@ function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT, Replica
     }
 }
 
-function NewNet_OldServerStartFire(byte Mode, byte ClientCounter, float dt)
-{
-    ValidateNETClockPointer();
-    NewNet_ShockBeamFire(FireMode[Mode]).PingDT = NETClock.GetPingDT(ClientCounter, DT);
-    NewNet_ShockBeamFire(FireMode[Mode]).bUseEnhancedNetCode = true;
-    ServerStartFire(mode);
-}
-
 DefaultProperties
 {
     FireModeClass(0)=class'NewNet_ShockBeamFire'

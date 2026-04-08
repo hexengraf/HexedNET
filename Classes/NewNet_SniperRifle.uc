@@ -80,35 +80,6 @@ simulated function NewNet_ClientStartFire(int Mode)
     }
 }
 
-simulated function bool AltReadyToFire(int Mode)
-{
-    local int alt;
-    local float f;
-
-    //There is a very slight descynchronization error on the server
-    // with weapons due to differing deltatimes which accrues to a pretty big
-    // error if people just hold down the button...
-    // This will never cause the weapon to actually fire slower
-    f = 0.015;
-
-    if(!ReadyToFire(Mode))
-        return false;
-
-    if ( Mode == 0 )
-        alt = 1;
-    else
-        alt = 0;
-
-    if ( ((FireMode[alt] != FireMode[Mode]) && FireMode[alt].bModeExclusive && FireMode[alt].bIsFiring)
-		|| !FireMode[Mode].AllowFire()
-		|| (FireMode[Mode].NextFireTime > Level.TimeSeconds + FireMode[Mode].PreFireTime - f) )
-    {
-        return false;
-    }
-
-	return true;
-}
-
 function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT, ReplicatedRotator R, ReplicatedVector V, bool bBelievesHit, optional actor A)
 {
     if (!ServerShouldStartFire())
