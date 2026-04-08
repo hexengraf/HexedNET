@@ -100,6 +100,10 @@ function TurnOffNetcode()
             {
                 NewNet_ShockRifle(Inv).DisableNet();
             }
+            else if (NewNet_SuperShockRifle(Inv) != None)
+            {
+                NewNet_SuperShockRifle(Inv).DisableNet();
+            }
             else if (NewNet_MiniGun(Inv) != None)
             {
                 NewNet_MiniGun(Inv).DisableNet();
