@@ -260,7 +260,7 @@ function DoTrace(Vector Start, Rotator Dir)
 
     ReflectNum = 0;
 
-    TimeTravel(pingDT);
+    HexedNET.TimeTravel(pingDT);
 
     while (true)
     {
@@ -271,7 +271,7 @@ function DoTrace(Vector Start, Rotator Dir)
         if(PingDT <=0.0)
             Other = Weapon.Trace(HitLocation,HitNormal,End,Start,true);
         else
-            Other = class'PawnCollisionCopy'.static.TimeTravelTrace(Weapon, HitLocation, HitNormal, End, Start);
+            Other = HexedNET.TimeTravelTrace(Weapon, HitLocation, HitNormal, End, Start);
 
         if(Other!=None && Other.IsA('PawnCollisionCopy'))
         {
@@ -299,11 +299,11 @@ function DoTrace(Vector Start, Rotator Dir)
                 while(abs(f) < (0.04 + 2.0*AverDT))
                 {
 
-                    TimeTravel(PingDT-f);
+                    HexedNET.TimeTravel(PingDT-f);
                     if((PingDT-f) <=0.0)
                           AltOther = Weapon.Trace(AltHitLocation,AltHitNormal,End,Start,true);
                     else
-                          AltOther = class'PawnCollisionCopy'.static.TimeTravelTrace(Weapon, AltHitLocation, AltHitNormal, End, Start);
+                          AltOther = HexedNET.TimeTravelTrace(Weapon, AltHitLocation, AltHitNormal, End, Start);
 
                     if(AltOther!=None && AltOther.IsA('PawnCollisionCopy'))
                     {
@@ -340,11 +340,11 @@ function DoTrace(Vector Start, Rotator Dir)
                 while(abs(f) < (0.04 + 2.0*AverDT))
                 {
                     AltOther=None;
-                    TimeTravel(PingDT-f);
+                    HexedNET.TimeTravel(PingDT-f);
                     if((PingDT-f) <=0.0)
                           AltOther = Weapon.Trace(AltHitLocation,AltHitNormal,End,Start,true);
                     else
-                          AltOther = class'PawnCollisionCopy'.static.TimeTravelTrace(Weapon, AltHitLocation, AltHitNormal, End, Start);
+                          AltOther = HexedNET.TimeTravelTrace(Weapon, AltHitLocation, AltHitNormal, End, Start);
 
                     if(AltOther!=None && AltOther.IsA('PawnCollisionCopy'))
                     {
@@ -388,8 +388,8 @@ function DoTrace(Vector Start, Rotator Dir)
                default.Wrong+=1.0;
                for(f=PingDT+0.13; f>=PingDt-0.13; f-=0.01)
                {
-                  TimeTravel(f);
-                  Other = class'PawnCollisionCopy'.static.TimeTravelTrace(Weapon, HitLocation, HitNormal, End, Start);
+                  HexedNET.TimeTravel(f);
+                  Other = HexedNET.TimeTravelTrace(Weapon, HitLocation, HitNormal, End, Start);
                   if(Other!=None && Other.IsA('PawnCollisionCopy'))
                   {
                         //Maintain the same ray, but move to the real pawn
@@ -454,7 +454,7 @@ function DoTrace(Vector Start, Rotator Dir)
 			hitEmitter.mSpawnVecA = HitLocation;
 		if ( HitScanBlockingVolume(Other) != None )
 		{
-        	UnTimeTravel();
+        	HexedNET.UnTimeTravel();
             return;
         }
 
@@ -487,7 +487,7 @@ function DoTrace(Vector Start, Rotator Dir)
             break;
         }
     }
-    UnTimeTravel();
+    HexedNET.UnTimeTravel();
 }
 
 DefaultProperties

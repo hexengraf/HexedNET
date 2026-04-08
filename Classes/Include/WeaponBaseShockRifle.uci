@@ -1,0 +1,168 @@
+var private HxNTClock NETClock;
+var float LastDT;
+
+struct ReplicatedRotator
+{
+    var int Yaw;
+    var int Pitch;
+};
+
+struct ReplicatedVector
+{
+    var float X;
+    var float Y;
+    var float Z;
+};
+
+replication
+{
+    reliable if (Role < ROLE_Authority)
+        NewNet_ServerStartFire,
+        NewNet_OldServerStartFire;
+
+    unreliable if (bDemoRecording)
+        SpawnBeamEffect;
+}
+
+#include Classes\Include\WeaponBaseFunctions.uci
+
+simulated event NewNet_ClientStartFire(int Mode)
+{
+    local ReplicatedRotator R;
+    local ReplicatedVector V;
+    local vector Start;
+    local bool b;
+    local actor A;
+    local vector HN,HL;
+
+    if (Role < ROLE_Authority)
+    {
+        if (AltReadyToFire(Mode) && StartFire(Mode))
+        {
+            ValidateNETClockPointer();
+            if (!ReadyToFire(Mode))
+            {
+                NewNet_OldServerStartFire(Mode, NETClock.ClientCounter, NETClock.DT);
+                // Log("This should never execute");
+                return;
+            }
+            R.Pitch = Pawn(Owner).Controller.Rotation.Pitch;
+            R.Yaw = Pawn(Owner).Controller.Rotation.Yaw;
+            STart = Pawn(Owner).Location + Pawn(Owner).EyePosition();
+            V.X = Start.X;
+            V.Y = Start.Y;
+            V.Z = Start.Z;
+            DoInstantFireEffect(Mode);
+            A = Trace(
+                HN, HL, Start + Vector(Pawn(Owner).Controller.Rotation) * 40000.0, Start, true);
+            if (A != None && (A.IsA('xPawn') || A.IsA('Vehicle')))
+            {
+                b = true;
+            }
+            NewNet_ServerStartFire(Mode, NETClock.ClientCounter, NETClock.DT, R, V, b, A);
+        }
+    }
+    else
+    {
+        StartFire(Mode);
+    }
+}
+
+function bool ServerShouldStartFire()
+{
+    if (Instigator != None && Instigator.Weapon != Self)
+    {
+        if (Instigator.Weapon == None)
+        {
+            Instigator.ServerChangedWeapon(None, Self);
+        }
+        else
+        {
+            Instigator.Weapon.SynchronizeWeapon(Self);
+        }
+        return false;
+    }
+    return true;
+}
+
+simulated function bool AltReadyToFire(int Mode)
+{
+    local int Alt;
+    local float f;
+
+    //There is a very slight descynchronization error on the server
+    // with weapons due to differing deltatimes which accrues to a pretty big
+    // error if people just hold down the button...
+    // This will never cause the weapon to actually fire slower
+    return ReadyToFire(Mode);
+    f = 0.015;
+
+    if (!ReadyToFire(Mode))
+    {
+        return false;
+    }
+    Alt = 1 - Mode;
+    if ((FireMode[Alt] != FireMode[Mode] && FireMode[Alt].bModeExclusive && FireMode[Alt].bIsFiring)
+        || !FireMode[Mode].AllowFire()
+        || (FireMode[Mode].NextFireTime > Level.TimeSeconds + FireMode[Mode].PreFireTime - f))
+    {
+        return false;
+    }
+    return true;
+}
+
+simulated function WeaponTick(float DeltaTime)
+{
+   lastDT = DeltaTime;
+   Super.WeaponTick(DeltaTime);
+}
+
+//// client & server ////
+simulated function bool StartFire(int Mode)
+{
+    local int Alt;
+
+    if (bWaitForCombo && Bot(Instigator.Controller) != None)
+    {
+        if (ComboTarget != None && !ComboTarget.bDeleteMe)
+        {
+            return false;
+        }
+        bWaitForCombo = false;
+    }
+    if (!ReadyToFire(Mode))
+    {
+        return false;
+    }
+    Alt = 1 - Mode;
+    FireMode[Mode].bIsFiring = true;
+    FireMode[Mode].NextFireTime = Level.TimeSeconds-LastDT * 0.5 + FireMode[Mode].PreFireTime;
+    if (FireMode[Alt].bModeExclusive)
+    {
+        // prevents rapidly alternating fire modes
+        FireMode[Mode].NextFireTime = FMax(FireMode[Mode].NextFireTime, FireMode[Alt].NextFireTime);
+    }
+    if (Instigator.IsLocallyControlled())
+    {
+        if (FireMode[Mode].PreFireTime > 0.0 || FireMode[Mode].bFireOnRelease)
+        {
+            FireMode[Mode].PlayPreFire();
+        }
+        FireMode[Mode].FireCount = 0;
+    }
+    return true;
+}
+
+function bool IsReasonable(Vector V)
+{
+    local vector LocDiff;
+
+    if (Pawn(Owner) == None)
+    {
+        return true;
+    }
+    LocDiff = V - (Pawn(Owner).Location + Pawn(Owner).EyePosition());
+    // clErr = (LocDiff dot LocDiff);
+    // if(clErr >= 750) Log("ERROR TOO GREAT");
+    return (LocDiff dot LocDiff) < 1250.0;
+}

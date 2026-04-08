@@ -33,8 +33,6 @@ replication
         NewNet_ServerStartFire;
 }
 
-#include Classes\Include\TimeTravelFunctions.uci
-
 event PreBeginPlay()
 {
     Super.PreBeginPlay();
@@ -43,21 +41,11 @@ event PreBeginPlay()
 
 #include Classes\Include\WeaponBaseFunctions.uci
 
-//// client only ////
-simulated event ClientStartFire(int Mode)
-{
-    if (class'HxNTClient'.static.IsEnhancedNetcodeEnabled(Level))
-    {
-        NewNet_ClientStartFire(mode);
-    }
-    else
-    {
-        Super.ClientStartFire(mode);
-    }
-}
-
 simulated event NewNet_ClientStartFire(int Mode)
 {
+    local ReplicatedRotator R;
+    local ReplicatedVector V;
+    local vector Start;
 	local int OtherMode;
 
 	if ( RocketMultiFire(FireMode[Mode]) != None )
@@ -80,17 +68,6 @@ simulated event NewNet_ClientStartFire(int Mode)
 			return;
 		}
 	}
-    NewNet_AltClientStartFire(Mode);
-}
-
-simulated function NewNet_AltClientStartFire(int mode)
-{
-    local ReplicatedRotator R;
-    local ReplicatedVector V;
-    local vector Start;
-
-    if ( Pawn(Owner).Controller.IsInState('GameEnded') || Pawn(Owner).Controller.IsInState('RoundEnded') )
-        return;
     if (Role < ROLE_Authority)
     {
         if (StartFire(Mode))
@@ -300,9 +277,9 @@ function Projectile SpawnProjectile(Vector Start, Rotator Dir)
                 else
                    End = Start + Extrapolate(Dir, PROJ_TIMESTEP);
                 //Put pawns there
-                TimeTravel(pingdt - g);
+                HexedNET.TimeTravel(pingdt - g);
                 //Trace between the start and extrapolated end
-                Other = class'PawnCollisionCopy'.static.TimeTravelTrace(Self, HitLocation, HitNormal, End, Start);
+                Other = HexedNET.TimeTravelTrace(Self, HitLocation, HitNormal, End, Start);
                 if(Other!=None)
                 {
                     break;
@@ -310,7 +287,7 @@ function Projectile SpawnProjectile(Vector Start, Rotator Dir)
                 //repeat
                 Start=End;
            }
-           UnTimeTravel();
+           HexedNET.UnTimeTravel();
 
            if(Other!=None && Other.IsA('PawnCollisionCopy'))
            {
@@ -353,9 +330,9 @@ function Projectile SpawnProjectile(Vector Start, Rotator Dir)
                 else
                    End = Start + Extrapolate(Dir, PROJ_TIMESTEP);
                 //Put pawns there
-                TimeTravel(pingdt - g);
+                HexedNET.TimeTravel(pingdt - g);
                 //Trace between the start and extrapolated end
-                Other = class'PawnCollisionCopy'.static.TimeTravelTrace(Self, HitLocation, HitNormal, End, Start);
+                Other = HexedNET.TimeTravelTrace(Self, HitLocation, HitNormal, End, Start);
                 if(Other!=None)
                 {
                     break;
@@ -363,7 +340,7 @@ function Projectile SpawnProjectile(Vector Start, Rotator Dir)
                 //repeat
                 Start=End;
            }
-           UnTimeTravel();
+           HexedNET.UnTimeTravel();
 
            if(Other!=None && Other.IsA('PawnCollisionCopy'))
            {

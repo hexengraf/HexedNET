@@ -38,18 +38,6 @@ simulated function SpawnLGEffect(class<Actor> tmpHitEmitClass, vector ArcEnd, ve
         Warn("Server should never spawn the client lightningbolt");
 }
 
-simulated function ClientStartFire(int Mode)
-{
-    if (Mode == 0 && class'HxNTClient'.static.IsEnhancedNetcodeEnabled(Level))
-    {
-        NewNet_ClientStartFire(Mode);
-    }
-    else
-    {
-        Super.ClientStartFire(Mode);
-    }
-}
-
 simulated function NewNet_ClientStartFire(int Mode)
 {
     local ReplicatedRotator R;
@@ -59,8 +47,11 @@ simulated function NewNet_ClientStartFire(int Mode)
     local actor A;
     local vector HN,HL;
 
-    if ( Pawn(Owner).Controller.IsInState('GameEnded') || Pawn(Owner).Controller.IsInState('RoundEnded') )
+    if (Mode == 0)
+    {
+        Super.ClientStartFire(Mode);
         return;
+    }
     if (Role < ROLE_Authority)
     {
         if (ReadyToFire(Mode) && StartFire(Mode) )

@@ -15,7 +15,6 @@ var rotator OldAim;
 
 var class<Projectile> FakeProjectileClass;
 var FakeProjectileManager FPM;
-var MutHexedNET MNN;
 var bool bSkipNextEffect;
 
 const PROJ_TIMESTEP = 0.0201;

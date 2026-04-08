@@ -172,9 +172,9 @@ simulated function ModeTick(float dt)
             Other = Weapon.Trace(HitLocation,HitNormal,EndTrace,StartTrace,true);
         else
         {
-            TimeTravel(PingDT);
+            HexedNET.TimeTravel(PingDT);
             bNeedRevert=true;
-            Other = class'PawnCollisionCopy'.static.TimeTravelTrace(Weapon, HitLocation, HitNormal, EndTrace, StartTrace);
+            Other = HexedNET.TimeTravelTrace(Weapon, HitLocation, HitNormal, EndTrace, StartTrace);
         }
 
         if(Other!=None && Other.IsA('PawnCollisionCopy'))
@@ -215,7 +215,7 @@ simulated function ModeTick(float dt)
 				}
 			}
     	    if(bNeedRevert)
-                 UnTimeTravel();
+                HexedNET.UnTimeTravel();
 			return;
 		}
         if ( Other != None && Other != Instigator )
@@ -343,7 +343,7 @@ simulated function ModeTick(float dt)
     bStartFire = false;
     bDoHit = false;
     if(bNeedRevert)
-        UnTimeTravel();
+        HexedNET.UnTimeTravel();
 }
 
 DefaultProperties

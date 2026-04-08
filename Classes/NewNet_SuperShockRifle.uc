@@ -1,199 +1,33 @@
 class NewNet_SuperShockRifle extends SuperShockRifle
-	HideDropDown
-	CacheExempt;
+    HideDropDown
+    CacheExempt;
 
-var private HxNTClock NETClock;
-var float LastDT;
+#include Classes\Include\WeaponBaseShockRifle.uci
 
-struct ReplicatedRotator
+simulated function DoInstantFireEffect(int Mode)
 {
-    var int Yaw;
-    var int Pitch;
-};
-
-struct ReplicatedVector
-{
-    var float X;
-    var float Y;
-    var float Z;
-};
-
-replication
-{
-    reliable if( Role<ROLE_Authority )
-        NewNet_ServerStartFire,NewNet_OldServerStartFire;
-    unreliable if(bDemoRecording)
-        SpawnBeamEffect;
+    NewNet_SuperShockBeamFire(FireMode[Mode]).DoInstantFireEffect();
 }
-
-#include Classes\Include\WeaponBaseFunctions.uci
-
-//// client only ////
-simulated event ClientStartFire(int Mode)
-{
-    if (class'HxNTClient'.static.IsEnhancedNetcodeEnabled(Level) && NewNet_SuperShockBeamFire(FireMode[Mode]) != None)
-    {
-        NewNet_ClientStartFire(mode);
-    }
-    else
-    {
-        Super.ClientStartFire(mode);
-    }
-}
-
-simulated event NewNet_ClientStartFire(int Mode)
-{
-    local ReplicatedRotator R;
-    local ReplicatedVector V;
-    local vector Start;
-    local bool b;
-    local actor A;
-    local vector HN,HL;
-
-    if ( Pawn(Owner).Controller.IsInState('GameEnded') || Pawn(Owner).Controller.IsInState('RoundEnded') )
-        return;
-    if (Role < ROLE_Authority)
-    {
-        if (AltReadyToFire(Mode) && StartFire(Mode))
-        {
-            ValidateNETClockPointer();
-            if(!ReadyToFire(Mode))
-            {
-                NewNet_OldServerStartFire(Mode,NETClock.ClientCounter, NETClock.DT);
-             //   Log("This should never execute");
-                return;
-            }
-            R.Pitch = Pawn(Owner).Controller.Rotation.Pitch;
-            R.Yaw = Pawn(Owner).Controller.Rotation.Yaw;
-            STart=Pawn(Owner).Location + Pawn(Owner).EyePosition();
-
-            V.X = Start.X;
-            V.Y = Start.Y;
-            V.Z = Start.Z;
-
-            NewNet_SuperShockBeamFire(FireMode[mode]).DoInstantFireEffect();
-
-            A = Trace(HN,HL,Start+Vector(Pawn(Owner).Controller.Rotation)*40000.0,Start,true);
-            if(A!=None && (A.IsA('xPawn') || A.IsA('Vehicle')))
-            {
-                    b=true;
-            }
-
-            NewNet_ServerStartFire(Mode, NETClock.ClientCounter, NETClock.DT, R, V,b,A);
-        }
-    }
-    else
-    {
-        StartFire(Mode);
-    }
-}
-
-simulated function bool AltReadyToFire(int Mode)
-{
-    local int alt;
-    local float f;
-
-    //There is a very slight descynchronization error on the server
-    // with weapons due to differing deltatimes which accrues to a pretty big
-    // error if people just hold down the button...
-    // This will never cause the weapon to actually fire slower
-    return ReadyToFire(Mode);
-    f = 0.015;
-
-    if(!ReadyToFire(Mode))
-        return false;
-
-    if ( Mode == 0 )
-        alt = 1;
-    else
-        alt = 0;
-
-    if ( ((FireMode[alt] != FireMode[Mode]) && FireMode[alt].bModeExclusive && FireMode[alt].bIsFiring)
-		|| !FireMode[Mode].AllowFire()
-		|| (FireMode[Mode].NextFireTime > Level.TimeSeconds + FireMode[Mode].PreFireTime - f) )
-    {
-        return false;
-    }
-
-	return true;
-}
-
-simulated function WeaponTick(float deltatime)
-{
-   lastDT = deltatime;
-   Super.tick(deltatime);
-}
-
-//// client & server ////
-simulated function bool StartFire(int Mode)
-{
-    local int alt;
-    if ( bWaitForCombo && (Bot(Instigator.Controller) != None) )
-	{
-		if ( (ComboTarget == None) || ComboTarget.bDeleteMe )
-			bWaitForCombo = false;
-		else
-			return false;
-	}
-
-    if (!ReadyToFire(Mode))
-        return false;
-
-    if (Mode == 0)
-        alt = 1;
-    else
-        alt = 0;
-
-    FireMode[Mode].bIsFiring = true;
-
-    FireMode[Mode].NextFireTime = Level.TimeSeconds-LastDT*0.5 + FireMode[Mode].PreFireTime;
-
-    if (FireMode[alt].bModeExclusive)
-    {
-        // prevents rapidly alternating fire modes
-        FireMode[Mode].NextFireTime = FMax(FireMode[Mode].NextFireTime, FireMode[alt].NextFireTime);
-    }
-
-    if (Instigator.IsLocallyControlled())
-    {
-        if (FireMode[Mode].PreFireTime > 0.0 || FireMode[Mode].bFireOnRelease)
-        {
-            FireMode[Mode].PlayPreFire();
-        }
-        FireMode[Mode].FireCount = 0;
-    }
-
-    return true;
-}
-
 
 function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT, ReplicatedRotator R, ReplicatedVector V, bool bBelievesHit, actor A/*, bool bBelievesHit, ReplicatedVector BelievedHLDelta, Actor A, vector HN, vector HL*/)
 {
-	if ( (Instigator != None) && (Instigator.Weapon != self) )
-	{
-		if ( Instigator.Weapon == None )
-			Instigator.ServerChangedWeapon(None,self);
-		else
-			Instigator.Weapon.SynchronizeWeapon(self);
-		return;
-	}
+    if (!ServerShouldStartFire())
+    {
+        return;
+    }
     ValidateNETClockPointer();
     NewNet_SuperShockBeamFire(FireMode[Mode]).PingDT = NETClock.GetPingDT(ClientCounter, DT);
     NewNet_SuperShockBeamFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     NewNet_SuperShockBeamFire(FireMode[Mode]).AverDT = NETClock.ServerAverDT;
 
-    if(bBelievesHit)
+    if (bBelievesHit)
     {
-        NewNet_SuperShockBeamFire(FireMode[Mode]).bBelievesHit=true;
-        NewNet_SuperShockBeamFire(FireMode[Mode]).BelievedHitActor=A;
+        NewNet_SuperShockBeamFire(FireMode[Mode]).BelievedHitActor = A;
     }
-    else
-    {
-        NewNet_SuperShockBeamFire(FireMode[Mode]).bBelievesHit=false;
-    }
-    NewNet_SuperShockBeamFire(FireMode[Mode]).bFirstGo=true;
-    if ( (FireMode[Mode].NextFireTime <= Level.TimeSeconds + FireMode[Mode].PreFireTime)
-		&& StartFire(Mode) )
+    NewNet_SuperShockBeamFire(FireMode[Mode]).bBelievesHit = bBelievesHit;
+    NewNet_SuperShockBeamFire(FireMode[Mode]).bFirstGo = true;
+    if (FireMode[Mode].NextFireTime <= Level.TimeSeconds + FireMode[Mode].PreFireTime
+        && StartFire(Mode))
     {
         FireMode[Mode].ServerStartFireTime = Level.TimeSeconds;
         FireMode[Mode].bServerDelayStartFire = false;
@@ -202,64 +36,54 @@ function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT, Replica
         NewNet_SuperShockBeamFire(FireMode[Mode]).SavedVec.Z = V.Z;
         NewNet_SuperShockBeamFire(FireMode[Mode]).SavedRot.Yaw = R.Yaw;
         NewNet_SuperShockBeamFire(FireMode[Mode]).SavedRot.Pitch = R.Pitch;
-        NewNet_SuperShockBeamFire(FireMode[Mode]).bUseReplicatedInfo=IsReasonable(NewNet_SuperShockBeamFire(FireMode[Mode]).SavedVec);
+        NewNet_SuperShockBeamFire(FireMode[Mode]).bUseReplicatedInfo =
+            IsReasonable(NewNet_SuperShockBeamFire(FireMode[Mode]).SavedVec);
     }
-    else if ( FireMode[Mode].AllowFire() )
+    else if (FireMode[Mode].AllowFire())
     {
         FireMode[Mode].bServerDelayStartFire = true;
-	}
-	else
-		ClientForceAmmoUpdate(Mode, AmmoAmount(Mode));
+    }
+    else
+    {
+        ClientForceAmmoUpdate(Mode, AmmoAmount(Mode));
+    }
 }
-
 
 function NewNet_OldServerStartFire(byte Mode, byte ClientCounter, float dt)
 {
     ValidateNETClockPointer();
     NewNet_SuperShockBeamFire(FireMode[Mode]).PingDT = NETClock.GetPingDT(ClientCounter, DT);
     NewNet_SuperShockBeamFire(FireMode[Mode]).bUseEnhancedNetCode = true;
-    ServerStartFire(mode);
+    ServerStartFire(Mode);
 }
 
-function bool IsReasonable(Vector V)
-{
-    local vector LocDiff;
-    local float clErr;
-
-    if(Owner == none || Pawn(Owner) == none)
-        return true;
-
-    LocDiff = V - (Pawn(Owner).Location + Pawn(Owner).EyePosition());
-    clErr = (LocDiff dot LocDiff);
-   // if(clErr>=750)
-   //   Log("ERROR TOO GREAT");
-   return clErr < 1250.0;
-}
-
-simulated function SpawnBeamEffect(vector HitLocation, vector HitNormal, vector Start, rotator Dir, int reflectnum)
+simulated function SpawnBeamEffect(vector HitLocation, vector HitNormal, vector Start, rotator Dir, int ReflectNum)
 {
     local ShockBeamEffect Beam;
 
     if (bClientDemoNetFunc) {
         Start.Z = Start.Z - 64.0;
     }
-
-    if (
-        Instigator.PlayerReplicationInfo.Team != None &&
-        Instigator.PlayerReplicationInfo.Team.TeamIndex == 1
-    ) {
+    if (Instigator.PlayerReplicationInfo.Team != None
+        && Instigator.PlayerReplicationInfo.Team.TeamIndex == 1)
+    {
         Beam = Spawn(class'XWeapons.BlueSuperShockBeam',,, Start, Dir);
-    } else {
+    }
+    else
+    {
         Beam = Spawn(class'XWeapons.SuperShockBeamEffect',,, Start, Dir);
     }
-
-    if (Beam == none) return;
-
-    Beam.RemoteRole = ROLE_None;
-    if (ReflectNum != 0) Beam.Instigator = None; // prevents client side repositioning of beam start
-    Beam.AimAt(HitLocation, HitNormal);
+    if (Beam != None)
+    {
+        Beam.RemoteRole = ROLE_None;
+        if (ReflectNum != 0)
+        {
+            // prevents client side repositioning of beam start
+            Beam.Instigator = None;
+        }
+        Beam.AimAt(HitLocation, HitNormal);
+    }
 }
-
 
 DefaultProperties
 {

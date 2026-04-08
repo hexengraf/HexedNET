@@ -5,10 +5,10 @@ var config float TimeBetweenPings;
 var config float PawnCollisionTimeWindow;
 
 var HxNTClock NETClock;
-var PawnCollisionCopy PCC;
 
 var const private class<Weapon> WeaponClasses[13];
 var const private class<Weapon> NewNetWeaponClasses[13];
+var private PawnCollisionCopy PCC;
 var private bool bEnhancedNetcodeActive;
 
 event PreBeginPlay()
@@ -86,6 +86,60 @@ function SpawnCollisionCopy(Pawn Other)
         PCC.AddPawnToList(Other);
     }
     PCC = PCC.RemoveOldPawns();
+}
+
+function TimeTravel(float delta)
+{
+    if (PCC != None)
+    {
+        PCC.TimeTravel(Delta);
+    }
+}
+
+function UnTimeTravel()
+{
+    if (PCC != None)
+    {
+        PCC.UnTimeTravel();
+    }
+}
+
+// We need to do 2 traces. First, one that ignores the things which have already been copied
+// and a second one that looks only for things that are copied
+function Actor TimeTravelTrace(Weapon Weapon,
+                               out vector HitLocation,
+                               out vector HitNormal,
+                               vector End,
+                               vector Start)
+{
+    local Actor Other;
+    local PawnCollisionCopy Copy;
+    local vector PCCHitNormal;
+    local vector PCCHitLocation;
+
+    // First, lets set the extent of our trace.  End once we hit an actor which won't
+    // be checked by an unlagged copy.
+    foreach TraceActors(class'Actor', Other, HitLocation, HitNormal, End, Start)
+    {
+        if ((Other.bBlockActors || Other.bProjTarget || Other.bWorldGeometry)
+            && !class'MutHexedNET'.static.IsPredicted(Other))
+        {
+            End = HitLocation;
+            break;
+        }
+    }
+    // Now, lets see if we run into any copies, we stop at the location
+    // determined by the previous trace.
+    foreach TraceActors(class'PawnCollisionCopy', Copy, PCCHitLocation, PCCHitNormal, End, Start)
+    {
+        if (Copy != None && Copy.CopiedPawn != None && Copy.CopiedPawn != Weapon.Instigator)
+        {
+            HitLocation = PCCHitLocation;
+            HitNormal = PCCHitNormal;
+            return Copy;
+        }
+    }
+    return Other;
 }
 
 function DriverEnteredVehicle(Vehicle V, Pawn P)

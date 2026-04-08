@@ -392,45 +392,6 @@ function UnTimeTravel()
     }
 }
 
-// We need to do 2 traces. First, one that ignores the things which have already been copied
-// and a second one that looks only for things that are copied
-static function Actor TimeTravelTrace(Weapon Requester,
-                                      out vector HitLocation,
-                                      out vector HitNormal,
-                                      vector End,
-                                      vector Start)
-{
-    local Actor Other;
-    local PawnCollisionCopy PCC;
-    local vector PCCHitNormal;
-    local vector PCCHitLocation;
-
-    // First, lets set the extent of our trace.  End once we hit an actor which won't
-    // be checked by an unlagged copy.
-    foreach Requester.TraceActors(class'Actor', Other, HitLocation, HitNormal, End, Start)
-    {
-        if ((Other.bBlockActors || Other.bProjTarget || Other.bWorldGeometry)
-            && !class'MutHexedNET'.static.IsPredicted(Other))
-        {
-            End = HitLocation;
-            break;
-        }
-    }
-    // Now, lets see if we run into any copies, we stop at the location
-    // determined by the previous trace.
-    foreach Requester.TraceActors(
-        class'PawnCollisionCopy', PCC, PCCHitLocation, PCCHitNormal, End, Start)
-    {
-        if (PCC != None && PCC.CopiedPawn != None && PCC.CopiedPawn != Requester.Instigator)
-        {
-            HitLocation = PCCHitLocation;
-            HitNormal = PCCHitNormal;
-            return PCC;
-        }
-    }
-    return Other;
-}
-
 defaultproperties
 {
     RemoteRole=ROLE_NONE

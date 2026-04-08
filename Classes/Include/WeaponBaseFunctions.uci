@@ -8,14 +8,29 @@ simulated function ValidateNETClockPointer()
 
 function DisableNet()
 {
-    if (FireMode[0] != None)
+    local int i;
+
+    for (i = 0; i < ArrayCount(FireMode); ++i)
     {
-        FireMode[0].SetPropertyText("bUseEnhancedNetCode", "false");
-        FireMode[0].SetPropertyText("PingDT", "0.00");
+        if (FireMode[i] != None)
+        {
+            FireMode[i].SetPropertyText("bUseEnhancedNetCode", "false");
+            FireMode[i].SetPropertyText("PingDT", "0.00");
+        }
     }
-    if (FireMode[1] != None)
+}
+
+//// client only ////
+simulated event ClientStartFire(int Mode)
+{
+    if (!class'HxNTClient'.static.IsEnhancedNetcodeEnabled(Level)
+        || Pawn(Owner).Controller.IsInState('GameEnded')
+        || Pawn(Owner).Controller.IsInState('RoundEnded'))
     {
-        FireMode[1].SetPropertyText("bUseEnhancedNetCode", "false");
-        FireMode[1].SetPropertyText("PingDT", "0.00");
+        Super.ClientStartFire(Mode);
+    }
+    else
+    {
+        NewNet_ClientStartFire(Mode);
     }
 }

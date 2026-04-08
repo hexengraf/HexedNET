@@ -8,5 +8,3 @@ function PreBeginPlay()
     Super.PreBeginPlay();
     foreach Weapon.DynamicActors(class'MutHexedNET', HexedNET) break;
 }
-
-#include Classes/Include/TimeTravelFunctions.uci

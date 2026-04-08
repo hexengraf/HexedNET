@@ -30,11 +30,11 @@ function DoTrace(Vector Start, Rotator Dir)
 
     X = Vector(Dir);
     End = Start + TraceRange * X;
-    TimeTravel(PingDT);
+    HexedNET.TimeTravel(PingDT);
     if(PingDT <=0.0)
         Other = Weapon.Trace(HitLocation,HitNormal,End,Start,true);
     else
-        Other = class'PawnCollisionCopy'.static.TimeTravelTrace(Weapon, HitLocation, HitNormal, End, Start);
+        Other = HexedNET.TimeTravelTrace(Weapon, HitLocation, HitNormal, End, Start);
 
     if(Other!=None && Other.IsA('PawnCollisionCopy'))
     {
@@ -45,7 +45,7 @@ function DoTrace(Vector Start, Rotator Dir)
     {
         PawnHitLocation = HitLocation;
     }
-    UnTimeTravel();
+    HexedNET.UnTimeTravel();
 
     if ( (Level.NetMode != NM_Standalone) || (PlayerController(Instigator.Controller) == None) )
 		Weapon.Spawn(class'TracerProjectile',Instigator.Controller,,Start,Dir);

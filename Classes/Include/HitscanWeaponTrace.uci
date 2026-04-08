@@ -15,7 +15,7 @@ function DoTrace(Vector Start, Rotator Dir)
     }
     MaxRange();
     ReflectNum = 0;
-    TimeTravel(pingDT);
+    HexedNET.TimeTravel(pingDT);
     while (true)
     {
         bDoReflect = false;
@@ -25,7 +25,7 @@ function DoTrace(Vector Start, Rotator Dir)
         if(PingDT <=0.0)
             Other = Weapon.Trace(HitLocation,HitNormal,End,Start,true);
         else
-            Other = class'PawnCollisionCopy'.static.TimeTravelTrace(Weapon, HitLocation, HitNormal, End, Start);
+            Other = HexedNET.TimeTravelTrace(Weapon, HitLocation, HitNormal, End, Start);
 
         if(Other!=None && Other.IsA('PawnCollisionCopy'))
         {
@@ -81,5 +81,5 @@ function DoTrace(Vector Start, Rotator Dir)
             break;
         }
     }
-    UnTimeTravel();
+    HexedNET.UnTimeTravel();
 }

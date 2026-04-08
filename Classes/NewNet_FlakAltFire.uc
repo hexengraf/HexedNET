@@ -172,9 +172,9 @@ function projectile SpawnProjectile(Vector Start, Rotator Dir)
                    End = Start + Extrapolate(Dir, speed, PROJ_TIMESTEP,g==0.0);
              */
                 //Put pawns there
-                TimeTravel(pingdt - g);
+                HexedNET.TimeTravel(pingdt - g);
                 //Trace between the start and extrapolated end
-                Other = class'PawnCollisionCopy'.static.TimeTravelTrace(Weapon, HitLocation, HitNormal, End, Start);
+                Other = HexedNET.TimeTravelTrace(Weapon, HitLocation, HitNormal, End, Start);
                 if(Other!=None)
                 {
                     break;
@@ -183,7 +183,7 @@ function projectile SpawnProjectile(Vector Start, Rotator Dir)
                // Start=End;
              }
 
-           UnTimeTravel();
+           HexedNET.UnTimeTravel();
 
            if(Other!=None && Other.IsA('PawnCollisionCopy'))
            {

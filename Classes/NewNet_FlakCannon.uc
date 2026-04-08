@@ -35,27 +35,12 @@ replication
 
 #include Classes\Include\WeaponBaseFunctions.uci
 
-//// client only ////
-simulated event ClientStartFire(int Mode)
-{
-    if (class'HxNTClient'.static.IsEnhancedNetcodeEnabled(Level))
-    {
-        NewNet_ClientStartFire(mode);
-    }
-    else
-    {
-        Super.ClientStartFire(mode);
-    }
-}
-
 simulated event NewNet_ClientStartFire(int Mode)
 {
     local ReplicatedRotator R;
     local ReplicatedVector V;
     local vector Start;
 
-    if ( Pawn(Owner).Controller.IsInState('GameEnded') || Pawn(Owner).Controller.IsInState('RoundEnded') )
-        return;
     if (Role < ROLE_Authority)
     {
         if (AltReadyToFire(Mode) && StartFire(Mode) )

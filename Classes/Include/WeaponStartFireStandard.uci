@@ -1,0 +1,15 @@
+simulated event NewNet_ClientStartFire(int Mode)
+{
+    if (Role < ROLE_Authority)
+    {
+        if (StartFire(Mode))
+        {
+            ValidateNETClockPointer();
+            NewNet_ServerStartFire(Mode, NETClock.ClientCounter, NETClock.DT);
+        }
+    }
+    else
+    {
+        StartFire(Mode);
+    }
+}
