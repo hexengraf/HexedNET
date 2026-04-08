@@ -10,9 +10,6 @@ replication
 {
     reliable if (Role < ROLE_Authority)
         NewNet_ServerStartFire;
-
-    unreliable if (Role == Role_Authority)
-        DispatchClientEffect;
 }
 
 #include Classes\Include\WeaponBaseFunctions.uci
@@ -33,14 +30,6 @@ function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT)
         NewNet_AssaultGrenade(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
     ServerStartFire(Mode);
-}
-
-simulated function DispatchClientEffect(Vector V, rotator R)
-{
-    if(Level.NetMode == NM_Client)
-    {
-        Spawn(class'LinkProjectile',,, V, R);
-    }
 }
 
 DefaultProperties

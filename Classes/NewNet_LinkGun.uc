@@ -13,9 +13,6 @@ replication
     reliable if (Role<ROLE_Authority)
         NewNet_ServerStartFire;
 
-    // unreliable if (Role == Role_Authority)
-    //     DispatchClientEffect;
-
     unreliable if (Role == Role_Authority && bNetOwner)
         CurIndex;
 }
@@ -38,14 +35,6 @@ function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT)
         NewNet_LinkFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
     ServerStartFire(Mode);
-}
-
-simulated function DispatchClientEffect(Vector V, rotator R)
-{
-    if (Level.NetMode == NM_Client)
-    {
-        Spawn(class'LinkProjectile',,, V, R);
-    }
 }
 
 DefaultProperties

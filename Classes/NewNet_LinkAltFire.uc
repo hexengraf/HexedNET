@@ -67,7 +67,6 @@ function Projectile SpawnProjectile(Vector Start, Rotator Dir)
        else
        {
            Proj = Weapon.Spawn(class'NewNet_LinkProjectile',,, HitLocation - Vector(dir)*20.0, Dir);
-           NewNet_LinkGun(Weapon).DispatchClientEffect(HitLocation - Vector(dir)*20.0, Dir);
        }
     }
     else
