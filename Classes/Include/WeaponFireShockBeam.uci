@@ -330,7 +330,7 @@ simulated function DoClientTrace(vector Start, rotator Dir)
                 WeaponAttachment(Weapon.ThirdPersonActor).UpdateHit(Other,HitLocation,HitNormal);
             }
         }
-        SpawnClientBeamEffect(Start, Dir, HitLocation, HitNormal, ReflectNum);
+        Super.SpawnBeamEffect(Start, Dir, HitLocation, HitNormal, ReflectNum);
         if (bDoReflect && ++ReflectNum < 4)
         {
             //Log("reflecting off"@Other@Start@HitLocation);

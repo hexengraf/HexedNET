@@ -57,27 +57,6 @@ function NewNet_OldServerStartFire(byte Mode, byte ClientCounter, float dt)
     ServerStartFire(mode);
 }
 
-simulated function SpawnBeamEffect(vector HitLocation, vector HitNormal, vector Start, rotator Dir, int ReflectNum)
-{
-    local ShockBeamEffect Beam;
-
-    if (bClientDemoNetFunc)
-    {
-        Start.Z = Start.Z - 64.0;
-    }
-    Beam = Spawn(class'XWeapons.ShockBeamEffect',,, Start, Dir);
-    if (Beam != None)
-    {
-        Beam.RemoteRole = ROLE_None;
-        if (ReflectNum != 0)
-        {
-            // prevents client side repositioning of beam start
-            Beam.Instigator = None;
-        }
-        Beam.AimAt(HitLocation, HitNormal);
-    }
-}
-
 DefaultProperties
 {
     FireModeClass(0)=class'NewNet_ShockBeamFire'

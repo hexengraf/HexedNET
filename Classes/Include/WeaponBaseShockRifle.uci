@@ -19,9 +19,6 @@ replication
     reliable if (Role < ROLE_Authority)
         NewNet_ServerStartFire,
         NewNet_OldServerStartFire;
-
-    unreliable if (bDemoRecording)
-        SpawnBeamEffect;
 }
 
 #include Classes\Include\WeaponBaseFunctions.uci

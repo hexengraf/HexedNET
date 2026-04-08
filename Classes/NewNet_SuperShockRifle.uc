@@ -57,34 +57,6 @@ function NewNet_OldServerStartFire(byte Mode, byte ClientCounter, float dt)
     ServerStartFire(Mode);
 }
 
-simulated function SpawnBeamEffect(vector HitLocation, vector HitNormal, vector Start, rotator Dir, int ReflectNum)
-{
-    local ShockBeamEffect Beam;
-
-    if (bClientDemoNetFunc) {
-        Start.Z = Start.Z - 64.0;
-    }
-    if (Instigator.PlayerReplicationInfo.Team != None
-        && Instigator.PlayerReplicationInfo.Team.TeamIndex == 1)
-    {
-        Beam = Spawn(class'XWeapons.BlueSuperShockBeam',,, Start, Dir);
-    }
-    else
-    {
-        Beam = Spawn(class'XWeapons.SuperShockBeamEffect',,, Start, Dir);
-    }
-    if (Beam != None)
-    {
-        Beam.RemoteRole = ROLE_None;
-        if (ReflectNum != 0)
-        {
-            // prevents client side repositioning of beam start
-            Beam.Instigator = None;
-        }
-        Beam.AimAt(HitLocation, HitNormal);
-    }
-}
-
 DefaultProperties
 {
     FireModeClass(0)=class'NewNet_SuperShockBeamFire'
