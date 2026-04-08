@@ -47,12 +47,11 @@ simulated function NewNet_ClientStartFire(int Mode)
     local actor A;
     local vector HN,HL;
 
-    if (Mode == 0)
+    if (Mode == 1)
     {
         Super.ClientStartFire(Mode);
-        return;
     }
-    if (Role < ROLE_Authority)
+    else if (Role < ROLE_Authority)
     {
         if (ReadyToFire(Mode) && StartFire(Mode) )
         {
