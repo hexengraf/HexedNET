@@ -2,6 +2,12 @@ class NewNet_ShockBeamFire extends ShockBeamFire;
 
 #include Classes\Include\WeaponFireShockBeam.uci
 
+function PreBeginPlay()
+{
+    Super.PreBeginPlay();
+    foreach Weapon.DynamicActors(class'MutHexedNET', HexedNET) break;
+}
+
 function DoTrace(vector Start, rotator Dir)
 {
     local Actor Other;

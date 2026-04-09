@@ -28,11 +28,13 @@ var private FakeProjectileManager FPM;
 var private float PingSendTime;
 var private bool bPingReceived;
 var private int numPings;
+var private bool bClientUpdated;
 
 replication
 {
     reliable if (Role == ROLE_Authority)
-        Pong;
+        Pong,
+        ServerSetAllowMultiHit;
 
     reliable if (Role < ROLE_Authority)
         Ping,
@@ -72,6 +74,10 @@ simulated function Tick(float DeltaTime)
             FixWeaponInstigator(PlayerController(Owner));
         }
     }
+    else if (Level.NetMode == NM_DedicatedServer && !bClientUpdated)
+    {
+        ServerSetAllowMultiHit(class'ZoomSuperShockBeamFire'.default.bAllowMultiHit);
+    }
 }
 
 function TurnOffNetcode()
@@ -103,6 +109,10 @@ function TurnOffNetcode()
             else if (NewNet_SuperShockRifle(Inv) != None)
             {
                 NewNet_SuperShockRifle(Inv).DisableNet();
+            }
+            else if (NewNet_ZoomSuperShockRifle(Inv) != None)
+            {
+                NewNet_ZoomSuperShockRifle(Inv).DisableNet();
             }
             else if (NewNet_MiniGun(Inv) != None)
             {
@@ -173,6 +183,11 @@ simulated function SetEnhancedNetCode(coerce bool bEnable)
     bEnhancedNetCode = bEnable;
     default.bEnhancedNetCode = bEnable;
     StaticSaveConfig();
+}
+
+simulated function ServerSetAllowMultiHit(bool bEnable)
+{
+    class'NewNet_ZoomSuperShockBeamFire'.default.bServerAllowMultiHit = bEnable;
 }
 
 // TODO: do we really need this?

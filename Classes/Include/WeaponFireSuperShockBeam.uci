@@ -1,0 +1,99 @@
+#include Classes\Include\WeaponFireShockBeam.uci
+
+function TracePart(Vector Start, Vector End, Vector X, Rotator Dir, Pawn Ignored)
+{
+    local Actor Other;
+    local Vector HitLocation;
+    local Vector HitNormal;
+    local vector PresentHitLocation;
+
+    if (!bUseEnhancedNetCode)
+    {
+        Super.TracePart(Start, End, X, Dir, Ignored);
+        return;
+    }
+    HexedNET.TimeTravel(pingDT);
+    if (bFirstGo)
+    {
+        Other = HexedNET.CompensatedTrace2(
+            PingDT,
+            Weapon,
+            PresentHitLocation,
+            HitLocation,
+            HitNormal,
+            End,
+            Start,
+            bBelievesHit,
+            BelievedHitActor);
+        bFirstGo = false;
+    }
+    else
+    {
+        Other = HexedNET.CompensatedTrace(
+            PingDT, Weapon, PresentHitLocation, HitLocation, HitNormal, End, Start);
+    }
+    HexedNET.UnTimeTravel();
+
+    if (Other != None && Other != Ignored)
+    {
+        if (!Other.bWorldGeometry)
+        {
+            Other.TakeDamage(DamageMax, Instigator, PresentHitLocation, Momentum * X, DamageType);
+            HitNormal = vect(0,0,0);
+            if (Pawn(Other) != None && HitLocation != Start && AllowMultiHit())
+            {
+                TracePart(HitLocation, End, X, Dir, Pawn(Other));
+            }
+        }
+    }
+    else
+    {
+        HitLocation = End;
+        HitNormal = vect(0,0,0);
+    }
+    SpawnBeamEffect(Start, Dir, HitLocation, HitNormal, 0);
+}
+
+function DoClientTrace(Vector Start, Rotator Dir)
+{
+    local Vector X;
+
+    X = vector(Dir);
+    ClientTracePart(Start, Start + X * TraceRange, X, Dir, Instigator);
+}
+
+function ClientTracePart(Vector Start, Vector End, Vector X, Rotator Dir, Pawn Ignored)
+{
+    local Vector HitLocation, HitNormal;
+    local Actor Other;
+
+    Other = Ignored.Trace(HitLocation, HitNormal, End, Start, true);
+
+    if (Other != None && Other != Ignored)
+    {
+        if (!Other.bWorldGeometry)
+        {
+            HitNormal = Vect(0,0,0);
+            if (Pawn(Other) != None && HitLocation != Start && AllowMultiHit())
+            {
+                ClientTracePart(HitLocation, End, X, Dir, Pawn(Other));
+            }
+        }
+    }
+    else
+    {
+        HitLocation = End;
+        HitNormal = Vect(0,0,0);
+    }
+    SpawnBeamEffect(Start, Dir, HitLocation, HitNormal, 0);
+}
+
+function ShockBeamEffect NewNet_SpawnBeamEffect(Vector Start, Rotator Dir)
+{
+    if (Instigator.PlayerReplicationInfo.Team != None
+        && Instigator.PlayerReplicationInfo.Team.TeamIndex == 1)
+    {
+        return Weapon.Spawn(class'NewNet_BlueSuperShockBeam', Weapon.Owner,, Start, Dir);
+    }
+    return Weapon.Spawn(class'NewNet_SuperShockBeamEffect', Weapon.Owner,, Start, Dir);
+}

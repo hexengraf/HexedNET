@@ -6,8 +6,10 @@ var bool bSkipNextEffect;
 var bool bBelievesHit;
 var Actor BelievedHitActor;
 var bool bFirstGo;
+var float PingDT;
+var bool bUseEnhancedNetCode;
 
-#include Classes\Include\WeaponFireBase.uci
+var private MutHexedNET HexedNET;
 
 function PlayFiring()
 {
