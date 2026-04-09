@@ -3,6 +3,7 @@ var rotator SavedRot;
 var vector SavedVec;
 
 var bool bSkipNextEffect;
+var int bSkipNextEffectMode;
 var bool bBelievesHit;
 var Actor BelievedHitActor;
 var bool bFirstGo;
@@ -19,7 +20,7 @@ function PlayFiring()
         if (bSkipNextEffect)
         {
             bSkipNextEffect = false;
-            Weapon.ClientStopFire(0);
+            Weapon.ClientStopFire(bSkipNextEffectMode);
         }
         else
         {
@@ -36,11 +37,12 @@ function CheckFireEffect()
    }
 }
 
-function DoInstantFireEffect()
+function DoInstantFireEffect(int Mode)
 {
    if (Level.NetMode == NM_Client && Instigator.IsLocallyControlled())
    {
        DoFireEffect();
+       bSkipNextEffectMode = Mode;
        bSkipNextEffect = true;
    }
 }

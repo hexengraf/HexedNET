@@ -6,7 +6,7 @@ class NewNet_SuperShockRifle extends SuperShockRifle
 
 simulated function DoInstantFireEffect(int Mode)
 {
-    NewNet_SuperShockBeamFire(FireMode[Mode]).DoInstantFireEffect();
+    NewNet_SuperShockBeamFire(FireMode[Mode]).DoInstantFireEffect(Mode);
 }
 
 function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT, ReplicatedRotator R, ReplicatedVector V, bool bBelievesHit, actor A/*, bool bBelievesHit, ReplicatedVector BelievedHLDelta, Actor A, vector HN, vector HL*/)
@@ -46,6 +46,19 @@ function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT, Replica
     {
         ClientForceAmmoUpdate(Mode, AmmoAmount(Mode));
     }
+}
+
+simulated function bool ReadyToFire(int Mode)
+{
+    if (class'HxNTClient'.static.IsEnhancedNetcodeEnabled(Level))
+    {
+        if (FireMode[Mode].bModeExclusive)
+        {
+            FireMode[Mode].NextFireTime = FMax(
+                FireMode[Mode].NextFireTime, FireMode[1 - Mode].NextFireTime);
+        }
+    }
+	return Super.ReadyToFire(Mode);
 }
 
 DefaultProperties

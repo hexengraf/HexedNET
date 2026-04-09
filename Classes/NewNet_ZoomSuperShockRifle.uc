@@ -6,7 +6,7 @@ class NewNet_ZoomSuperShockRifle extends ZoomSuperShockRifle
 
 simulated function DoInstantFireEffect(int Mode)
 {
-    NewNet_ZoomSuperShockBeamFire(FireMode[Mode]).DoInstantFireEffect();
+    NewNet_ZoomSuperShockBeamFire(FireMode[Mode]).DoInstantFireEffect(Mode);
 }
 
 function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT, ReplicatedRotator R, ReplicatedVector V, bool bBelievesHit, actor A/*, bool bBelievesHit, ReplicatedVector BelievedHLDelta, Actor A, vector HN, vector HL*/)

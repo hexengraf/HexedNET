@@ -6,7 +6,7 @@ class NewNet_ShockRifle extends ShockRifle
 
 simulated function DoInstantFireEffect(int Mode)
 {
-    NewNet_ShockBeamFire(FireMode[Mode]).DoInstantFireEffect();
+    NewNet_ShockBeamFire(FireMode[Mode]).DoInstantFireEffect(Mode);
 }
 
 function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT, ReplicatedRotator R, ReplicatedVector V, bool bBelievesHit, Actor A/*, bool bBelievesHit, ReplicatedVector BelievedHLDelta, Actor A, vector HN, vector HL*/)
