@@ -6,6 +6,7 @@ const MAX_PROJECTILE_FUDGE = 0.075;
 
 var private HxNTClock NETClock;
 var private const class<Weapon> BaseClass;
+var private bool bConfigCleared;
 
 replication
 {

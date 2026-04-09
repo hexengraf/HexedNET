@@ -22,6 +22,7 @@ struct ReplicatedVector
 var MutHexedNET HexedNET;
 var private HxNTClock NETClock;
 var private const class<Weapon> BaseClass;
+var private bool bConfigCleared;
 
 var float PingDT;
 var bool bUseEnhancedNetCode;

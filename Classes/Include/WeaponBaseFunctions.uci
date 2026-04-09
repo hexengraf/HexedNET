@@ -3,6 +3,11 @@ simulated function PostBeginPlay()
     Super.PostBeginPlay();
     if (Level.NetMode != NM_DedicatedServer)
     {
+        if (!default.bConfigCleared)
+        {
+            ClearConfig();
+            default.bConfigCleared = true;
+        }
         default.ExchangeFireModes = BaseClass.default.ExchangeFireModes;
         ExchangeFireModes = default.ExchangeFireModes;
         default.Priority = BaseClass.default.Priority;

@@ -20,6 +20,7 @@ struct ReplicatedVector
 
 var private HxNTClock NETClock;
 var private const class<Weapon> BaseClass;
+var private bool bConfigCleared;
 
 var rotator RandSeed[9];
 var int RandIndex;

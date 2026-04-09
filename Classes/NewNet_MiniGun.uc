@@ -4,6 +4,7 @@ class NewNet_MiniGun extends MiniGun
 
 var private HxNTClock NETClock;
 var private const class<Weapon> BaseClass;
+var private bool bConfigCleared;
 
 replication
 {
