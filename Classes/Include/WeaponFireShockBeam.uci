@@ -5,8 +5,6 @@ var vector SavedVec;
 var bool bSkipNextEffect;
 var bool bBelievesHit;
 var Actor BelievedHitActor;
-var vector BelievedHitLocation;
-var float AverDT;
 var bool bFirstGo;
 
 #include Classes\Include\WeaponFireBase.uci

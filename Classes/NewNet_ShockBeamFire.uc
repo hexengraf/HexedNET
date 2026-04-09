@@ -4,16 +4,16 @@ class NewNet_ShockBeamFire extends ShockBeamFire;
 
 function DoTrace(vector Start, rotator Dir)
 {
-    local vector X, End, HitLocation, HitNormal, RefNormal;
     local Actor Other;
+    local vector X;
+    local vector End;
+    local vector HitLocation;
+    local vector HitNormal;
+    local vector RefNormal;
+    local vector PresentHitLocation;
     local int Damage;
     local bool bDoReflect;
     local int ReflectNum;
-    local vector PawnHitLocation;
-    local actor AltOther;
-    local vector AltHitlocation,altHitNormal,altPawnHitLocation;
-    local float f;
-    // local vector ShockLoc;
 
     if (!bUseEnhancedNetCode)
     {
@@ -24,133 +24,35 @@ function DoTrace(vector Start, rotator Dir)
     ReflectNum = 0;
     while (true)
     {
-        HexedNET.TimeTravel(pingDT);
         bDoReflect = false;
         X = vector(Dir);
         End = Start + TraceRange * X;
-        if (PingDT <= 0.0)
+        HexedNET.TimeTravel(pingDT);
+        if (bFirstGo)
         {
-            Other = Weapon.Trace(HitLocation, HitNormal, End, Start, true);
+            Other = HexedNET.CompensatedTrace2(
+                PingDT,
+                Weapon,
+                PresentHitLocation,
+                HitLocation,
+                HitNormal,
+                End,
+                Start,
+                bBelievesHit,
+                BelievedHitActor);
+            bFirstGo = false;
         }
         else
         {
-            Other = HexedNET.TimeTravelTrace(Weapon, HitLocation, HitNormal, End, Start);
+            Other = HexedNET.CompensatedTrace(
+                PingDT, Weapon, PresentHitLocation, HitLocation, HitNormal, End, Start);
         }
-        if (Other != None && Other.IsA('PawnCollisionCopy'))
-        {
-            PawnHitLocation =
-                HitLocation + PawnCollisionCopy(Other).CopiedPawn.Location - Other.Location;
-            Other = PawnCollisionCopy(Other).CopiedPawn;
-        }
-        else
-        {
-            PawnHitLocation = HitLocation;
-        }
-        if (bFirstGo && bBelievesHit && Other != BelievedHitActor)
-        {
-            if (ReflectNum == 0)
-            {
-                f = 0.02;
-                while (Abs(f) < 0.04 + (2.0 * AverDT))
-                {
-                    HexedNET.TimeTravel(PingDT-f);
-                    if ((PingDT-f) <= 0.0)
-                    {
-                        AltOther = Weapon.Trace(AltHitLocation,AltHitNormal,End,Start,true);
-                    }
-                    else
-                    {
-                        AltOther = HexedNET.TimeTravelTrace(
-                            Weapon, AltHitLocation, AltHitNormal, End, Start);
-                    }
-                    if (AltOther != None && AltOther.IsA('PawnCollisionCopy'))
-                    {
-                        AltPawnHitLocation =
-                            AltHitLocation + PawnCollisionCopy(AltOther).CopiedPawn.Location
-                            - AltOther.Location;
-                        AltOther = PawnCollisionCopy(AltOther).CopiedPawn;
-                    }
-                    else
-                    {
-                        AltPawnHitLocation = AltHitLocation;
-                    }
-                    if (AltOther == BelievedHitACtor)
-                    {
-                        // Log("Fixed At"@f@"with max"@(0.04 + 2.0*AverDT));
-                        Other = AltOther;
-                        PawnHitLocation = AltPawnHitLocation;
-                        HitLocation = AltHitLocation;
-                        f = 10.0;
-                    }
-                    if (f > 0.00)
-                    {
-                        f = -1.0 * f;
-                    }
-                    else
-                    {
-                        f = -1.0 * f + 0.02;
-                    }
-                }
-                // if (abs(f) < 9.0) log("Failed to fix");
-            }
-        }
-        else if (bFirstGo && !bBelievesHit && Other != None
-            && (Other.IsA('xPawn') || Other.IsA('Vehicle')))
-        {
-            if (ReflectNum == 0)
-            {
-                f = 0.02;
-                while (Abs(f) < 0.04 + (2.0 * AverDT))
-                {
-                    AltOther = None;
-                    HexedNET.TimeTravel(PingDT - f);
-                    if ((PingDT - f) <= 0.0)
-                    {
-                        AltOther = Weapon.Trace(AltHitLocation, AltHitNormal, End, Start, true);
-                    }
-                    else
-                    {
-                        AltOther = HexedNET.TimeTravelTrace(
-                            Weapon, AltHitLocation, AltHitNormal, End, Start);
-                    }
-                    if (AltOther != None && AltOther.IsA('PawnCollisionCopy'))
-                    {
-                        AltPawnHitLocation =
-                            AltHitLocation + PawnCollisionCopy(AltOther).CopiedPawn.Location
-                            - AltOther.Location;
-                        AltOther = PawnCollisionCopy(AltOther).CopiedPawn;
-                    }
-                    else
-                    {
-                        AltPawnHitLocation = AltHitLocation;
-                    }
-                    if (AltOther == None || !(AltOther.IsA('xPawn') || AltOther.IsA('Vehicle')))
-                    {
-                        // Log("Reverse Fixed At"@f);
-                        Other = AltOther;
-                        PawnHitLocation = AltPawnHitLocation;
-                        HitLocation = AltHitLocation;
-                        f=10.0;
-                    }
-                    if(f > 0.00)
-                    {
-                        f = -1.0 * f;
-                    }
-                    else
-                    {
-                        f = -1.0 * f + 0.02;
-                    }
-                }
-                // if (abs(f) < 9.0) log("Failed to reverse fix");
-            }
-        }
-        bFirstGo = false;
         HexedNET.UnTimeTravel();
 
         if (Other != None && (Other != Instigator || ReflectNum > 0))
         {
             if (bReflective && Other.IsA('xPawn')
-                && xPawn(Other).CheckReflect(PawnHitLocation, RefNormal, DamageMin * 0.25))
+                && xPawn(Other).CheckReflect(PresentHitLocation, RefNormal, DamageMin * 0.25))
             {
                 bDoReflect = true;
                 HitNormal = Vect(0,0,0);
@@ -168,22 +70,22 @@ function DoTrace(vector Start, rotator Dir)
                     || (!Other.IsA('Pawn') && !Other.IsA('HitScanBlockingVolume')))
                 {
                     WeaponAttachment(Weapon.ThirdPersonActor).UpdateHit(
-                        Other, PawnHitLocation, HitNormal);
+                        Other, PresentHitLocation, HitNormal);
                 }
-                Other.TakeDamage(Damage, Instigator, PawnHitLocation, Momentum * X, DamageType);
+                Other.TakeDamage(Damage, Instigator, PresentHitLocation, Momentum * X, DamageType);
                 HitNormal = Vect(0,0,0);
             }
             else if (WeaponAttachment(Weapon.ThirdPersonActor) != None)
             {
                 WeaponAttachment(Weapon.ThirdPersonActor).UpdateHit(
-                    Other, PawnHitLocation, HitNormal);
+                    Other, PresentHitLocation, HitNormal);
             }
         }
         else
         {
             HitLocation = End;
             HitNormal = Vect(0,0,0);
-            WeaponAttachment(Weapon.ThirdPersonActor).UpdateHit(Other, PawnHitLocation, HitNormal);
+            WeaponAttachment(Weapon.ThirdPersonActor).UpdateHit(Other, PresentHitLocation, HitNormal);
         }
         SpawnBeamEffect(Start, Dir, HitLocation, HitNormal, ReflectNum);
 

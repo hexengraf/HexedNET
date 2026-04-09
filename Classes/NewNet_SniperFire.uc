@@ -5,15 +5,9 @@ var rotator savedRot;
 var vector savedVec;
 
 var bool bSkipNextEffect;
-//var bool bBelievesHit;
-//var float Correct, Wrong;
-//var bool bCount;
 var bool bBelievesHit;
 var Actor BelievedHitActor;
-var vector BelievedHitLocation;
-var float AverDT;
 var bool bFirstGo;
-//var vector BelievedHLDelta;
 
 #include Classes\Include\WeaponFireBase.uci
 
@@ -205,11 +199,7 @@ function DoTrace(Vector Start, Rotator Dir)
     local vector arcEnd, mainArcHit;
     local Pawn HeadShotPawn;
 	local vector EffectOffset;
-	local vector PawnHitLocation;
-
-	local actor AltOther;
-	local vector AltHitlocation,altHitNormal,altpawnhitlocation;
-	local float f;
+	local vector PresentHitLocation;
 
 	if(!bUseEnhancedNetCode)
 	{
@@ -268,152 +258,29 @@ function DoTrace(Vector Start, Rotator Dir)
         X = Vector(Dir);
         End = Start + tmpTraceRange * X;
 
-        if(PingDT <=0.0)
-            Other = Weapon.Trace(HitLocation,HitNormal,End,Start,true);
-        else
-            Other = HexedNET.TimeTravelTrace(Weapon, HitLocation, HitNormal, End, Start);
-
-        if(Other!=None && Other.IsA('PawnCollisionCopy'))
+        if (bFirstGo && ArcsRemaining == NumArcs)
         {
-            //Maintain the same ray, but move to the real pawn
-            //ToDo: handle crouching differences
-            PawnHitLocation = HitLocation + PawnCollisionCopy(Other).CopiedPawn.Location - Other.Location;
-    /*        if(ArcsRemaining == NumArcs && bCount && bBelievesHit)
-            {
-                 PlayerController(Pawn(Weapon.Owner).Controller).ClientMessage(BelievedHLDelta - Other.Location);
-                 bCount=false;
-            }    */
-            Other=PawnCollisionCopy(Other).CopiedPawn;
-
+            Other = HexedNET.CompensatedTrace2(
+                PingDT,
+                Weapon,
+                PresentHitLocation,
+                HitLocation,
+                HitNormal,
+                End,
+                Start,
+                bBelievesHit,
+                BelievedHitActor);
         }
         else
         {
-            PawnHitLocation = HitLocation;
+            Other = HexedNET.CompensatedTrace(
+                PingDT, Weapon, PresentHitLocation, HitLocation, HitNormal, End, Start);
         }
-
-        if(bFirstGo && bBelievesHit && !(Other == BelievedHitActor))
-        {
-            if(ArcsRemaining == NumArcs)
-            {
-                f = 0.02;
-                while(abs(f) < (0.04 + 2.0*AverDT))
-                {
-
-                    HexedNET.TimeTravel(PingDT-f);
-                    if((PingDT-f) <=0.0)
-                          AltOther = Weapon.Trace(AltHitLocation,AltHitNormal,End,Start,true);
-                    else
-                          AltOther = HexedNET.TimeTravelTrace(Weapon, AltHitLocation, AltHitNormal, End, Start);
-
-                    if(AltOther!=None && AltOther.IsA('PawnCollisionCopy'))
-                    {
-                         AltPawnHitLocation = AltHitLocation + PawnCollisionCopy(AltOther).CopiedPawn.Location - AltOther.Location;
-                         AltOther=PawnCollisionCopy(AltOther).CopiedPawn;
-                    }
-                    else
-                    {
-                        AltPawnHitLocation=AltHitLocation;
-                    }
-
-                    if(altOther == BelievedHitACtor)
-                    {
-                    //   Log("Fixed At"@f@"with max"@(0.04 + 2.0*AverDT));
-                       Other=altOther;
-                       PawnHitLocation=AltPawnHitLocation;
-                       HitLocation=AltHitLocation;
-                       f=10.0;
-                    }
-                    if(f > 0.00)
-                        f = -1.0*f;
-                    else
-                        f = -1.0*f+0.02;
-                }
-            //    if(abs(f)<9.0)
-            //       log("Failed to fix");
-            }
-        }
-        else if(bFirstGo && !bBelievesHit && Other!=None &&(Other.IsA('xpawn') || Other.IsA('Vehicle')))
-        {
-            if(ArcsRemaining == NumArcs)
-            {
-                f = 0.02;
-                while(abs(f) < (0.04 + 2.0*AverDT))
-                {
-                    AltOther=None;
-                    HexedNET.TimeTravel(PingDT-f);
-                    if((PingDT-f) <=0.0)
-                          AltOther = Weapon.Trace(AltHitLocation,AltHitNormal,End,Start,true);
-                    else
-                          AltOther = HexedNET.TimeTravelTrace(Weapon, AltHitLocation, AltHitNormal, End, Start);
-
-                    if(AltOther!=None && AltOther.IsA('PawnCollisionCopy'))
-                    {
-                         AltPawnHitLocation = AltHitLocation + PawnCollisionCopy(AltOther).CopiedPawn.Location - AltOther.Location;
-                         AltOther=PawnCollisionCopy(AltOther).CopiedPawn;
-                    }
-                    else
-                    {
-                         AltPAwnHitLocation=AltHitLocation;
-                    }
-
-                    if(altOther == None || !(altOther.IsA('xpawn') || altOther.IsA('Vehicle')))
-                    {
-                    //   Log("Reverse Fixed At"@f);
-                       Other=altOther;
-                       PawnHitLocation=AltPawnHitLocation;
-                       HitLocation=AltHitLocation;
-                       f=10.0;
-                    }
-                    if(f > 0.00)
-                        f = -1.0*f;
-                    else
-                        f = -1.0*f+0.02;
-                }
-              //  if(abs(f)<9.0)
-              //     log("Failed to reverse fix");
-            }
-        }
-        bFirstGo=false;
-       /* if(bCount && ArcsRemaining == NumArcs && Other.IsA('ShockProjectile'))
-            bCount=false;
-
-        if(ArcsRemaining == NumArcs && bCount)
-        {
-           if((bBelievesHit && Other.IsA('Xpawn'))
-              Log(HitLocation -
-            if((bBelievesHit && Other.IsA('Xpawn')) || (!bBelievesHit && (Other==None || !Other.IsA('xPawn'))) )
-               default.Correct+=1.0;
-            else
-            {
-               default.Wrong+=1.0;
-               for(f=PingDT+0.13; f>=PingDt-0.13; f-=0.01)
-               {
-                  HexedNET.TimeTravel(f);
-                  Other = HexedNET.TimeTravelTrace(Weapon, HitLocation, HitNormal, End, Start);
-                  if(Other!=None && Other.IsA('PawnCollisionCopy'))
-                  {
-                        //Maintain the same ray, but move to the real pawn
-                        //ToDo: handle crouching differences
-                         PawnHitLocation = HitLocation + PawnCollisionCopy(Other).CopiedPawn.Location - Other.Location;
-                         Other=PawnCollisionCopy(Other).CopiedPawn;
-                  }
-                  if((bBelievesHit && Other.IsA('Xpawn')) || (!bBelievesHit && (Other==None || !Other.IsA('xPawn'))) )
-                  {
-                      PlayerController(Pawn(Weapon.Owner).Controller).ClientMessage("Corrected error at"@f-Pingdt@"delta");
-                  }
-                  else
-                  {
-                      PlayerController(Pawn(Weapon.Owner).Controller).ClientMessage("couldn't fix at"@f-Pingdt@"delta"@Other);
-                  }
-               }
-            }
-            PlayerController(Pawn(Weapon.Owner).Controller).ClientMessage("Correct:"@default.Correct@"Wrong:"@default.Wrong);
-            bCount=false;
-        }      */
+        bFirstGo = false;
 
         if ( Other != None && (Other != Instigator || ReflectNum > 0) )
         {
-            if (bReflective && Other.IsA('xPawn') && xPawn(Other).CheckReflect(PawnHitLocation, RefNormal, DamageMin*0.25))
+            if (bReflective && Other.IsA('xPawn') && xPawn(Other).CheckReflect(PresentHitLocation, RefNormal, DamageMin*0.25))
             {
                 bDoReflect = true;
             }
@@ -424,18 +291,18 @@ function DoTrace(Vector Start, Rotator Dir)
                     Damage = (DamageMin + Rand(DamageMax - DamageMin)) * DamageAtten;
 
                     if (Vehicle(Other) != None)
-                        HeadShotPawn = Vehicle(Other).CheckForHeadShot(PawnHitLocation, X, 1.0);
+                        HeadShotPawn = Vehicle(Other).CheckForHeadShot(PresentHitLocation, X, 1.0);
 
                     if (HeadShotPawn != None)
-                        HeadShotPawn.TakeDamage(Damage * HeadShotDamageMult, Instigator, PawnHitLocation, Momentum*X, DamageTypeHeadShot);
+                        HeadShotPawn.TakeDamage(Damage * HeadShotDamageMult, Instigator, PresentHitLocation, Momentum*X, DamageTypeHeadShot);
 					else if ( (Pawn(Other) != None) && (arcsRemaining == NumArcs)
-						&& Pawn(Other).IsHeadShot(PawnHitLocation, X, 1.0) )
-                        Other.TakeDamage(Damage * HeadShotDamageMult, Instigator, PawnHitLocation, Momentum*X, DamageTypeHeadShot);
+						&& Pawn(Other).IsHeadShot(PresentHitLocation, X, 1.0) )
+                        Other.TakeDamage(Damage * HeadShotDamageMult, Instigator, PresentHitLocation, Momentum*X, DamageTypeHeadShot);
                     else
                     {
 						if ( arcsRemaining < NumArcs )
 							Damage *= SecDamageMult;
-                        Other.TakeDamage(Damage, Instigator, PawnHitLocation, Momentum*X, DamageType);
+                        Other.TakeDamage(Damage, Instigator, PresentHitLocation, Momentum*X, DamageType);
 					}
                 }
                 else

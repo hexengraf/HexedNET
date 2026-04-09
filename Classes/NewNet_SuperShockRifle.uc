@@ -18,7 +18,6 @@ function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT, Replica
     ValidateNETClockPointer();
     NewNet_SuperShockBeamFire(FireMode[Mode]).PingDT = NETClock.GetPingDT(ClientCounter, DT);
     NewNet_SuperShockBeamFire(FireMode[Mode]).bUseEnhancedNetCode = true;
-    NewNet_SuperShockBeamFire(FireMode[Mode]).AverDT = NETClock.ServerAverDT;
 
     if (bBelievesHit)
     {

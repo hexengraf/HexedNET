@@ -142,6 +142,108 @@ function Actor TimeTravelTrace(Weapon Weapon,
     return Other;
 }
 
+function Actor CompensatedTrace(float Delta,
+                                Weapon Weapon,
+                                out vector PresentHitLocation,
+                                out vector HitLocation,
+                                out vector HitNormal,
+                                vector End,
+                                vector Start)
+{
+    local Actor Other;
+
+    if (Delta <= 0.0)
+    {
+        Other = Weapon.Trace(HitLocation, HitNormal, End, Start, true);
+    }
+    else
+    {
+        Other = TimeTravelTrace(Weapon, HitLocation, HitNormal, End, Start);
+    }
+    if (Other != None && Other.IsA('PawnCollisionCopy'))
+    {
+        PresentHitLocation = PawnCollisionCopy(Other).GetPresentHitLocation(HitLocation);
+        return PawnCollisionCopy(Other).CopiedPawn;
+    }
+    PresentHitLocation = HitLocation;
+    return Other;
+}
+
+function Actor CompensatedTrace2(float Delta,
+                                 Weapon Weapon,
+                                 out vector PresentHitLocation,
+                                 out vector HitLocation,
+                                 out vector HitNormal,
+                                 vector End,
+                                 vector Start,
+                                 bool bBelievesHit,
+                                 Actor BelievedHitActor)
+{
+    local Actor Other;
+    local Actor AltOther;
+    local vector AltPresentHitLocation;
+    local vector AltHitLocation;
+    local vector altHitNormal;
+    local float f;
+
+    Other = CompensatedTrace(Delta, Weapon, PresentHitLocation, HitLocation, HitNormal, End, Start);
+    f = 0.02;
+    if (bBelievesHit && Other != BelievedHitActor)
+    {
+        while (Abs(f) < 0.04 + (2.0 * NETClock.ServerAverDT))
+        {
+            TimeTravel(Delta - f);
+            AltOther = CompensatedTrace(
+                Delta - f, Weapon, AltPresentHitLocation, AltHitLocation, AltHitNormal, End, Start);
+            if (AltOther == BelievedHitACtor)
+            {
+                // Log("Fixed At"@f@"with max"@(0.04 + 2.0*NETClock.ServerAverDT));
+                Other = AltOther;
+                PresentHitLocation = AltPresentHitLocation;
+                HitLocation = AltHitLocation;
+                f = 10.0;
+            }
+            if (f > 0.00)
+            {
+                f = -1.0 * f;
+            }
+            else
+            {
+                f = -1.0 * f + 0.02;
+            }
+        }
+        // if (abs(f) < 9.0) log("Failed to fix");
+    }
+    else if (!bBelievesHit && Other != None && (Other.IsA('xPawn') || Other.IsA('Vehicle')))
+    {
+        while (Abs(f) < 0.04 + (2.0 * NETClock.ServerAverDT))
+        {
+            AltOther = None;
+            TimeTravel(Delta - f);
+            AltOther = CompensatedTrace(
+                Delta - f, Weapon, AltPresentHitLocation, AltHitLocation, AltHitNormal, End, Start);
+            if (AltOther == None || !(AltOther.IsA('xPawn') || AltOther.IsA('Vehicle')))
+            {
+                // Log("Reverse Fixed At"@f);
+                Other = AltOther;
+                PresentHitLocation = AltPresentHitLocation;
+                HitLocation = AltHitLocation;
+                f=10.0;
+            }
+            if (f > 0.00)
+            {
+                f = -1.0 * f;
+            }
+            else
+            {
+                f = -1.0 * f + 0.02;
+            }
+        }
+        // if (abs(f) < 9.0) log("Failed to reverse fix");
+    }
+    return Other;
+}
+
 function DriverEnteredVehicle(Vehicle V, Pawn P)
 {
     local PawnCollisionCopy C;

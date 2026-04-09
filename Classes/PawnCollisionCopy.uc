@@ -392,6 +392,12 @@ function UnTimeTravel()
     }
 }
 
+function vector GetPresentHitLocation(vector HitLocation)
+{
+    // TODO: handle crouching differences
+    return HitLocation + CopiedPawn.Location - Location;
+}
+
 defaultproperties
 {
     RemoteRole=ROLE_NONE
