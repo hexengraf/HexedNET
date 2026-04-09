@@ -50,5 +50,6 @@ function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT, Replica
 
 DefaultProperties
 {
+    BaseClass=class'ZoomSuperShockRifle'
     FireModeClass(0)=class'NewNet_ZoomSuperShockBeamFire'
 }

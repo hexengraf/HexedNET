@@ -1,3 +1,23 @@
+simulated function PostBeginPlay()
+{
+    Super.PostBeginPlay();
+    if (Level.NetMode != NM_DedicatedServer)
+    {
+        default.ExchangeFireModes = BaseClass.default.ExchangeFireModes;
+        ExchangeFireModes = default.ExchangeFireModes;
+        default.Priority = BaseClass.default.Priority;
+        Priority = default.Priority;
+        default.CustomCrosshair = BaseClass.default.CustomCrosshair;
+        CustomCrosshair = default.CustomCrosshair;
+        default.CustomCrosshairColor = BaseClass.default.CustomCrosshairColor;
+        CustomCrosshairColor = default.CustomCrosshairColor;
+        default.CustomCrosshairScale = BaseClass.default.CustomCrosshairScale;
+        CustomCrosshairScale = default.CustomCrosshairScale;
+        default.CustomCrosshairTextureName = BaseClass.default.CustomCrosshairTextureName;
+        CustomCrosshairTextureName = default.CustomCrosshairTextureName;
+    }
+}
+
 simulated function ValidateNETClockPointer()
 {
     if (NETClock == None)

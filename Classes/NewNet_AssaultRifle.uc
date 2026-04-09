@@ -5,6 +5,7 @@ class NewNet_AssaultRifle extends AssaultRifle
 const MAX_PROJECTILE_FUDGE = 0.075;
 
 var private HxNTClock NETClock;
+var private const class<Weapon> BaseClass;
 
 replication
 {
@@ -34,6 +35,7 @@ function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT)
 
 DefaultProperties
 {
+    BaseClass=class'AssaultRifle'
     FireModeClass(0)=class'NewNet_AssaultFire'
     FireModeClass(1)=class'NewNet_AssaultGrenade'
 }

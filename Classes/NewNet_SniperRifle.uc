@@ -16,6 +16,7 @@ struct ReplicatedVector
 };
 
 var private HxNTClock NETClock;
+var private const class<Weapon> BaseClass;
 var float lastDT;
 
 replication
@@ -172,5 +173,6 @@ simulated function bool StartFire(int Mode)
 
 defaultproperties
 {
+    BaseClass=class'SniperRifle'
     FireModeClass(0) = class'NewNet_SniperFire'
 }

@@ -21,6 +21,7 @@ struct ReplicatedVector
 
 var MutHexedNET HexedNET;
 var private HxNTClock NETClock;
+var private const class<Weapon> BaseClass;
 
 var float PingDT;
 var bool bUseEnhancedNetCode;
@@ -320,6 +321,7 @@ function vector Extrapolate(out rotator Dir, float dF)
 
 DefaultProperties
 {
+    BaseClass=class'RocketLauncher'
     FireModeClass(0)=class'NewNet_RocketFire'
     FireModeClass(1)=class'NewNet_RocketMultiFire'
 }

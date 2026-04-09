@@ -3,6 +3,7 @@ class NewNet_ClassicSniperRifle extends ClassicSniperRifle
     CacheExempt;
 
 var private HxNTClock NETClock;
+var private const class<Weapon> BaseClass;
 
 replication
 {
@@ -45,5 +46,6 @@ function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT)
 
 DefaultProperties
 {
+    BaseClass=class'ClassicSniperRifle'
     FireModeClass(0)=class'NewNet_ClassicSniperFire'
 }

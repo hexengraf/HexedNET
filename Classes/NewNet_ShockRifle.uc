@@ -50,6 +50,7 @@ function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT, Replica
 
 DefaultProperties
 {
+    BaseClass=class'ShockRifle'
     FireModeClass(0)=class'NewNet_ShockBeamFire'
     FireModeClass(1)=class'NewNet_ShockProjFire'
 }

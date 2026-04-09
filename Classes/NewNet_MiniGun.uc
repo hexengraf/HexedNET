@@ -3,6 +3,7 @@ class NewNet_MiniGun extends MiniGun
     CacheExempt;
 
 var private HxNTClock NETClock;
+var private const class<Weapon> BaseClass;
 
 replication
 {
@@ -31,6 +32,7 @@ function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float dt)
 
 DefaultProperties
 {
+    BaseClass=class'MiniGun'
     FireModeClass(0)=class'NewNet_MiniGunFire'
     FireModeClass(1)=class'NewNet_MiniGunAltFire'
 }

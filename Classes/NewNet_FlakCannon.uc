@@ -19,6 +19,7 @@ struct ReplicatedVector
 };
 
 var private HxNTClock NETClock;
+var private const class<Weapon> BaseClass;
 
 var rotator RandSeed[9];
 var int RandIndex;
@@ -204,6 +205,7 @@ function NewNet_OldServerStartFire(byte Mode, byte ClientCounter, float dt)
 
 defaultproperties
 {
+    BaseClass=class'FlakCannon'
     FireModeClass(0)=class'NewNet_FlakFire'
     FireModeClass(1)=class'NewNet_FlakAltFire'
 }

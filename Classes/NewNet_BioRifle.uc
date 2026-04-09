@@ -7,6 +7,7 @@ const MAX_PROJECTILE_FUDGE = 0.075;
 var int CurIndex;
 
 var private HxNTClock NETClock;
+var private const class<Weapon> BaseClass;
 
 replication
 {
@@ -40,6 +41,7 @@ function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT)
 
 DefaultProperties
 {
+    BaseClass=class'BioRifle'
     FireModeClass(0)=class'NewNet_BioFire'
     FireModeClass(1)=class'NewNet_BioChargedFire'
 }
