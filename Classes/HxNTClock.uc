@@ -7,9 +7,9 @@ var float ServerTimestamp;
 
 var float DT;
 var float AverDT;
-var byte ClientCounter;
+var int ClientCounter;
 
-var private byte ServerCounter;
+var private int ServerCounter;
 var private float Timestamps[256];
 var private float LastReplicatedAverDT;
 
@@ -29,7 +29,7 @@ simulated function Tick(float DeltaTime)
 {
     Update(DeltaTime);
     DT += DeltaTime;
-    if ((ServerCounter - ClientCounter) % 256 < 128)
+    if (ServerCounter > ClientCounter || ClientCounter - ServerCounter > 5000)
     {
         ClientCounter = ServerCounter;
         DT = 0.00;
@@ -47,7 +47,7 @@ function Update(float DeltaTime)
         LastReplicatedAverDT = ServerTimestamp;
     }
     ++ServerCounter;
-    Timestamps[ServerCounter] = ServerTimestamp;
+    Timestamps[ServerCounter % 256] = ServerTimestamp;
 }
 
 function float GetTimestamp(byte Index)
