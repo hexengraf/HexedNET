@@ -17,6 +17,15 @@ replication
 #include Classes\Include\WeaponBaseFunctions.uci
 #include Classes\Include\WeaponStartFireStandard.uci
 
+simulated function PostBeginPlay()
+{
+    Super.PostBeginPlay();
+    if (Level.NetMode != NM_DedicatedServer)
+    {
+        ForceBaseClassConfig();
+    }
+}
+
 function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT)
 {
     ValidateNETClockPointer();

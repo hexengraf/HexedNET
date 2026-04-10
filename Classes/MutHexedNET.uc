@@ -394,6 +394,8 @@ defaultproperties
     WeaponClasses(8)=class'ClassicSniperRifle'
     WeaponClasses(9)=class'SuperShockRifle'
     WeaponClasses(10)=class'ZoomSuperShockRifle'
+    WeaponClasses(11)=class'HxSuperShockRifle'
+    WeaponClasses(12)=class'HxZoomSuperShockRifle'
     // replaced NewNet classes
     NewNetWeaponClasses(0)=class'NewNet_ShockRifle'
     NewNetWeaponClasses(1)=class'NewNet_LinkGun'
@@ -406,4 +408,6 @@ defaultproperties
     NewNetWeaponClasses(8)=class'NewNet_ClassicSniperRifle'
     NewNetWeaponClasses(9)=class'NewNet_SuperShockRifle'
     NewNetWeaponClasses(10)=class'NewNet_ZoomSuperShockRifle'
+    NewNetWeaponClasses(11)=class'NewNet_HxSuperShockRifle'
+    NewNetWeaponClasses(12)=class'NewNet_HxZoomSuperShockRifle'
 }

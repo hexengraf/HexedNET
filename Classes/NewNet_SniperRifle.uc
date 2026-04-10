@@ -30,6 +30,15 @@ replication
 
 #include Classes\Include\WeaponBaseFunctions.uci
 
+simulated function PostBeginPlay()
+{
+    Super.PostBeginPlay();
+    if (Level.NetMode != NM_DedicatedServer)
+    {
+        ForceBaseClassConfig();
+    }
+}
+
 simulated function SpawnLGEffect(class<Actor> tmpHitEmitClass, vector ArcEnd, vector HitNormal, vector HitLocation)
 {
     local xEmitter HitEmitter;

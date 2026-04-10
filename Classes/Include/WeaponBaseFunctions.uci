@@ -1,26 +1,22 @@
-simulated function PostBeginPlay()
+simulated function ForceBaseClassConfig()
 {
-    Super.PostBeginPlay();
-    if (Level.NetMode != NM_DedicatedServer)
+    if (!default.bConfigCleared)
     {
-        if (!default.bConfigCleared)
-        {
-            ClearConfig();
-            default.bConfigCleared = true;
-        }
-        default.ExchangeFireModes = BaseClass.default.ExchangeFireModes;
-        ExchangeFireModes = default.ExchangeFireModes;
-        default.Priority = BaseClass.default.Priority;
-        Priority = default.Priority;
-        default.CustomCrosshair = BaseClass.default.CustomCrosshair;
-        CustomCrosshair = default.CustomCrosshair;
-        default.CustomCrosshairColor = BaseClass.default.CustomCrosshairColor;
-        CustomCrosshairColor = default.CustomCrosshairColor;
-        default.CustomCrosshairScale = BaseClass.default.CustomCrosshairScale;
-        CustomCrosshairScale = default.CustomCrosshairScale;
-        default.CustomCrosshairTextureName = BaseClass.default.CustomCrosshairTextureName;
-        CustomCrosshairTextureName = default.CustomCrosshairTextureName;
+        ClearConfig();
+        default.bConfigCleared = true;
     }
+    default.ExchangeFireModes = BaseClass.default.ExchangeFireModes;
+    ExchangeFireModes = default.ExchangeFireModes;
+    default.Priority = BaseClass.default.Priority;
+    Priority = default.Priority;
+    default.CustomCrosshair = BaseClass.default.CustomCrosshair;
+    CustomCrosshair = default.CustomCrosshair;
+    default.CustomCrosshairColor = BaseClass.default.CustomCrosshairColor;
+    CustomCrosshairColor = default.CustomCrosshairColor;
+    default.CustomCrosshairScale = BaseClass.default.CustomCrosshairScale;
+    CustomCrosshairScale = default.CustomCrosshairScale;
+    default.CustomCrosshairTextureName = BaseClass.default.CustomCrosshairTextureName;
+    CustomCrosshairTextureName = default.CustomCrosshairTextureName;
 }
 
 simulated function ValidateNETClockPointer()

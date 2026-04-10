@@ -138,6 +138,14 @@ function TurnOffNetcode()
             {
                 NewNet_ClassicSniperRifle(Inv).DisableNet();
             }
+            else if (NewNet_HxSuperShockRifle(Inv) != None)
+            {
+                NewNet_HxSuperShockRifle(Inv).DisableNet();
+            }
+            else if (NewNet_HxZoomSuperShockRifle(Inv) != None)
+            {
+                NewNet_HxZoomSuperShockRifle(Inv).DisableNet();
+            }
         }
     }
 }

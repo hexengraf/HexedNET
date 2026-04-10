@@ -2,7 +2,19 @@ class NewNet_ShockRifle extends ShockRifle
     HideDropDown
     CacheExempt;
 
+var private const class<Weapon> BaseClass;
+var private bool bConfigCleared;
+
 #include Classes\Include\WeaponBaseShockRifle.uci
+
+simulated function PostBeginPlay()
+{
+    Super.PostBeginPlay();
+    if (Level.NetMode != NM_DedicatedServer)
+    {
+        ForceBaseClassConfig();
+    }
+}
 
 simulated function DoInstantFireEffect(int Mode)
 {

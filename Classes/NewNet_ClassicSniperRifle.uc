@@ -14,6 +14,15 @@ replication
 
 #include Classes\Include\WeaponBaseFunctions.uci
 
+simulated function PostBeginPlay()
+{
+    Super.PostBeginPlay();
+    if (Level.NetMode != NM_DedicatedServer)
+    {
+        ForceBaseClassConfig();
+    }
+}
+
 simulated event NewNet_ClientStartFire(int Mode)
 {
     if (Mode == 1)
