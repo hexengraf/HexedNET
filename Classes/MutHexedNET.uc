@@ -345,11 +345,14 @@ function string GetInventoryClassOverride(string InventoryClassName)
     local int i;
 
     InventoryClassName = Super.GetInventoryClassOverride(InventoryClassName);
-    for (i = 0; i < ArrayCount(WeaponClasses); ++i)
+    if (bEnhancedNetcodeActive)
     {
-        if (InventoryClassName ~= string(WeaponClasses[i]))
+        for (i = 0; i < ArrayCount(WeaponClasses); ++i)
         {
-            return string(NewNetWeaponClasses[i]);
+            if (InventoryClassName ~= string(WeaponClasses[i]))
+            {
+                return string(NewNetWeaponClasses[i]);
+            }
         }
     }
     return InventoryClassName;
