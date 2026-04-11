@@ -374,12 +374,11 @@ defaultproperties
     FriendlyName="HexedNET v7T1"
     Description="Provides UTComp's enhanced netcode (ping compensation)."
     bAddToServerPackages=true
-
-    MutatorGroup="HexedNET"
     CRIClass=class'HxNTClient'
     Properties(0)=(Name="bAllowEnhancedNetcode",Section="Enhanced Netcode",Caption="Allow enhanced netcode",Hint="Allow clients to enable/disable the enhanced netcode.",Type="Check",bMPOnly=true,bAdvanced=true)
     Properties(1)=(Name="TimeBetweenPings",Section="Enhanced Netcode",Caption="Time between pings",Hint="Time to wait between pings (in seconds).",Type="Text",Data="4;0.0:360.0",bMPOnly=true,bAdvanced=true)
     Properties(2)=(Name="PawnCollisionTimeWindow",Section="Enhanced Netcode",Caption="Pawn collision time window",Hint="Time window (in seconds) to look back for pawn collisions.",Type="Text",Data="4;0.0:360.0",bMPOnly=true,bAdvanced=true)
+    bDisableTick=true
 
     // configs
     bAllowEnhancedNetcode=true
