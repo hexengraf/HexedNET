@@ -44,11 +44,13 @@ function ApplyNewNetWeapons(Mutator M)
         if (M.DefaultWeaponName ~= string(WeaponClasses[i]))
         {
             M.DefaultWeaponName = string(NewNetWeaponClasses[i]);
-            M.default.DefaultWeaponName = string(NewNetWeaponClasses[i]);
+            if (M.DefaultWeapon != None)
+            {
+                M.DefaultWeapon = class<Weapon>(
+                    DynamicLoadObject(M.DefaultWeaponName, class'Class'));
+            }
             if (MutInstaGib(M) != None)
             {
-                MutInstaGib(M).default.WeaponName = NewNetWeaponClasses[i].Name;
-                MutInstaGib(M).default.WeaponString = M.DefaultWeaponName;
                 MutInstaGib(M).WeaponName = NewNetWeaponClasses[i].Name;
                 MutInstaGib(M).WeaponString = M.DefaultWeaponName;
             }
