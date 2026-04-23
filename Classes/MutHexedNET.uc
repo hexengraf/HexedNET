@@ -350,8 +350,8 @@ function string GetInventoryClassOverride(string InventoryClassName)
 
 defaultproperties
 {
-    FriendlyName="HexedNET v7T1"
-    Description="Provides UTComp's enhanced netcode (ping compensation)."
+    FriendlyName="HexedNET v7preview1"
+    Description="Modified version of UTComp's enhanced netcode (ping compensation)."
     bAddToServerPackages=true
     CRIClass=class'HxNTClient'
     Properties(0)=(Name="TimeBetweenPings",Section="Enhanced Netcode",Caption="Time between pings",Hint="Time to wait between pings (in seconds).",Type="Text",Data="4;0.0:360.0",bMPOnly=true,bAdvanced=true)
