@@ -1,6 +1,5 @@
 class MutHexedNET extends HxMutator;
 
-var config bool bAllowEnhancedNetcode;
 var config float TimeBetweenPings;
 var config float PawnCollisionTimeWindow;
 
@@ -9,17 +8,20 @@ var HxNTClock NETClock;
 var const private class<Weapon> WeaponClasses[13];
 var const private class<Weapon> NewNetWeaponClasses[13];
 var private PawnCollisionCopy PCC;
-var private bool bEnhancedNetcodeActive;
 
 event PreBeginPlay()
 {
     Super.PreBeginPlay();
-    if (bAllowEnhancedNetcode && Level.NetMode != NM_Standalone)
+    if (!bDeleteMe && !bPendingDelete)
     {
         NETClock = Spawn(class'HxNTClock', Self);
         ApplyNewNetWeaponsOnMutators();
-        bEnhancedNetcodeActive = true;
     }
+}
+
+function bool MutatorIsAllowed()
+{
+    return Super.MutatorIsAllowed() && Level.NetMode != NM_Standalone;
 }
 
 function ApplyNewNetWeaponsOnMutators()
@@ -69,15 +71,6 @@ function AddMutator(Mutator M)
 
 function ModifyPlayer(Pawn Other)
 {
-    if (bEnhancedNetcodeActive)
-    {
-        SpawnCollisionCopy(Other);
-    }
-    Super.ModifyPlayer(Other);
-}
-
-function SpawnCollisionCopy(Pawn Other)
-{
     if (PCC == None)
     {
         PCC = Spawn(class'PawnCollisionCopy', Self);
@@ -88,6 +81,7 @@ function SpawnCollisionCopy(Pawn Other)
         PCC.AddPawnToList(Other);
     }
     PCC = PCC.RemoveOldPawns();
+    Super.ModifyPlayer(Other);
 }
 
 function TimeTravel(float delta)
@@ -302,39 +296,36 @@ function bool CheckReplacement(Actor Other, out byte bSuperRelevant)
     local int i;
     local int j;
 
-    if (bEnhancedNetcodeActive)
+    if (xWeaponBase(Other) != None)
     {
-        if (xWeaponBase(Other) != None)
+        for (i = 0; i < ArrayCount(WeaponClasses); ++i)
         {
-            for (i = 0; i < ArrayCount(WeaponClasses); ++i)
+            if (xWeaponBase(Other).WeaponType == WeaponClasses[i])
             {
-                if (xWeaponBase(Other).WeaponType == WeaponClasses[i])
-                {
-                    xWeaponBase(Other).WeaponType = NewNetWeaponClasses[i];
-                }
+                xWeaponBase(Other).WeaponType = NewNetWeaponClasses[i];
             }
         }
-        else if (WeaponPickup(Other) != None)
+    }
+    else if (WeaponPickup(Other) != None)
+    {
+        for (i = 0; i < ArrayCount(WeaponClasses); ++i)
         {
-            for (i = 0; i < ArrayCount(WeaponClasses); ++i)
+            if (WeaponPickup(Other).InventoryType == WeaponClasses[i])
             {
-                if (WeaponPickup(Other).InventoryType == WeaponClasses[i])
-                {
-                    WeaponPickup(Other).InventoryType = NewNetWeaponClasses[i];
-                }
+                WeaponPickup(Other).InventoryType = NewNetWeaponClasses[i];
             }
         }
-        else if (WeaponLocker(Other) != None)
+    }
+    else if (WeaponLocker(Other) != None)
+    {
+        L = WeaponLocker(Other);
+        for (i = 0; i < ArrayCount(WeaponClasses); ++i)
         {
-            L = WeaponLocker(Other);
-            for (i = 0; i < ArrayCount(WeaponClasses); ++i)
+            for (j = 0; j < L.Weapons.Length; ++j)
             {
-                for (j = 0; j < L.Weapons.Length; ++j)
+                if (L.Weapons[j].WeaponClass == WeaponClasses[i])
                 {
-                    if (L.Weapons[j].WeaponClass == WeaponClasses[i])
-                    {
-                        L.Weapons[j].WeaponClass = NewNetWeaponClasses[i];
-                    }
+                    L.Weapons[j].WeaponClass = NewNetWeaponClasses[i];
                 }
             }
         }
@@ -347,28 +338,14 @@ function string GetInventoryClassOverride(string InventoryClassName)
     local int i;
 
     InventoryClassName = Super.GetInventoryClassOverride(InventoryClassName);
-    if (bEnhancedNetcodeActive)
+    for (i = 0; i < ArrayCount(WeaponClasses); ++i)
     {
-        for (i = 0; i < ArrayCount(WeaponClasses); ++i)
+        if (InventoryClassName ~= string(WeaponClasses[i]))
         {
-            if (InventoryClassName ~= string(WeaponClasses[i]))
-            {
-                return string(NewNetWeaponClasses[i]);
-            }
+            return string(NewNetWeaponClasses[i]);
         }
     }
     return InventoryClassName;
-}
-
-function GetServerDetails(out GameInfo.ServerResponseLine ServerState)
-{
-    local int i;
-
-    Super.GetServerDetails(ServerState);
-    i = ServerState.ServerInfo.Length;
-    ServerState.ServerInfo.Length = i + 1;
-    ServerState.ServerInfo[i].Key = "Enhanced netcode";
-    ServerState.ServerInfo[i++].Value = Eval(bEnhancedNetcodeActive, "Enabled", "Disabled");
 }
 
 defaultproperties
@@ -377,13 +354,11 @@ defaultproperties
     Description="Provides UTComp's enhanced netcode (ping compensation)."
     bAddToServerPackages=true
     CRIClass=class'HxNTClient'
-    Properties(0)=(Name="bAllowEnhancedNetcode",Section="Enhanced Netcode",Caption="Allow enhanced netcode",Hint="Allow clients to enable/disable the enhanced netcode.",Type="Check",bMPOnly=true,bAdvanced=true)
-    Properties(1)=(Name="TimeBetweenPings",Section="Enhanced Netcode",Caption="Time between pings",Hint="Time to wait between pings (in seconds).",Type="Text",Data="4;0.0:360.0",bMPOnly=true,bAdvanced=true)
-    Properties(2)=(Name="PawnCollisionTimeWindow",Section="Enhanced Netcode",Caption="Pawn collision time window",Hint="Time window (in seconds) to look back for pawn collisions.",Type="Text",Data="4;0.0:360.0",bMPOnly=true,bAdvanced=true)
+    Properties(0)=(Name="TimeBetweenPings",Section="Enhanced Netcode",Caption="Time between pings",Hint="Time to wait between pings (in seconds).",Type="Text",Data="4;0.0:360.0",bMPOnly=true,bAdvanced=true)
+    Properties(1)=(Name="PawnCollisionTimeWindow",Section="Enhanced Netcode",Caption="Pawn collision time window",Hint="Time window (in seconds) to look back for pawn collisions.",Type="Text",Data="4;0.0:360.0",bMPOnly=true,bAdvanced=true)
     bDisableTick=true
 
     // configs
-    bAllowEnhancedNetcode=true
     TimeBetweenPings=3.0
     PawnCollisionTimeWindow=0.35
     //original weapons

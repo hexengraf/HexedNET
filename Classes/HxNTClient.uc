@@ -152,10 +152,7 @@ function TurnOffNetcode()
 
 simulated function ServerInfoReady()
 {
-    if (bool(GetServerProperty("bAllowEnhancedNetcode")))
-    {
-        FPM = Spawn(Class'FakeProjectileManager', Self);
-    }
+    FPM = Spawn(Class'FakeProjectileManager', Self);
     TimeBetweenPings = float(GetServerProperty("TimeBetweenPings"));
 }
 
@@ -223,5 +220,5 @@ defaultproperties
     bEnhancedNetCode=True
 
     MutatorClass=class'MutHexedNET'
-    Properties(0)=(Name="bEnhancedNetCode",Section="Enhanced Netcode",Caption="Enable Enhanced Netcode",Hint="Enable enhanced netcode on weapons.",Type=PIT_Check,Dependency="bAllowEnhancedNetcode")
+    Properties(0)=(Name="bEnhancedNetCode",Section="Enhanced Netcode",Caption="Enable Enhanced Netcode",Hint="Enable enhanced netcode on weapons.",Type=PIT_Check)
 }
