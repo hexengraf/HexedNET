@@ -217,7 +217,7 @@ defaultproperties
     NetPriority=5
     TimeBetweenPings=3.0
     bPingReceived=True
-    bEnhancedNetCode=False
+    bEnhancedNetCode=True
 
     MutatorClass=class'MutHexedNET'
     Properties(0)=(Name="bEnhancedNetCode",Section="Enhanced Netcode",Caption="Enable Enhanced Netcode",Hint="Enable enhanced netcode on weapons.",Type=PIT_Check)
