@@ -350,7 +350,7 @@ function string GetInventoryClassOverride(string InventoryClassName)
 
 defaultproperties
 {
-    FriendlyName="HexedNET v7preview1"
+    FriendlyName="HexedNET v7preview2"
     Description="Modified version of UTComp's enhanced netcode (ping compensation)."
     bAddToServerPackages=true
     CRIClass=class'HxNTClient'
