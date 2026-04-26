@@ -19,42 +19,65 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 class HxNTClient extends HxClientReplicationInfo
     config(User);
 
+const PING_WARMUP_COUNT = 10;
+const NEW_PING_WEIGHT = 0.33;
+const COUNTER_WEIGHT = 0.67;
+
 var config bool bEnhancedNetCode;
 
 var float TimeBetweenPings;
 var float PredictedPing;
 
 var private FakeProjectileManager FPM;
-var private float PingSendTime;
-var private bool bPingReceived;
-var private int numPings;
+var private int PingCount;
 var private bool bClientUpdated;
 
 replication
 {
     reliable if (Role == ROLE_Authority)
-        Pong,
-        ServerSetAllowMultiHit;
+        ClientPing,
+        ClientSetAllowMultiHit;
 
     reliable if (Role < ROLE_Authority)
-        Ping,
-        TurnOffNetcode;
+        ServerPing,
+        ServerTurnOffNetcode;
 }
 
-simulated function Ping()
+simulated function PostNetBeginPlay()
 {
-    Pong();
-}
-
-simulated function Pong()
-{
-    bPingReceived = True;
-    PredictedPing = (2.0 * PredictedPing + (Level.TimeSeconds - PingSendTime)) / TimeBetweenPings;
-    Default.PredictedPing = PredictedPing;
-    numPings++;
-    if(NumPings < 8)
+    Super.PostNetBeginPlay();
+    if (Level.NetMode == NM_Client)
     {
-        Default.PredictedPing = (Level.TimeSeconds - PingSendTime);
+        if (bEnhancedNetCode)
+        {
+            SetTimer(TimeBetweenPings, true);
+        }
+    }
+}
+
+simulated event Timer()
+{
+    ServerPing(Level.TimeSeconds);
+}
+
+simulated function ServerPing(float Timestamp)
+{
+    ClientPing(Timestamp);
+}
+
+simulated function ClientPing(float Timestamp)
+{
+    local float NewPing;
+
+    PingCount++;
+    NewPing = Level.TimeSeconds - Timestamp;
+    if (PingCount < PING_WARMUP_COUNT)
+    {
+        default.PredictedPing += (NewPing - default.PredictedPing) / PingCount;
+    }
+    else
+    {
+        default.PredictedPing = NewPing * NEW_PING_WEIGHT + default.PredictedPing * COUNTER_WEIGHT;
     }
 }
 
@@ -63,12 +86,6 @@ simulated function Tick(float DeltaTime)
     Super.Tick(DeltaTime);
     if (Level.NetMode == NM_Client)
     {
-        if (bPingReceived && Level.TimeSeconds > PingSendTime + TimeBetweenPings)
-        {
-            PingSendTime = Level.TimeSeconds;
-            bPingReceived = False;
-            Ping();
-        }
         if (PlayerController(Owner) != None)
         {
             FixWeaponInstigator(PlayerController(Owner));
@@ -76,11 +93,11 @@ simulated function Tick(float DeltaTime)
     }
     else if (Level.NetMode == NM_DedicatedServer && !bClientUpdated)
     {
-        ServerSetAllowMultiHit(class'ZoomSuperShockBeamFire'.default.bAllowMultiHit);
+        ClientSetAllowMultiHit(class'ZoomSuperShockBeamFire'.default.bAllowMultiHit);
     }
 }
 
-function TurnOffNetcode()
+function ServerTurnOffNetcode()
 {
     local PlayerController PC;
     local inventory Inv;
@@ -153,12 +170,12 @@ function TurnOffNetcode()
 simulated function ServerInfoReady()
 {
     FPM = Spawn(Class'FakeProjectileManager', Self);
-    TimeBetweenPings = float(GetServerProperty("TimeBetweenPings"));
+    SetTimeBetweenPings(GetServerProperty("TimeBetweenPings"));
 }
 
 simulated function ServerPropertyChanged(int Index, string OldValue)
 {
-    TimeBetweenPings = float(GetServerProperty("TimeBetweenPings"));
+    SetTimeBetweenPings(GetServerProperty("TimeBetweenPings"));
 }
 
 simulated function string GetProperty(int Index)
@@ -183,14 +200,26 @@ simulated function SetEnhancedNetCode(coerce bool bEnable)
 {
     if (!bEnable)
     {
-        TurnOffNetcode();
+        ServerTurnOffNetcode();
+        Disable('Timer');
+    }
+    else
+    {
+        Enable('Timer');
+        SetTimer(TimeBetweenPings, true);
     }
     bEnhancedNetCode = bEnable;
     default.bEnhancedNetCode = bEnable;
     StaticSaveConfig();
 }
 
-simulated function ServerSetAllowMultiHit(bool bEnable)
+simulated function SetTimeBetweenPings(coerce float NewTime)
+{
+    TimeBetweenPings = NewTime;
+    SetTimer(TimeBetweenPings, true);
+}
+
+simulated function ClientSetAllowMultiHit(bool bEnable)
 {
     class'NewNet_ZoomSuperShockBeamFire'.default.bServerAllowMultiHit = bEnable;
 }
@@ -215,9 +244,8 @@ defaultproperties
 {
     NetUpdateFrequency=10
     NetPriority=5
-    TimeBetweenPings=3.0
-    bPingReceived=True
-    bEnhancedNetCode=True
+    TimeBetweenPings=1
+    bEnhancedNetCode=true
 
     MutatorClass=class'MutHexedNET'
     Properties(0)=(Name="bEnhancedNetCode",Section="Enhanced Netcode",Caption="Enable Enhanced Netcode",Hint="Enable enhanced netcode on weapons.",Type=PIT_Check)
