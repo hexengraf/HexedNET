@@ -55,10 +55,7 @@ simulated function DoSetLoc(Vector V)
 
 simulated function bool CheckForFakeProj()
 {
-     local float ping;
      local Projectile FP;
-
-     ping = FMax(0.0, class'HxNTClient'.default.PredictedPing - 0.5*class'HxNTClock'.default.AverDT);
 
      if(FPM == none)
         FindFPM();
