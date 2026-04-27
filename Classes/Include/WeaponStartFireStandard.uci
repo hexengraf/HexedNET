@@ -5,7 +5,7 @@ simulated event NewNet_ClientStartFire(int Mode)
         if (StartFire(Mode))
         {
             ValidateNETClockPointer();
-            NewNet_ServerStartFire(Mode, NETClock.ClientCounter, NETClock.DT);
+            NewNet_ServerStartFire(Mode, class'HxNTClient'.default.AveragePing);
         }
     }
     else

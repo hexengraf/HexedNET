@@ -59,7 +59,7 @@ simulated event NewNet_ClientStartFire(int Mode)
             ValidateNETClockPointer();
             if(!ReadyToFire(Mode))
             {
-                NewNet_OldServerStartFire(Mode, NETClock.ClientCounter, NETClock.DT);
+                NewNet_OldServerStartFire(Mode, class'HxNTClient'.default.AveragePing);
                 return;
             }
             if(NewNet_FlakAltFire(FireMode[Mode])!=None)
@@ -74,7 +74,7 @@ simulated event NewNet_ClientStartFire(int Mode)
             V.Y = Start.Y;
             V.Z = Start.Z;
 
-            NewNet_ServerStartFire(mode, NETClock.ClientCounter, NETClock.DT, R, V);
+            NewNet_ServerStartFire(mode, class'HxNTClient'.default.AveragePing, R, V);
         }
     }
     else
@@ -112,7 +112,7 @@ simulated function bool AltReadyToFire(int Mode)
 	return true;
 }
 
-function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float dt, ReplicatedRotator R, ReplicatedVector V)
+function NewNet_ServerStartFire(byte Mode, float Ping, ReplicatedRotator R, ReplicatedVector V)
 {
     if (!ServerShouldStartFire())
     {
@@ -121,12 +121,12 @@ function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float dt, Replica
     ValidateNETClockPointer();
     if(NewNet_FlakFire(FireMode[Mode])!=None)
     {
-        NewNet_FlakFire(FireMode[Mode]).PingDT = FMin(NETClock.GetPingDT(ClientCounter, DT), MAX_PROJECTILE_FUDGE_ALT);
+        NewNet_FlakFire(FireMode[Mode]).PingDT = FMin(Ping, MAX_PROJECTILE_FUDGE_ALT);
         NewNet_FlakFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
     else if(NewNet_FlakAltFire(FireMode[Mode])!=None)
     {
-        NewNet_FlakAltFire(FireMode[Mode]).PingDT = FMin(NETClock.GetPingDT(ClientCounter, DT), MAX_PROJECTILE_FUDGE);
+        NewNet_FlakAltFire(FireMode[Mode]).PingDT = FMin(Ping, MAX_PROJECTILE_FUDGE);
         NewNet_FlakAltFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
 
@@ -196,20 +196,19 @@ simulated event PostNetBeginPlay()
     SendNewRandSeed();
 }
 
-function NewNet_OldServerStartFire(byte Mode, byte ClientCounter, float dt)
+function NewNet_OldServerStartFire(byte Mode, float Ping)
 {
     ValidateNETClockPointer();
     if(NewNet_FlakFire(FireMode[Mode])!=None)
     {
-        NewNet_FlakFire(FireMode[Mode]).PingDT = FMin(NETClock.GetPingDT(ClientCounter, DT), MAX_PROJECTILE_FUDGE_ALT);
+        NewNet_FlakFire(FireMode[Mode]).PingDT = FMin(Ping, MAX_PROJECTILE_FUDGE_ALT);
         NewNet_FlakFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
     else if(NewNet_FlakAltFire(FireMode[Mode])!=None)
     {
-        NewNet_FlakAltFire(FireMode[Mode]).PingDT = FMin(NETClock.GetPingDT(ClientCounter, DT), MAX_PROJECTILE_FUDGE);
+        NewNet_FlakAltFire(FireMode[Mode]).PingDT = FMin(Ping, MAX_PROJECTILE_FUDGE);
         NewNet_FlakAltFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
-
     ServerStartFire(mode);
 }
 

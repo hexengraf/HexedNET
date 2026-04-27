@@ -34,7 +34,7 @@ simulated event NewNet_ClientStartFire(int Mode)
         if (StartFire(Mode))
         {
             ValidateNETClockPointer();
-            NewNet_ServerStartFire(Mode, NETClock.ClientCounter, NETClock.DT);
+            NewNet_ServerStartFire(Mode, class'HxNTClient'.default.AveragePing);
         }
     }
     else
@@ -43,12 +43,12 @@ simulated event NewNet_ClientStartFire(int Mode)
     }
 }
 
-function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT)
+function NewNet_ServerStartFire(byte Mode, float Ping)
 {
     ValidateNETClockPointer();
     if (NewNet_ClassicSniperFire(FireMode[Mode]) != None)
     {
-        NewNet_ClassicSniperFire(FireMode[Mode]).PingDT = NETClock.GetPingDT(ClientCounter, DT);
+        NewNet_ClassicSniperFire(FireMode[Mode]).PingDT = Ping;
         NewNet_ClassicSniperFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
     ServerStartFire(Mode);

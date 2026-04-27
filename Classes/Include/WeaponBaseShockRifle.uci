@@ -53,7 +53,7 @@ simulated event NewNet_ClientStartFire(int Mode)
             {
                 b = true;
             }
-            NewNet_ServerStartFire(Mode, NETClock.ClientCounter, NETClock.DT, R, V, b, A);
+            NewNet_ServerStartFire(Mode, class'HxNTClient'.default.AveragePing, R, V, b, A);
         }
     }
     else

@@ -21,14 +21,14 @@ simulated function DoInstantFireEffect(int Mode)
     NewNet_ShockBeamFire(FireMode[Mode]).DoInstantFireEffect(Mode);
 }
 
-function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT, ReplicatedRotator R, ReplicatedVector V, bool bBelievesHit, Actor A/*, bool bBelievesHit, ReplicatedVector BelievedHLDelta, Actor A, vector HN, vector HL*/)
+function NewNet_ServerStartFire(byte Mode, float Ping, ReplicatedRotator R, ReplicatedVector V, bool bBelievesHit, Actor A/*, bool bBelievesHit, ReplicatedVector BelievedHLDelta, Actor A, vector HN, vector HL*/)
 {
     if (!ServerShouldStartFire())
     {
         return;
     }
     ValidateNETClockPointer();
-    NewNet_ShockBeamFire(FireMode[Mode]).PingDT = NETClock.GetPingDT(ClientCounter, DT);
+    NewNet_ShockBeamFire(FireMode[Mode]).PingDT = Ping;
     NewNet_ShockBeamFire(FireMode[Mode]).bUseEnhancedNetCode = true;
 
     if (bBelievesHit)

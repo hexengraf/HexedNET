@@ -20,12 +20,12 @@ class HxNTClient extends HxClientReplicationInfo
     config(User);
 
 const PING_WARMUP_COUNT = 10;
-const NEW_PING_WEIGHT = 0.33;
+const PING_SMOOTHING = 0.3;
 
 var config bool bEnhancedNetCode;
 
-var float TimeBetweenPings;
-var float PredictedPing;
+var float PingFrequency;
+var float AveragePing;
 
 var private FakeProjectileManager FPM;
 var private int PingCount;
@@ -49,7 +49,7 @@ simulated function PostNetBeginPlay()
     {
         if (bEnhancedNetCode)
         {
-            SetTimer(TimeBetweenPings, true);
+            SetTimer(PingFrequency, true);
         }
     }
 }
@@ -72,11 +72,11 @@ simulated function ClientPing(float Timestamp)
     NewPing = Level.TimeSeconds - Timestamp;
     if (PingCount < PING_WARMUP_COUNT)
     {
-        default.PredictedPing += (NewPing - default.PredictedPing) / PingCount;
+        default.AveragePing += (NewPing - default.AveragePing) / PingCount;
     }
     else
     {
-        default.PredictedPing += (NewPing - default.PredictedPing) * NEW_PING_WEIGHT;
+        default.AveragePing += (NewPing - default.AveragePing) * PING_SMOOTHING;
     }
 }
 
@@ -169,12 +169,12 @@ function ServerTurnOffNetcode()
 simulated function ServerInfoReady()
 {
     FPM = Spawn(Class'FakeProjectileManager', Self);
-    SetTimeBetweenPings(GetServerProperty("TimeBetweenPings"));
+    SetPingFrequency(GetServerProperty("PingFrequency"));
 }
 
 simulated function ServerPropertyChanged(int Index, string OldValue)
 {
-    SetTimeBetweenPings(GetServerProperty("TimeBetweenPings"));
+    SetPingFrequency(GetServerProperty("PingFrequency"));
 }
 
 simulated function string GetProperty(int Index)
@@ -205,17 +205,17 @@ simulated function SetEnhancedNetCode(coerce bool bEnable)
     else
     {
         Enable('Timer');
-        SetTimer(TimeBetweenPings, true);
+        SetTimer(PingFrequency, true);
     }
     bEnhancedNetCode = bEnable;
     default.bEnhancedNetCode = bEnable;
     StaticSaveConfig();
 }
 
-simulated function SetTimeBetweenPings(coerce float NewTime)
+simulated function SetPingFrequency(coerce float NewTime)
 {
-    TimeBetweenPings = NewTime;
-    SetTimer(TimeBetweenPings, true);
+    PingFrequency = NewTime;
+    SetTimer(PingFrequency, true);
 }
 
 simulated function ClientSetAllowMultiHit(bool bEnable)
@@ -242,8 +242,8 @@ static function bool IsEnhancedNetcodeEnabled(LevelInfo Level)
 defaultproperties
 {
     NetUpdateFrequency=10
-    NetPriority=5
-    TimeBetweenPings=1
+    NetPriority=3
+    PingFrequency=1.0
     bEnhancedNetCode=true
 
     MutatorClass=class'MutHexedNET'

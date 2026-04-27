@@ -96,7 +96,7 @@ simulated event NewNet_ClientStartFire(int Mode)
             V.Y = Start.Y;
             V.Z = Start.Z;
 
-            NewNet_ServerStartFire(mode, NETClock.ClientCounter,NETClock.DT, R, V);
+            NewNet_ServerStartFire(mode, class'HxNTClient'.default.AveragePing, R, V);
         }
     }
     else
@@ -105,23 +105,23 @@ simulated event NewNet_ClientStartFire(int Mode)
     }
 }
 
-function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float dt, ReplicatedRotator R, ReplicatedVector V)
+function NewNet_ServerStartFire(byte Mode, float Ping, ReplicatedRotator R, ReplicatedVector V)
 {
     if (!ServerShouldStartFire())
     {
         return;
     }
     ValidateNETClockPointer();
-    PingDT = FMin(NETClock.GetPingDT(ClientCounter, DT), MAX_PROJECTILE_FUDGE);
+    PingDT = FMin(Ping, MAX_PROJECTILE_FUDGE);
     bUseEnhancedNetCode=true;
     if(NewNet_RocketFire(FireMode[Mode])!=None)
     {
-       // NewNet_RocketFire(FireMode[Mode]).PingDT = FMin(Level.TimeSeconds - NETClock.GetTimestamp(ClientCounter) + 1.75*NETClock.ServerAverDT, MAX_PROJECTILE_FUDGE_ALT);
+       // NewNet_RocketFire(FireMode[Mode]).PingDT = FMin(Ping + 1.75*NETClock.AverDT, MAX_PROJECTILE_FUDGE_ALT);
         NewNet_RocketFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
     else if(NewNet_RocketMultiFire(FireMode[Mode])!=None)
     {
-     //   NewNet_RocketMultiFire(FireMode[Mode]).PingDT = FMin(Level.TimeSeconds - NETClock.GetTimestamp(ClientCounter) + 1.75*NETClock.ServerAverDT, MAX_PROJECTILE_FUDGE);
+     //   NewNet_RocketMultiFire(FireMode[Mode]).PingDT = FMin(Ping + 1.75*NETClock.AverDT, MAX_PROJECTILE_FUDGE);
         NewNet_RocketMultiFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
 

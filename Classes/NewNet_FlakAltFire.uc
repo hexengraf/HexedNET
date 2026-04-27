@@ -40,13 +40,13 @@ function CheckFireEffect()
 {
    if(Level.NetMode == NM_Client && Instigator.IsLocallyControlled())
    {
-       if(class'HxNTClient'.default.PredictedPing - SLACK > MAX_PROJECTILE_FUDGE)
+       if (class'HxNTClient'.default.AveragePing - SLACK > MAX_PROJECTILE_FUDGE)
        {
            OldInstigatorLocation = Instigator.Location;
            OldInstigatorEyePosition = Instigator.EyePosition();
            Weapon.GetViewAxes(OldXAxis,OldYAxis,OldZAxis);
            OldAim=AdjustAim(OldInstigatorLocation+OldInstigatorEyePosition, AimError);
-           SetTimer(class'HxNTClient'.default.PredictedPing - SLACK - MAX_PROJECTILE_FUDGE, false);
+           SetTimer(class'HxNTClient'.default.AveragePing - SLACK - MAX_PROJECTILE_FUDGE, false);
        }
        else
            DoClientFireEffect();

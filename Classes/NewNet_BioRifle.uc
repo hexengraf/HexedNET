@@ -31,19 +31,17 @@ simulated function PostBeginPlay()
     }
 }
 
-function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT)
+function NewNet_ServerStartFire(byte Mode, float Ping)
 {
     ValidateNETClockPointer();
     if (NewNet_BioFire(FireMode[Mode]) != None)
     {
-        NewNet_BioFire(FireMode[Mode]).PingDT =
-            FMin(NETClock.GetPingDT(ClientCounter, DT), MAX_PROJECTILE_FUDGE);
+        NewNet_BioFire(FireMode[Mode]).PingDT = FMin(Ping, MAX_PROJECTILE_FUDGE);
         NewNet_BioFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
     else if (NewNet_BioChargedFire(FireMode[Mode]) != None)
     {
-        NewNet_BioChargedFire(FireMode[Mode]).PingDT =
-            FMin(NETClock.GetPingDT(ClientCounter, DT), MAX_PROJECTILE_FUDGE);
+        NewNet_BioChargedFire(FireMode[Mode]).PingDT = FMin(Ping, MAX_PROJECTILE_FUDGE);
         NewNet_BioChargedFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
     ServerStartFire(Mode);
