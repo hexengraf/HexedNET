@@ -21,7 +21,6 @@ class HxNTClient extends HxClientReplicationInfo
 
 const PING_WARMUP_COUNT = 10;
 const NEW_PING_WEIGHT = 0.33;
-const COUNTER_WEIGHT = 0.67;
 
 var config bool bEnhancedNetCode;
 
@@ -77,7 +76,7 @@ simulated function ClientPing(float Timestamp)
     }
     else
     {
-        default.PredictedPing = NewPing * NEW_PING_WEIGHT + default.PredictedPing * COUNTER_WEIGHT;
+        default.PredictedPing += (NewPing - default.PredictedPing) * NEW_PING_WEIGHT;
     }
 }
 
