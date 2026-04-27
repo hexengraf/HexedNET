@@ -116,12 +116,12 @@ function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float dt, Replica
     bUseEnhancedNetCode=true;
     if(NewNet_RocketFire(FireMode[Mode])!=None)
     {
-       // NewNet_RocketFire(FireMode[Mode]).PingDT = FMin(NETClock.ServerTimestamp - NETClock.GetTimestamp(ClientCounter) + 1.75*NETClock.ServerAverDT, MAX_PROJECTILE_FUDGE_ALT);
+       // NewNet_RocketFire(FireMode[Mode]).PingDT = FMin(Level.TimeSeconds - NETClock.GetTimestamp(ClientCounter) + 1.75*NETClock.ServerAverDT, MAX_PROJECTILE_FUDGE_ALT);
         NewNet_RocketFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
     else if(NewNet_RocketMultiFire(FireMode[Mode])!=None)
     {
-     //   NewNet_RocketMultiFire(FireMode[Mode]).PingDT = FMin(NETClock.ServerTimestamp - NETClock.GetTimestamp(ClientCounter) + 1.75*NETClock.ServerAverDT, MAX_PROJECTILE_FUDGE);
+     //   NewNet_RocketMultiFire(FireMode[Mode]).PingDT = FMin(Level.TimeSeconds - NETClock.GetTimestamp(ClientCounter) + 1.75*NETClock.ServerAverDT, MAX_PROJECTILE_FUDGE);
         NewNet_RocketMultiFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
 

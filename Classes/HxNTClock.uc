@@ -3,7 +3,6 @@ class HxNTClock extends Actor;
 const AVERDT_SEND_PERIOD = 4.00;
 
 var float ServerAverDT;
-var float ServerTimestamp;
 
 var float DT;
 var float AverDT;
@@ -39,25 +38,19 @@ simulated function Tick(float DeltaTime)
 
 function Update(float DeltaTime)
 {
-    ServerTimestamp += DeltaTime;
     ServerAverDT = (9.0 * ServerAverDT + DeltaTime) * 0.1;
-    if (ServerTimestamp > LastReplicatedAverDT + AVERDT_SEND_PERIOD)
+    if (Level.TimeSeconds > LastReplicatedAverDT + AVERDT_SEND_PERIOD)
     {
         AverDT = ServerAverDT;
-        LastReplicatedAverDT = ServerTimestamp;
+        LastReplicatedAverDT = Level.TimeSeconds;
     }
     ++ServerCounter;
-    Timestamps[ServerCounter % 256] = ServerTimestamp;
-}
-
-function float GetTimestamp(byte Index)
-{
-    return Timestamps[Index];
+    Timestamps[ServerCounter % 256] = Level.TimeSeconds;
 }
 
 function float GetPingDT(byte ClientCounter, float DT)
 {
-    return ServerTimestamp - Timestamps[ClientCounter] - DT + (0.5 * ServerAverDT);
+    return Level.TimeSeconds - Timestamps[ClientCounter] - DT + (0.5 * ServerAverDT);
 }
 
 function bool IsReasonable(Weapon W, Vector V)

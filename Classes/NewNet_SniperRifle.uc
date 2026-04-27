@@ -99,7 +99,7 @@ function NewNet_ServerStartFire(byte Mode, byte ClientCounter, float DT, Replica
     }
     ValidateNETClockPointer();
     NewNet_SniperFire(FireMode[Mode]).PingDT = NETClock.GetPingDT(ClientCounter, DT);
-    //Log("Firing with"@NETClock.ServerTimestamp@NETClock.GetTimestamp(ClientCounter)@DT);
+    //Log("Firing with"@Level.TimeSeconds@NETClock.GetTimestamp(ClientCounter)@DT);
    // Log(PlayerController(Pawn(Owner).Controller).ExactPing);
     if(bBelievesHit)
     {
