@@ -15,6 +15,8 @@ struct ReplicatedVector
     var float Z;
 };
 
+var private MutHexedNET HexedNET;
+var private HxNTClient Client;
 var private HxNTClock NETClock;
 var private const class<Weapon> BaseClass;
 var private bool bConfigCleared;
@@ -74,7 +76,6 @@ simulated function NewNet_ClientStartFire(int Mode)
             V.Y = Start.Y;
             V.Z = Start.Z;
 
-            ValidateNETClockPointer();
             NewNet_SniperFire(FireMode[Mode]).DoInstantFireEffect();
             A = Trace(HN,HL,Start+Vector(Pawn(Owner).Controller.Rotation)*40000.0,Start,true);
             if(A!=None && (A.IsA('xPawn') || A.IsA('Vehicle')))
@@ -109,7 +110,6 @@ function NewNet_ServerStartFire(byte Mode, float Ping, ReplicatedRotator R, Repl
     {
         newNet_sniperFire(FireMode[Mode]).bBelievesHit=false;
     }
-    NewNet_SniperFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     NewNet_SniperFire(FireMode[Mode]).bFirstGo = true;
     if ( (FireMode[Mode].NextFireTime <= Level.TimeSeconds + FireMode[Mode].PreFireTime)
 		&& StartFire(Mode) )

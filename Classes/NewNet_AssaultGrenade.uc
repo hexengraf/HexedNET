@@ -18,7 +18,7 @@ function projectile SpawnProjectile(Vector Start, Rotator Dir)
     local vector HitNormal,HitLocation,End;
     local float h,f;
 
-    if(!bUseEnhancedNetCode)
+    if(!IsEnhancedNetcodeEnabled())
     {
         return super.SpawnProjectile(start,dir);
     }

@@ -4,11 +4,30 @@ class NewNet_ShockProjFire extends ShockProjFire;
 var class<Projectile> FakeProjectileClass;
 
 var FakeProjectileManager FPM;
+var private HxNTClient Client;
+
+function bool ValidateClient()
+{
+    if (Client != None)
+    {
+        return true;
+    }
+    if (Weapon.Level.NetMode == NM_Client)
+    {
+        foreach Weapon.DynamicActors(class'HxNTClient', Client) break;
+    }
+    return Client != None;
+}
+
+function bool IsEnhancedNetcodeEnabled()
+{
+    return ValidateClient() && Client.IsEnhancedNetcodeEnabled();
+}
 
 function PlayFiring()
 {
     Super.PlayFiring();
-    if (class'HxNTClient'.static.IsEnhancedNetcodeEnabled(Level))
+    if (Level.NetMode == NM_Client && IsEnhancedNetcodeEnabled())
     {
         CheckFireEffect();
     }

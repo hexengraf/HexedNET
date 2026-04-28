@@ -13,7 +13,6 @@ function NewNet_ServerStartFire(byte Mode, float Ping, ReplicatedRotator R, Repl
     }
     ValidateNETClockPointer();
     NewNet_ZoomSuperShockBeamFire(FireMode[Mode]).PingDT = Ping;
-    NewNet_ZoomSuperShockBeamFire(FireMode[Mode]).bUseEnhancedNetCode = true;
 
     if (bBelievesHit)
     {

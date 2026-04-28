@@ -27,23 +27,32 @@ simulated function ValidateNETClockPointer()
     }
 }
 
-function DisableNet()
+simulated function bool ValidateClient()
 {
-    local int i;
-
-    for (i = 0; i < ArrayCount(FireMode); ++i)
+    if (Client != None)
     {
-        if (FireMode[i] != None)
-        {
-            FireMode[i].SetPropertyText("bUseEnhancedNetCode", "false");
-            FireMode[i].SetPropertyText("PingDT", "0.00");
-        }
+        return true;
     }
+    if (Level.NetMode == NM_Client)
+    {
+        foreach DynamicActors(class'HxNTClient', Client) break;
+    }
+    else if (HexedNET != None && Instigator != None)
+    {
+        Client = HxNTClient(HexedNET.GetClientReplicationInfo(Instigator.Controller));
+    }
+    return Client != None;
+}
+
+simulated function bool IsEnhancedNetcodeEnabled()
+{
+    return ValidateClient() && Client.IsEnhancedNetcodeEnabled();
 }
 
 simulated event ClientStartFire(int Mode)
 {
-    if (!class'HxNTClient'.static.IsEnhancedNetcodeEnabled(Level)
+    if (Level.NetMode != NM_Client
+        || !IsEnhancedNetcodeEnabled()
         || Pawn(Owner).Controller.IsInState('GameEnded')
         || Pawn(Owner).Controller.IsInState('RoundEnded'))
     {

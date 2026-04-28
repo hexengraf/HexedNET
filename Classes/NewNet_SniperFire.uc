@@ -14,7 +14,7 @@ var bool bFirstGo;
 function PlayFiring()
 {
     Super.PlayFiring();
-    if (class'HxNTClient'.static.IsEnhancedNetcodeEnabled(Level))
+    if (Level.NetMode == NM_Client && IsEnhancedNetcodeEnabled())
     {
         if (bSkipNextEffect)
         {
@@ -159,7 +159,7 @@ function DoFireEffect()
     local Vector StartTrace;
     local Rotator R, Aim;
 
-    if(!bUseEnhancedNetCode && Level.NetMode != NM_Client)
+    if(!IsEnhancedNetcodeEnabled() && Level.NetMode != NM_Client)
     {
         super.DoFireEffect();
         return;
@@ -201,7 +201,7 @@ function DoTrace(Vector Start, Rotator Dir)
 	local vector EffectOffset;
 	local vector PresentHitLocation;
 
-	if(!bUseEnhancedNetCode)
+	if(!IsEnhancedNetcodeEnabled())
 	{
         super.DoTrace(Start,Dir);
         return;

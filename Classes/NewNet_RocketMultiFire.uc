@@ -13,13 +13,30 @@ var FakeProjectileManager FPM;
 
 var float NextAltTimerTime;
 var bool bAltTimerActive;
+var private HxNTClient Client;
 
-var bool bUseEnhancedNetCode;
+function bool ValidateClient()
+{
+    if (Client != None)
+    {
+        return true;
+    }
+    if (Weapon.Level.NetMode == NM_Client)
+    {
+        foreach Weapon.DynamicActors(class'HxNTClient', Client) break;
+    }
+    return Client != None;
+}
+
+function bool IsEnhancedNetcodeEnabled()
+{
+    return ValidateClient() && Client.IsEnhancedNetcodeEnabled();
+}
 
 function PlayFiring()
 {
     Super.PlayFiring();
-    if (class'HxNTClient'.static.IsEnhancedNetcodeEnabled(Level))
+    if (Level.NetMode == NM_Client && IsEnhancedNetcodeEnabled())
     {
         CheckFireEffect();
     }
@@ -319,7 +336,7 @@ function DoFireEffect()
 	local RocketProj FiredRockets[4];
 	local bool bCurl;
 
-	if(!bUseEnhancedNetCode)
+	if(!NewNet_RocketLauncher(Weapon).IsEnhancedNetcodeEnabled())
 	{
        super.DoFireEffect();
        return;

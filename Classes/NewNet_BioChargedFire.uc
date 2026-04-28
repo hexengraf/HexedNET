@@ -18,7 +18,7 @@ function projectile SpawnProjectile(Vector Start, Rotator Dir)
 
     if (GoopLoad == 0) return None;
 
-    if(!bUseEnhancedNetCode)
+    if(!IsEnhancedNetcodeEnabled())
         return super.SpawnProjectile(start,Dir);
     if( class'BioGlob' != none )
     {

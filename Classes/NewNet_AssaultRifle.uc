@@ -4,6 +4,8 @@ class NewNet_AssaultRifle extends AssaultRifle
 
 const MAX_PROJECTILE_FUDGE = 0.075;
 
+var private MutHexedNET HexedNET;
+var private HxNTClient Client;
 var private HxNTClock NETClock;
 var private const class<Weapon> BaseClass;
 var private bool bConfigCleared;
@@ -28,16 +30,13 @@ simulated function PostBeginPlay()
 
 function NewNet_ServerStartFire(byte Mode, float Ping)
 {
-    ValidateNETClockPointer();
     if (NewNet_AssaultFire(FireMode[Mode]) != None)
     {
         NewNet_AssaultFire(FireMode[Mode]).PingDT = Ping;
-        NewNet_AssaultFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
     else if (NewNet_AssaultGrenade(FireMode[Mode]) != None)
     {
         NewNet_AssaultGrenade(FireMode[Mode]).PingDT = FMin(Ping, MAX_PROJECTILE_FUDGE);
-        NewNet_AssaultGrenade(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
     ServerStartFire(Mode);
 }

@@ -13,7 +13,7 @@ function DoTrace(vector Start, Rotator Dir)
     local vector HitNormal;
     local vector PresentHitLocation;
 
-    if(!bUseEnhancedNetCode)
+    if(!IsEnhancedNetcodeEnabled())
     {
         super.DoTrace(Start,Dir);
         return;

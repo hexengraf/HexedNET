@@ -23,13 +23,13 @@ function projectile SpawnProjectile(Vector Start, Rotator Dir)
     local vector End, HitLocation, HitNormal, VZ;
     local actor Other;
 
-    if (class'HxNTClient'.static.IsEnhancedNetcodeEnabled(Level))
-    {
-        return SpawnFakeProjectile(Start, Dir);
-    }
-    if (!bUseEnhancedNetCode)
+    if (!IsEnhancedNetcodeEnabled())
     {
         return Super.SpawnProjectile(start, Dir);
+    }
+    if (Level.NetMode == NM_Client)
+    {
+        return SpawnFakeProjectile(Start, Dir);
     }
     if (ProjectileClass != none)
     {
@@ -141,7 +141,7 @@ function Timer()
 function PlayFiring()
 {
     Super.PlayFiring();
-    if (class'HxNTClient'.static.IsEnhancedNetcodeEnabled(Level))
+    if (Level.NetMode == NM_Client && IsEnhancedNetcodeEnabled())
     {
         CheckFireEffect();
     }

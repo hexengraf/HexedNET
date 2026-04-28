@@ -2,6 +2,8 @@ class NewNet_ClassicSniperRifle extends ClassicSniperRifle
     HideDropDown
     CacheExempt;
 
+var private MutHexedNET HexedNET;
+var private HxNTClient Client;
 var private HxNTClock NETClock;
 var private const class<Weapon> BaseClass;
 var private bool bConfigCleared;
@@ -33,7 +35,6 @@ simulated event NewNet_ClientStartFire(int Mode)
     {
         if (StartFire(Mode))
         {
-            ValidateNETClockPointer();
             NewNet_ServerStartFire(Mode, class'HxNTClient'.default.AveragePing);
         }
     }
@@ -45,11 +46,9 @@ simulated event NewNet_ClientStartFire(int Mode)
 
 function NewNet_ServerStartFire(byte Mode, float Ping)
 {
-    ValidateNETClockPointer();
     if (NewNet_ClassicSniperFire(FireMode[Mode]) != None)
     {
         NewNet_ClassicSniperFire(FireMode[Mode]).PingDT = Ping;
-        NewNet_ClassicSniperFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
     ServerStartFire(Mode);
 }

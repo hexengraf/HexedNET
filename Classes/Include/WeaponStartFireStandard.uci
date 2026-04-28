@@ -4,7 +4,6 @@ simulated event NewNet_ClientStartFire(int Mode)
     {
         if (StartFire(Mode))
         {
-            ValidateNETClockPointer();
             NewNet_ServerStartFire(Mode, class'HxNTClient'.default.AveragePing);
         }
     }

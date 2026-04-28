@@ -21,7 +21,7 @@ function DoTrace(vector Start, rotator Dir)
     local bool bDoReflect;
     local int ReflectNum;
 
-    if (!bUseEnhancedNetCode)
+    if (!IsEnhancedNetcodeEnabled())
     {
         Super.DoTrace(Start, Dir);
         return;

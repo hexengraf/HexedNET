@@ -6,6 +6,8 @@ const MAX_PROJECTILE_FUDGE = 0.075;
 
 var int CurIndex;
 
+var private MutHexedNET HexedNET;
+var private HxNTClient Client;
 var private HxNTClock NETClock;
 var private const class<Weapon> BaseClass;
 var private bool bConfigCleared;
@@ -33,16 +35,13 @@ simulated function PostBeginPlay()
 
 function NewNet_ServerStartFire(byte Mode, float Ping)
 {
-    ValidateNETClockPointer();
     if (NewNet_LinkAltFire(FireMode[Mode]) != None)
     {
         NewNet_LinkAltFire(FireMode[Mode]).PingDT = FMin(Ping, MAX_PROJECTILE_FUDGE);
-        NewNet_LinkAltFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
     else if (NewNet_LinkFire(FireMode[Mode]) != None)
     {
         NewNet_LinkFire(FireMode[Mode]).PingDT = Ping;
-        NewNet_LinkFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
     ServerStartFire(Mode);
 }

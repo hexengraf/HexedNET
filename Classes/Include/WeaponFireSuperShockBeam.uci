@@ -7,7 +7,7 @@ function TracePart(Vector Start, Vector End, Vector X, Rotator Dir, Pawn Ignored
     local Vector HitNormal;
     local vector PresentHitLocation;
 
-    if (!bUseEnhancedNetCode)
+    if (!IsEnhancedNetcodeEnabled())
     {
         Super.TracePart(Start, End, X, Dir, Ignored);
         return;

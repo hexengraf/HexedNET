@@ -18,6 +18,8 @@ struct ReplicatedVector
     var float Z;
 };
 
+var private MutHexedNET HexedNET;
+var private HxNTClient Client;
 var private HxNTClock NETClock;
 var private const class<Weapon> BaseClass;
 var private bool bConfigCleared;
@@ -56,7 +58,6 @@ simulated event NewNet_ClientStartFire(int Mode)
     {
         if (AltReadyToFire(Mode) && StartFire(Mode) )
         {
-            ValidateNETClockPointer();
             if(!ReadyToFire(Mode))
             {
                 NewNet_OldServerStartFire(Mode, class'HxNTClient'.default.AveragePing);
@@ -122,12 +123,10 @@ function NewNet_ServerStartFire(byte Mode, float Ping, ReplicatedRotator R, Repl
     if(NewNet_FlakFire(FireMode[Mode])!=None)
     {
         NewNet_FlakFire(FireMode[Mode]).PingDT = FMin(Ping, MAX_PROJECTILE_FUDGE_ALT);
-        NewNet_FlakFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
     else if(NewNet_FlakAltFire(FireMode[Mode])!=None)
     {
         NewNet_FlakAltFire(FireMode[Mode]).PingDT = FMin(Ping, MAX_PROJECTILE_FUDGE);
-        NewNet_FlakAltFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
 
     if ( (FireMode[Mode].NextFireTime <= Level.TimeSeconds + FireMode[Mode].PreFireTime)
@@ -198,16 +197,13 @@ simulated event PostNetBeginPlay()
 
 function NewNet_OldServerStartFire(byte Mode, float Ping)
 {
-    ValidateNETClockPointer();
     if(NewNet_FlakFire(FireMode[Mode])!=None)
     {
         NewNet_FlakFire(FireMode[Mode]).PingDT = FMin(Ping, MAX_PROJECTILE_FUDGE_ALT);
-        NewNet_FlakFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
     else if(NewNet_FlakAltFire(FireMode[Mode])!=None)
     {
         NewNet_FlakAltFire(FireMode[Mode]).PingDT = FMin(Ping, MAX_PROJECTILE_FUDGE);
-        NewNet_FlakAltFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
     ServerStartFire(mode);
 }

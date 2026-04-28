@@ -2,6 +2,8 @@ class NewNet_MiniGun extends MiniGun
     HideDropDown
     CacheExempt;
 
+var private MutHexedNET HexedNET;
+var private HxNTClient Client;
 var private HxNTClock NETClock;
 var private const class<Weapon> BaseClass;
 var private bool bConfigCleared;
@@ -26,16 +28,13 @@ simulated function PostBeginPlay()
 
 function NewNet_ServerStartFire(byte Mode, float Ping)
 {
-    ValidateNETClockPointer();
     if (NewNet_MiniGunFire(FireMode[Mode]) != None)
     {
         NewNet_MiniGunFire(FireMode[Mode]).PingDT = Ping;
-        NewNet_MiniGunFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
     else if (NewNet_MiniGunAltFire(FireMode[Mode]) != None)
     {
         NewNet_MiniGunAltFire(FireMode[Mode]).PingDT = Ping;
-        NewNet_MiniGunAltFire(FireMode[Mode]).bUseEnhancedNetCode = true;
     }
     ServerStartFire(Mode);
 }

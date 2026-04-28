@@ -19,7 +19,7 @@ simulated function ModeTick(float dt)
 	local bool bNeedRevert;
 	local vector PawnHitLocation;
 
-    if(!bUseEnhancedNetCode || Instigator.Role < Role_Authority)
+    if(Instigator.Role < Role_Authority || !IsEnhancedNetcodeEnabled())
     {
         super.ModeTick(dt);
         return;

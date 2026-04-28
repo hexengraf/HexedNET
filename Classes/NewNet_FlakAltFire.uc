@@ -22,7 +22,7 @@ var rotator OldAim;
 function PlayFiring()
 {
     Super.PlayFiring();
-    if (class'HxNTClient'.static.IsEnhancedNetcodeEnabled(Level))
+    if (Level.NetMode == NM_Client && IsEnhancedNetcodeEnabled())
     {
         if (bSkipNextEffect)
         {
@@ -144,11 +144,11 @@ function projectile SpawnProjectile(Vector Start, Rotator Dir)
     local vector End, HitLocation, HitNormal, VZ;
     local actor Other;
 
-    if (class'HxNTClient'.static.IsEnhancedNetcodeEnabled(Level))
+    if (Level.NetMode == NM_Client && IsEnhancedNetcodeEnabled())
     {
         return SpawnFakeProjectile(Start, Dir);
     }
-    if (!bUseEnhancedNetCode)
+    if (!IsEnhancedNetcodeEnabled())
     {
         return Super.SpawnProjectile(start, Dir);
     }

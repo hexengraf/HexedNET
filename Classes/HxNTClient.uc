@@ -22,13 +22,14 @@ class HxNTClient extends HxClientReplicationInfo
 const PING_WARMUP_COUNT = 10;
 const PING_SMOOTHING = 0.3;
 
-var config bool bEnhancedNetCode;
+var config bool bEnhancedNetcode;
 
 var float PingFrequency;
 var float AveragePing;
 
 var private FakeProjectileManager FPM;
 var private int PingCount;
+var private bool bClientEnhancedNetcode;
 var private bool bClientUpdated;
 
 replication
@@ -39,7 +40,7 @@ replication
 
     reliable if (Role < ROLE_Authority)
         ServerPing,
-        ServerTurnOffNetcode;
+        ServerSetEnhancedNetcode;
 }
 
 simulated function PostNetBeginPlay()
@@ -47,10 +48,7 @@ simulated function PostNetBeginPlay()
     Super.PostNetBeginPlay();
     if (Level.NetMode == NM_Client)
     {
-        if (bEnhancedNetCode)
-        {
-            SetTimer(PingFrequency, true);
-        }
+        SetEnhancedNetCode(bEnhancedNetcode);
     }
 }
 
@@ -96,74 +94,9 @@ simulated function Tick(float DeltaTime)
     }
 }
 
-function ServerTurnOffNetcode()
+function ServerSetEnhancedNetcode(bool bEnable)
 {
-    local PlayerController PC;
-    local inventory Inv;
-
-    PC = PlayerController(Owner);
-    if (PC.Pawn != None)
-    {
-        for (Inv = PC.Pawn.Inventory; Inv != None; Inv = Inv.inventory)
-        {
-            if (Weapon(Inv) == None)
-            {
-                continue;
-            }
-            if (NewNet_AssaultRifle(Inv) != None)
-            {
-                NewNet_AssaultRifle(Inv).DisableNet();
-            }
-            else if (NewNet_BioRifle(Inv) != None)
-            {
-                NewNet_BioRifle(Inv).DisableNet();
-            }
-            else if (NewNet_ShockRifle(Inv) != None)
-            {
-                NewNet_ShockRifle(Inv).DisableNet();
-            }
-            else if (NewNet_SuperShockRifle(Inv) != None)
-            {
-                NewNet_SuperShockRifle(Inv).DisableNet();
-            }
-            else if (NewNet_ZoomSuperShockRifle(Inv) != None)
-            {
-                NewNet_ZoomSuperShockRifle(Inv).DisableNet();
-            }
-            else if (NewNet_MiniGun(Inv) != None)
-            {
-                NewNet_MiniGun(Inv).DisableNet();
-            }
-            else if (NewNet_LinkGun(Inv) != None)
-            {
-                NewNet_LinkGun(Inv).DisableNet();
-            }
-            else if (NewNet_RocketLauncher(Inv) != None)
-            {
-                NewNet_RocketLauncher(Inv).DisableNet();
-            }
-            else if (NewNet_FlakCannon(Inv) != None)
-            {
-                NewNet_FlakCannon(Inv).DisableNet();
-            }
-            else if (NewNet_SniperRifle(Inv) != None)
-            {
-                NewNet_SniperRifle(Inv).DisableNet();
-            }
-            else if (NewNet_ClassicSniperRifle(Inv) != None)
-            {
-                NewNet_ClassicSniperRifle(Inv).DisableNet();
-            }
-            else if (NewNet_HxSuperShockRifle(Inv) != None)
-            {
-                NewNet_HxSuperShockRifle(Inv).DisableNet();
-            }
-            else if (NewNet_HxZoomSuperShockRifle(Inv) != None)
-            {
-                NewNet_HxZoomSuperShockRifle(Inv).DisableNet();
-            }
-        }
-    }
+    bClientEnhancedNetcode = bEnable;
 }
 
 simulated function ServerInfoReady()
@@ -182,7 +115,7 @@ simulated function string GetProperty(int Index)
     switch (Index)
     {
         case 0:
-            return string(bEnhancedNetCode);
+            return string(bEnhancedNetcode);
     }
     return "";
 }
@@ -199,7 +132,6 @@ simulated function SetEnhancedNetCode(coerce bool bEnable)
 {
     if (!bEnable)
     {
-        ServerTurnOffNetcode();
         Disable('Timer');
     }
     else
@@ -207,8 +139,9 @@ simulated function SetEnhancedNetCode(coerce bool bEnable)
         Enable('Timer');
         SetTimer(PingFrequency, true);
     }
-    bEnhancedNetCode = bEnable;
-    default.bEnhancedNetCode = bEnable;
+    ServerSetEnhancedNetcode(bEnable);
+    bEnhancedNetcode = bEnable;
+    default.bEnhancedNetcode = bEnable;
     StaticSaveConfig();
 }
 
@@ -223,6 +156,11 @@ simulated function ClientSetAllowMultiHit(bool bEnable)
     class'NewNet_ZoomSuperShockBeamFire'.default.bServerAllowMultiHit = bEnable;
 }
 
+simulated function bool IsEnhancedNetcodeEnabled()
+{
+    return (Level.NetMode == NM_Client && bEnhancedNetcode) || bClientEnhancedNetcode;
+}
+
 // TODO: do we really need this?
 static function FixWeaponInstigator(PlayerController PC)
 {
@@ -234,18 +172,13 @@ static function FixWeaponInstigator(PlayerController PC)
     }
 }
 
-static function bool IsEnhancedNetcodeEnabled(LevelInfo Level)
-{
-    return default.bEnhancedNetCode && Level.NetMode == NM_Client;
-}
-
 defaultproperties
 {
     NetUpdateFrequency=10
     NetPriority=3
     PingFrequency=1.0
-    bEnhancedNetCode=true
+    bEnhancedNetcode=true
 
     MutatorClass=class'MutHexedNET'
-    Properties(0)=(Name="bEnhancedNetCode",Section="Enhanced Netcode",Caption="Enable Enhanced Netcode",Hint="Enable enhanced netcode on weapons.",Type=PIT_Check)
+    Properties(0)=(Name="bEnhancedNetcode",Section="Enhanced Netcode",Caption="Enable Enhanced Netcode",Hint="Enable enhanced netcode on weapons.",Type=PIT_Check)
 }

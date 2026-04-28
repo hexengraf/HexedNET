@@ -1,3 +1,5 @@
+var private MutHexedNET HexedNET;
+var private HxNTClient Client;
 var private HxNTClock NETClock;
 var float LastDT;
 
@@ -39,7 +41,6 @@ simulated event NewNet_ClientStartFire(int Mode)
     {
         if (ReadyToFire(Mode) && StartFire(Mode))
         {
-            ValidateNETClockPointer();
             R.Pitch = Pawn(Owner).Controller.Rotation.Pitch;
             R.Yaw = Pawn(Owner).Controller.Rotation.Yaw;
             STart = Pawn(Owner).Location + Pawn(Owner).EyePosition();

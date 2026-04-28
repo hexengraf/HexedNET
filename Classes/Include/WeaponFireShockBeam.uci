@@ -8,14 +8,36 @@ var bool bBelievesHit;
 var Actor BelievedHitActor;
 var bool bFirstGo;
 var float PingDT;
-var bool bUseEnhancedNetCode;
 
 var private MutHexedNET HexedNET;
+var private HxNTClient Client;
+
+function bool ValidateClient()
+{
+    if (Client != None)
+    {
+        return true;
+    }
+    if (Weapon.Level.NetMode == NM_Client)
+    {
+        foreach Weapon.DynamicActors(class'HxNTClient', Client) break;
+    }
+    else if (HexedNET != None && Instigator != None)
+    {
+        Client = HxNTClient(HexedNET.GetClientReplicationInfo(Instigator.Controller));
+    }
+    return Client != None;
+}
+
+function bool IsEnhancedNetcodeEnabled()
+{
+    return ValidateClient() && Client.IsEnhancedNetcodeEnabled();
+}
 
 function PlayFiring()
 {
     Super.PlayFiring();
-    if (class'HxNTClient'.static.IsEnhancedNetcodeEnabled(Level))
+    if (Level.NetMode == NM_Client && IsEnhancedNetcodeEnabled())
     {
         if (bSkipNextEffect)
         {
@@ -53,7 +75,7 @@ function DoFireEffect()
     local rotator R;
     local rotator Aim;
 
-    if (!bUseEnhancedNetCode && Level.NetMode != NM_Client)
+    if (!IsEnhancedNetcodeEnabled() && Level.NetMode != NM_Client)
     {
         Super.DoFireEffect();
         return;
@@ -91,7 +113,7 @@ function SpawnBeamEffect(vector Start,
 {
     local ShockBeamEffect Beam;
 
-    if (bUseEnhancedNetCode)
+    if (IsEnhancedNetcodeEnabled())
     {
         if (Weapon != None)
         {

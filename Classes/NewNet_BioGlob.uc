@@ -1,114 +1,51 @@
 
-class NewNet_BioGlob extends BioGlob
-	HideDropDown
-	CacheExempt;
-
-var PlayerController PC;
-var vector DesiredDeltaFake;
-var float CurrentDeltaFakeTime;
-var bool bInterpFake;
-var bool bOwned;
-
-var FakeProjectileManager FPM;
+class NewNet_BioGlob extends BioGlob;
 
 const INTERP_TIME = 0.50;
-var int index;
+
+var int Index;
+
+var private PlayerController PC;
+var private HxNTClient Client;
+var private FakeProjectileManager FPM;
+var private vector DesiredDeltaFake;
+var private float CurrentDeltaFakeTime;
+var private bool bInterpFake;
+var private bool bOwned;
 
 replication
 {
-    unreliable if(bDemoRecording)
-       DoMove, DoSetLoc;
-    reliable if(Role == Role_Authority && bNetInitial)
-       index;
+    unreliable if (bDemoRecording)
+        DoMove, DoSetLoc;
 
+    reliable if (Role == ROLE_Authority && bNetInitial)
+        Index;
 }
 
-simulated function DoMove(Vector V)
-{
-    Move(V);
-}
-
-simulated function DoSetLoc(Vector V)
-{
-    SetLocation(V);
-}
+#include Classes\Include\WeaponProjectileBaseFunctions.uci
 
 simulated function PostNetBeginPlay()
 {
-    super.PostNetBeginPlay();
-    if(Level.NetMode!=NM_Client)
-        return;
-
-    PC = Level.GetLocalPlayerController();
-    if (CheckOwned())
-        CheckForFakeProj();
-}
-
-simulated function bool CheckOwned()
-{
-    if (!class'HxNTClient'.static.IsEnhancedNetcodeEnabled(Level))
-    {
-        return false;
-    }
-    bOwned = PC != None && PC.Pawn != None && PC.Pawn == Instigator;
-    return bOwned;
+    Super.PostNetBeginPlay();
+    DoCheckForFakeProj();
 }
 
 simulated function bool CheckForFakeProj()
 {
-     local Projectile FP;
+    local Projectile FP;
 
-     if(FPM == none)
-        FindFPM();
-     FP = FPM.GetFP(class'NewNet_Fake_BioGlob', Index);
-     if(FP != none)
-     {
-         bInterpFake=true;
-         DesiredDeltaFake = Location - FP.Location;
-         doSetLoc(FP.Location);
-         FPM.RemoveProjectile(FP);
-         bOwned=False;
-         return true;
-     }
-     return false;
-}
-
-simulated function FindFPM()
-{
-    foreach DynamicActors(class'FakeProjectileManager', FPM)
-        break;
-}
-
-
-simulated function Tick(float deltatime)
-{
-    super.Tick(deltatime);
-    if(Level.NetMode != NM_Client)
-        return;
-    if(bInterpFake)
-        FakeInterp(deltatime);
-    else if(bOwned)
-        CheckForFakeProj();
-}
-
-simulated function FakeInterp(float dt)
-{
-    local vector V;
-    local float OldDeltaFakeTime;
-
-    V=DesiredDeltaFake*dt/INTERP_TIME;
-
-    OldDeltaFakeTime = CurrentDeltaFakeTime;
-    CurrentDeltaFakeTime+=dt;
-
-    if(CurrentDeltaFakeTime < INTERP_TIME)
-        Domove(V);
-    else // (We overshot)
+    ValidateFPM();
+    FP = FPM.GetFP(class'NewNet_Fake_BioGlob', Index);
+    if (FP != None)
     {
-        DoMove((INTERP_TIME - OldDeltaFakeTime)/dt*V);
-        bInterpFake=False;
-        //Turn off checking for fakes
+        bInterpFake = true;
+        DesiredDeltaFake = Location - FP.Location;
+        doSetLoc(FP.Location);
+        FPM.RemoveProjectile(FP);
+        bOwned = false;
+        return true;
     }
+    return false;
 }
 
 defaultproperties

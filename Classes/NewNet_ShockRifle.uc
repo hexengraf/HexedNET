@@ -29,7 +29,6 @@ function NewNet_ServerStartFire(byte Mode, float Ping, ReplicatedRotator R, Repl
     }
     ValidateNETClockPointer();
     NewNet_ShockBeamFire(FireMode[Mode]).PingDT = Ping;
-    NewNet_ShockBeamFire(FireMode[Mode]).bUseEnhancedNetCode = true;
 
     if (bBelievesHit)
     {

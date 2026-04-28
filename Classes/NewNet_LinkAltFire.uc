@@ -21,13 +21,13 @@ function Projectile SpawnProjectile(Vector Start, Rotator Dir)
     local actor Other;
     local float f,g;
 
-    if (class'HxNTClient'.static.IsEnhancedNetcodeEnabled(Level))
-    {
-        return SpawnFakeProjectile(Start, Dir);
-    }
-    if (!bUseEnhancedNetCode)
+    if (!IsEnhancedNetcodeEnabled())
     {
        return Super.SpawnProjectile(Start, Dir);
+    }
+    if (Level.NetMode == NM_Client)
+    {
+        return SpawnFakeProjectile(Start, Dir);
     }
     Start += Vector(Dir) * 10.0 * LinkGun(Weapon).Links;
     if(PingDT > 0.0 && Weapon.Owner!=None)
@@ -115,7 +115,7 @@ function Timer()
 function PlayFiring()
 {
     Super.PlayFiring();
-    if (class'HxNTClient'.static.IsEnhancedNetcodeEnabled(Level))
+    if (Level.NetMode == NM_Client && IsEnhancedNetcodeEnabled())
     {
         CheckFireEffect();
     }

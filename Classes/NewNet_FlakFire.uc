@@ -23,7 +23,7 @@ const SLACK = 0.035;
 function PlayFiring()
 {
     Super.PlayFiring();
-    if (class'HxNTClient'.static.IsEnhancedNetcodeEnabled(Level))
+    if (Level.NetMode == NM_Client && IsEnhancedNetcodeEnabled())
     {
         if (bSkipNextEffect)
         {
@@ -225,7 +225,7 @@ function DoFireEffect()
     local float theta;
     local projectile proj;
 
-    if(!bUseEnhancedNetCode)
+    if(!IsEnhancedNetcodeEnabled())
     {
        super.DoFireEffect();
        return;
@@ -272,7 +272,7 @@ function DoFireEffect()
             R = NewNet_FlakCannon(Weapon).GetRandRot();
             proj = SpawnProjectile(StartProj, Rotator(X >> R));
             if(proj!=None)
-                NewNet_FlakChunk(proj).ChunkNum = p;
+                NewNet_FlakChunk(proj).Index = p;
         }
         break;
     case SS_Line:
@@ -302,7 +302,7 @@ function projectile SpawnProjectile(Vector Start, Rotator Dir)
 
     originalStart = start;
 
-    if(!bUseEnhancedNetCode)
+    if(!IsEnhancedNetcodeEnabled())
         return super.SpawnProjectile(Start,Dir);
     /* change this to use gravity */
     if( ProjectileClass != None )

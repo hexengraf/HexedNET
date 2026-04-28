@@ -2,7 +2,6 @@
 class NewNet_RocketFire extends RocketFire;
 
 var float PingDT;
-var bool bUseEnhancedNetCode;
 
 var bool bUseReplicatedInfo;
 var rotator savedRot;
@@ -16,15 +15,34 @@ var rotator OldAim;
 var class<Projectile> FakeProjectileClass;
 var FakeProjectileManager FPM;
 var bool bSkipNextEffect;
+var private HxNTClient Client;
 
 const PROJ_TIMESTEP = 0.0201;
 const MAX_PROJECTILE_FUDGE = 0.075;
 const SLACK = 0.035;
 
+function bool ValidateClient()
+{
+    if (Client != None)
+    {
+        return true;
+    }
+    if (Weapon.Level.NetMode == NM_Client)
+    {
+        foreach Weapon.DynamicActors(class'HxNTClient', Client) break;
+    }
+    return Client != None;
+}
+
+function bool IsEnhancedNetcodeEnabled()
+{
+    return ValidateClient() && Client.IsEnhancedNetcodeEnabled();
+}
+
 function PlayFiring()
 {
     Super.PlayFiring();
-    if (class'HxNTClient'.static.IsEnhancedNetcodeEnabled(Level))
+    if (Level.NetMode == NM_Client && IsEnhancedNetcodeEnabled())
     {
         if (bSkipNextEffect)
         {

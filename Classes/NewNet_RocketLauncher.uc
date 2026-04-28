@@ -20,12 +20,12 @@ struct ReplicatedVector
 };
 
 var MutHexedNET HexedNET;
+var private HxNTClient Client;
 var private HxNTClock NETClock;
 var private const class<Weapon> BaseClass;
 var private bool bConfigCleared;
 
 var float PingDT;
-var bool bUseEnhancedNetCode;
 
 var float lastDT;
 
@@ -39,6 +39,7 @@ event PreBeginPlay()
 {
     Super.PreBeginPlay();
     ForEach DynamicActors(class'MutHexedNET', HexedNET) break;
+    ValidateClient();
 }
 
 #include Classes\Include\WeaponBaseFunctions.uci
@@ -83,7 +84,6 @@ simulated event NewNet_ClientStartFire(int Mode)
     {
         if (StartFire(Mode))
         {
-            ValidateNETClockPointer();
          /*   if(NewNet_RocketMultiFire(FireMode[Mode])!=None)
                 NewNet_RocketMultiFire(FireMode[Mode]).DoInstantFireEffect();
             else*/ if(NewNet_RocketFire(FireMode[Mode])!=None)
@@ -113,17 +113,14 @@ function NewNet_ServerStartFire(byte Mode, float Ping, ReplicatedRotator R, Repl
     }
     ValidateNETClockPointer();
     PingDT = FMin(Ping, MAX_PROJECTILE_FUDGE);
-    bUseEnhancedNetCode=true;
-    if(NewNet_RocketFire(FireMode[Mode])!=None)
-    {
-       // NewNet_RocketFire(FireMode[Mode]).PingDT = FMin(Ping + 1.75*NETClock.AverDT, MAX_PROJECTILE_FUDGE_ALT);
-        NewNet_RocketFire(FireMode[Mode]).bUseEnhancedNetCode = true;
-    }
-    else if(NewNet_RocketMultiFire(FireMode[Mode])!=None)
-    {
-     //   NewNet_RocketMultiFire(FireMode[Mode]).PingDT = FMin(Ping + 1.75*NETClock.AverDT, MAX_PROJECTILE_FUDGE);
-        NewNet_RocketMultiFire(FireMode[Mode]).bUseEnhancedNetCode = true;
-    }
+    // if(NewNet_RocketFire(FireMode[Mode])!=None)
+    // {
+    //    NewNet_RocketFire(FireMode[Mode]).PingDT = FMin(Ping + 1.75*NETClock.AverDT, MAX_PROJECTILE_FUDGE_ALT);
+    // }
+    // else if(NewNet_RocketMultiFire(FireMode[Mode])!=None)
+    // {
+    //    NewNet_RocketMultiFire(FireMode[Mode]).PingDT = FMin(Ping + 1.75*NETClock.AverDT, MAX_PROJECTILE_FUDGE);
+    // }
 
     if ( (FireMode[Mode].NextFireTime <= Level.TimeSeconds + FireMode[Mode].PreFireTime)
 		&& StartFire(Mode) )
@@ -206,7 +203,7 @@ function Projectile SpawnProjectile(Vector Start, Rotator Dir)
 
 	local vector HitNormal, End, HitLocation;
 
-	if(!bUseEnhancedNetCode)
+	if(!IsEnhancedNetcodeEnabled())
 	{
 	    return super.SpawnProjectile(Start, Dir);
 	}
