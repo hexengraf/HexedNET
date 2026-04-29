@@ -354,12 +354,12 @@ defaultproperties
     Description="Modified version of UTComp's enhanced netcode (ping compensation)."
     bAddToServerPackages=true
     CRIClass=class'HxNTClient'
-    Properties(0)=(Name="PingFrequency",Section="Enhanced Netcode",Caption="Ping frequency",Hint="Frequency to send pings (in seconds).",Type="Text",Data="4;0.0:360.0",bMPOnly=true,bAdvanced=true)
-    Properties(1)=(Name="PawnCollisionTimeWindow",Section="Enhanced Netcode",Caption="Pawn collision time window",Hint="Time window (in seconds) to look back for pawn collisions.",Type="Text",Data="4;0.0:360.0",bMPOnly=true,bAdvanced=true)
+    Properties(0)=(Name="PingFrequency",Section="Enhanced Netcode",Caption="Ping frequency",Hint="Frequency to send pings (in seconds).",Type="Text",Data="4;0.05:3",bMPOnly=true,bAdvanced=true)
+    Properties(1)=(Name="PawnCollisionTimeWindow",Section="Enhanced Netcode",Caption="Pawn collision time window",Hint="Time window (in seconds) to look back for pawn collisions.",Type="Text",Data="4;0.05:1.5",bMPOnly=true,bAdvanced=true)
     bDisableTick=true
 
     // configs
-    PingFrequency=1.0
+    PingFrequency=0.8
     PawnCollisionTimeWindow=0.35
     //original weapons
     WeaponClasses(0)=class'ShockRifle'
