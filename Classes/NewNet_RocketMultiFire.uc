@@ -45,9 +45,10 @@ function PlayFiring()
 simulated function CheckFireEffect()
 {
    local float Ping;
-   if(Level.NetMode == NM_Client && Instigator.IsLocallyControlled())
+
+   if(Level.NetMode == NM_Client && Instigator.IsLocallyControlled() && ValidateClient())
    {
-        Ping = class'HxNTClient'.default.AveragePing - 0.5*class'HxNTClock'.default.AverDT;
+        Ping = Client.AveragePing - 0.5*class'HxNTClock'.default.AverDT;
 
         if(Ping <= MAX_PROJECTILE_FUDGE)
             DoClientFireEffect();

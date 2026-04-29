@@ -31,7 +31,7 @@ simulated function PostNetBeginPlay()
             if (!CheckForFakeProj())
             {
                 bMoved = true;
-                DoMove(FMax(0.00, (class'HxNTClient'.default.AveragePing - 1.5 * class'HxNTClock'.default.AverDT)) * Velocity);
+                DoMove(FMax(0.00, (Client.AveragePing - 1.5 * class'HxNTClock'.default.AverDT)) * Velocity);
             }
         }
     }
@@ -53,7 +53,7 @@ simulated function bool CheckForFakeProj()
         }
         else
         {
-            Ping = FMax(0.0, class'HxNTClient'.default.AveragePing - 1.5 * class'HxNTClock'.default.AverDT);
+            Ping = FMax(0.0, Client.AveragePing - 1.5 * class'HxNTClock'.default.AverDT);
             DesiredDeltaFake = (Location+Velocity*Ping) - FP.Location;
         }
         DoSetLoc(FP.Location);

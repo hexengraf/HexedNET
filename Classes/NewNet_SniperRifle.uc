@@ -60,7 +60,7 @@ simulated function NewNet_ClientStartFire(int Mode)
     local actor A;
     local vector HN,HL;
 
-    if (Mode == 1)
+    if (Mode == 1 || !ValidateClient())
     {
         Super.ClientStartFire(Mode);
     }
@@ -83,7 +83,7 @@ simulated function NewNet_ClientStartFire(int Mode)
                 b=true;
             }
 
-            NewNet_ServerStartFire(Mode, class'HxNTClient'.default.AveragePing, R, V,b,A);
+            NewNet_ServerStartFire(Mode, Client.AveragePing, R, V,b,A);
         }
     }
     else

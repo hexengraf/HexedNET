@@ -1,10 +1,14 @@
 simulated event NewNet_ClientStartFire(int Mode)
 {
-    if (Role < ROLE_Authority)
+    if (!ValidateClient())
+    {
+        Super.ClientStartFire(Mode);
+    }
+    else if (Role < ROLE_Authority)
     {
         if (StartFire(Mode))
         {
-            NewNet_ServerStartFire(Mode, class'HxNTClient'.default.AveragePing);
+            NewNet_ServerStartFire(Mode, Client.AveragePing);
         }
     }
     else

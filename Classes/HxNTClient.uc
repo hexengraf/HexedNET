@@ -70,11 +70,11 @@ simulated function ClientPing(float Timestamp)
     NewPing = Level.TimeSeconds - Timestamp;
     if (PingCount < PING_WARMUP_COUNT)
     {
-        default.AveragePing += (NewPing - default.AveragePing) / PingCount;
+        AveragePing += (NewPing - AveragePing) / PingCount;
     }
     else
     {
-        default.AveragePing += (NewPing - default.AveragePing) * PING_SMOOTHING;
+        AveragePing += (NewPing - AveragePing) * PING_SMOOTHING;
     }
 }
 

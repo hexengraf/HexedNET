@@ -27,7 +27,7 @@ simulated function PostBeginPlay()
 
 simulated event NewNet_ClientStartFire(int Mode)
 {
-    if (Mode == 1)
+    if (Mode == 1 || !ValidateClient())
     {
         Super.ClientStartFire(Mode);
     }
@@ -35,7 +35,7 @@ simulated event NewNet_ClientStartFire(int Mode)
     {
         if (StartFire(Mode))
         {
-            NewNet_ServerStartFire(Mode, class'HxNTClient'.default.AveragePing);
+            NewNet_ServerStartFire(Mode, Client.AveragePing);
         }
     }
     else

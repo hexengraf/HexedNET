@@ -60,6 +60,11 @@ simulated event NewNet_ClientStartFire(int Mode)
     local vector Start;
 	local int OtherMode;
 
+    if (!ValidateClient())
+    {
+        Super.ClientStartFire(Mode);
+        return;
+    }
 	if ( RocketMultiFire(FireMode[Mode]) != None )
 	{
 		SetTightSpread(false);
@@ -96,7 +101,7 @@ simulated event NewNet_ClientStartFire(int Mode)
             V.Y = Start.Y;
             V.Z = Start.Z;
 
-            NewNet_ServerStartFire(mode, class'HxNTClient'.default.AveragePing, R, V);
+            NewNet_ServerStartFire(mode, Client.AveragePing, R, V);
         }
     }
     else

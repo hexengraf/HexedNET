@@ -33,7 +33,7 @@ simulated event NewNet_ClientStartFire(int Mode)
     local actor A;
     local vector HN,HL;
 
-    if (ShockBeamFire(FireMode[Mode]) == None)
+    if (ShockBeamFire(FireMode[Mode]) == None || !ValidateClient())
     {
         Super.ClientStartFire(Mode);
     }
@@ -54,7 +54,7 @@ simulated event NewNet_ClientStartFire(int Mode)
             {
                 b = true;
             }
-            NewNet_ServerStartFire(Mode, class'HxNTClient'.default.AveragePing, R, V, b, A);
+            NewNet_ServerStartFire(Mode, Client.AveragePing, R, V, b, A);
         }
     }
     else

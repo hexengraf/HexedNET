@@ -54,13 +54,17 @@ simulated event NewNet_ClientStartFire(int Mode)
     local ReplicatedVector V;
     local vector Start;
 
-    if (Role < ROLE_Authority)
+    if (!ValidateClient())
+    {
+        Super.ClientStartFire(Mode);
+    }
+    else if (Role < ROLE_Authority)
     {
         if (AltReadyToFire(Mode) && StartFire(Mode) )
         {
             if(!ReadyToFire(Mode))
             {
-                NewNet_OldServerStartFire(Mode, class'HxNTClient'.default.AveragePing);
+                NewNet_OldServerStartFire(Mode, Client.AveragePing);
                 return;
             }
             if(NewNet_FlakAltFire(FireMode[Mode])!=None)
@@ -75,7 +79,7 @@ simulated event NewNet_ClientStartFire(int Mode)
             V.Y = Start.Y;
             V.Z = Start.Z;
 
-            NewNet_ServerStartFire(mode, class'HxNTClient'.default.AveragePing, R, V);
+            NewNet_ServerStartFire(mode, Client.AveragePing, R, V);
         }
     }
     else
