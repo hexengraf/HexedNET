@@ -24,7 +24,6 @@ const PING_SMOOTHING = 0.3;
 
 var config bool bEnhancedNetcode;
 
-var float PingFrequency;
 var float AveragePing;
 
 var private FakeProjectileManager FPM;
@@ -35,7 +34,8 @@ var private bool bClientUpdated;
 replication
 {
     reliable if (Role == ROLE_Authority)
-        ClientPing,
+        ClientRequestPing,
+        ClientUpdatePing,
         ClientSetAllowMultiHit;
 
     reliable if (Role < ROLE_Authority)
@@ -48,34 +48,18 @@ simulated function PostNetBeginPlay()
     Super.PostNetBeginPlay();
     if (Level.NetMode == NM_Client)
     {
-        SetEnhancedNetCode(bEnhancedNetcode);
+        ServerSetEnhancedNetcode(bEnhancedNetcode);
     }
 }
 
-simulated event Timer()
+simulated function ClientRequestPing(float Timestamp)
 {
-    ServerPing(Level.TimeSeconds);
+    ServerPing(Timestamp);
 }
 
-simulated function ServerPing(float Timestamp)
+simulated function ClientUpdatePing(float Ping)
 {
-    ClientPing(Timestamp);
-}
-
-simulated function ClientPing(float Timestamp)
-{
-    local float NewPing;
-
-    PingCount++;
-    NewPing = Level.TimeSeconds - Timestamp;
-    if (PingCount < PING_WARMUP_COUNT)
-    {
-        AveragePing += (NewPing - AveragePing) / PingCount;
-    }
-    else
-    {
-        AveragePing += (NewPing - AveragePing) * PING_SMOOTHING;
-    }
+    AveragePing = Ping;
 }
 
 simulated function Tick(float DeltaTime)
@@ -94,20 +78,54 @@ simulated function Tick(float DeltaTime)
     }
 }
 
+event Timer()
+{
+    ClientRequestPing(Level.TimeSeconds);
+}
+
+function ServerPing(float Timestamp)
+{
+    local float NewPing;
+
+    PingCount++;
+    NewPing = Level.TimeSeconds - Timestamp;
+    if (PingCount < PING_WARMUP_COUNT)
+    {
+        AveragePing += (NewPing - AveragePing) / PingCount;
+    }
+    else
+    {
+        AveragePing += (NewPing - AveragePing) * PING_SMOOTHING;
+    }
+    ClientUpdatePing(AveragePing);
+}
+
 function ServerSetEnhancedNetcode(bool bEnable)
 {
     bClientEnhancedNetcode = bEnable;
+    if (!bEnable)
+    {
+        Disable('Timer');
+    }
+    else
+    {
+        Enable('Timer');
+        SetTimer(float(GetServerProperty("PingFrequency")), true);
+    }
+}
+
+function SetServerProperty(int Index, string Value)
+{
+    Super.SetServerProperty(Index, Value);
+    if (bClientEnhancedNetcode)
+    {
+        SetTimer(float(GetServerProperty("PingFrequency")), true);
+    }
 }
 
 simulated function ServerInfoReady()
 {
     FPM = Spawn(Class'FakeProjectileManager', Self);
-    SetPingFrequency(GetServerProperty("PingFrequency"));
-}
-
-simulated function ServerPropertyChanged(int Index, string OldValue)
-{
-    SetPingFrequency(GetServerProperty("PingFrequency"));
 }
 
 simulated function string GetProperty(int Index)
@@ -124,31 +142,10 @@ simulated function SetProperty(int Index, string Value)
 {
     if (Index == 0)
     {
-        SetEnhancedNetCode(Value);
+        bEnhancedNetcode = bool(Value);
+        ServerSetEnhancedNetcode(bEnhancedNetcode);
     }
-}
-
-simulated function SetEnhancedNetCode(coerce bool bEnable)
-{
-    if (!bEnable)
-    {
-        Disable('Timer');
-    }
-    else
-    {
-        Enable('Timer');
-        SetTimer(PingFrequency, true);
-    }
-    ServerSetEnhancedNetcode(bEnable);
-    bEnhancedNetcode = bEnable;
-    default.bEnhancedNetcode = bEnable;
-    StaticSaveConfig();
-}
-
-simulated function SetPingFrequency(coerce float NewTime)
-{
-    PingFrequency = NewTime;
-    SetTimer(PingFrequency, true);
+    SaveConfig();
 }
 
 simulated function ClientSetAllowMultiHit(bool bEnable)
@@ -176,7 +173,6 @@ defaultproperties
 {
     NetUpdateFrequency=10
     NetPriority=3
-    PingFrequency=1.0
     bEnhancedNetcode=true
 
     MutatorClass=class'MutHexedNET'
