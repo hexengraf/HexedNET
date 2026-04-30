@@ -20,12 +20,14 @@ function DoTrace(vector Start, rotator Dir)
     local int Damage;
     local bool bDoReflect;
     local int ReflectNum;
+    local float PingDT;
 
     if (!IsEnhancedNetcodeEnabled())
     {
         Super.DoTrace(Start, Dir);
         return;
     }
+    PingDT = Client.AveragePing;
     MaxRange();
     ReflectNum = 0;
     while (true)

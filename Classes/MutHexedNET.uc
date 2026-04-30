@@ -7,6 +7,8 @@ var HxNTClock NETClock;
 
 var const private class<Weapon> WeaponClasses[13];
 var const private class<Weapon> NewNetWeaponClasses[13];
+var const private class<WeaponFire> WeaponFireClasses[5];
+var const private class<WeaponFire> NewNetWeaponFireClasses[5];
 var private PawnCollisionCopy PCC;
 
 event PreBeginPlay()
@@ -296,7 +298,21 @@ function bool CheckReplacement(Actor Other, out byte bSuperRelevant)
     local int i;
     local int j;
 
-    if (xWeaponBase(Other) != None)
+    if (Weapon(Other) != None)
+    {
+        for (i = 0; i < ArrayCount(Weapon(Other).FireModeClass); ++i)
+        {
+            for (j = 0; j < ArrayCount(WeaponFireClasses); ++j)
+            {
+                if (Weapon(Other).FireModeClass[i] == WeaponFireClasses[j])
+                {
+                    Weapon(Other).FireModeClass[i] = NewNetWeaponFireClasses[j];
+                    break;
+                }
+            }
+        }
+    }
+    else if (xWeaponBase(Other) != None)
     {
         for (i = 0; i < ArrayCount(WeaponClasses); ++i)
         {
@@ -359,34 +375,38 @@ defaultproperties
     bDisableTick=true
 
     // configs
-    PingFrequency=0.8
+    PingFrequency=1.0
     PawnCollisionTimeWindow=0.35
     //original weapons
     WeaponClasses(0)=class'ShockRifle'
     WeaponClasses(1)=class'LinkGun'
-    WeaponClasses(2)=class'Minigun'
-    WeaponClasses(3)=class'FlakCannon'
-    WeaponClasses(4)=class'RocketLauncher'
-    WeaponClasses(5)=class'SniperRifle'
-    WeaponClasses(6)=class'BioRifle'
-    WeaponClasses(7)=class'AssaultRifle'
-    WeaponClasses(8)=class'ClassicSniperRifle'
-    WeaponClasses(9)=class'SuperShockRifle'
-    WeaponClasses(10)=class'ZoomSuperShockRifle'
-    WeaponClasses(11)=class'HxSuperShockRifle'
-    WeaponClasses(12)=class'HxZoomSuperShockRifle'
+    WeaponClasses(2)=class'FlakCannon'
+    WeaponClasses(3)=class'RocketLauncher'
+    WeaponClasses(4)=class'SniperRifle'
+    WeaponClasses(5)=class'BioRifle'
+    WeaponClasses(6)=class'SuperShockRifle'
+    WeaponClasses(7)=class'ZoomSuperShockRifle'
+    WeaponClasses(8)=class'HxSuperShockRifle'
+    WeaponClasses(9)=class'HxZoomSuperShockRifle'
     // replaced NewNet classes
     NewNetWeaponClasses(0)=class'NewNet_ShockRifle'
     NewNetWeaponClasses(1)=class'NewNet_LinkGun'
-    NewNetWeaponClasses(2)=class'NewNet_MiniGun'
-    NewNetWeaponClasses(3)=class'NewNet_FlakCannon'
-    NewNetWeaponClasses(4)=class'NewNet_RocketLauncher'
-    NewNetWeaponClasses(5)=class'NewNet_SniperRifle'
-    NewNetWeaponClasses(6)=class'NewNet_BioRifle'
-    NewNetWeaponClasses(7)=class'NewNet_AssaultRifle'
-    NewNetWeaponClasses(8)=class'NewNet_ClassicSniperRifle'
-    NewNetWeaponClasses(9)=class'NewNet_SuperShockRifle'
-    NewNetWeaponClasses(10)=class'NewNet_ZoomSuperShockRifle'
-    NewNetWeaponClasses(11)=class'NewNet_HxSuperShockRifle'
-    NewNetWeaponClasses(12)=class'NewNet_HxZoomSuperShockRifle'
+    NewNetWeaponClasses(2)=class'NewNet_FlakCannon'
+    NewNetWeaponClasses(3)=class'NewNet_RocketLauncher'
+    NewNetWeaponClasses(4)=class'NewNet_SniperRifle'
+    NewNetWeaponClasses(5)=class'NewNet_BioRifle'
+    NewNetWeaponClasses(6)=class'NewNet_SuperShockRifle'
+    NewNetWeaponClasses(7)=class'NewNet_ZoomSuperShockRifle'
+    NewNetWeaponClasses(8)=class'NewNet_HxSuperShockRifle'
+    NewNetWeaponClasses(9)=class'NewNet_HxZoomSuperShockRifle'
+    WeaponFireClasses(0)=class'AssaultFire'
+    WeaponFireClasses(1)=class'AssaultGrenade'
+    WeaponFireClasses(2)=class'MiniGunFire'
+    WeaponFireClasses(3)=class'MiniGunAltFire'
+    WeaponFireClasses(4)=class'ClassicSniperFire'
+    NewNetWeaponFireClasses(0)=class'NewNet_AssaultFire'
+    NewNetWeaponFireClasses(1)=class'NewNet_AssaultGrenade'
+    NewNetWeaponFireClasses(2)=class'NewNet_MiniGunFire'
+    NewNetWeaponFireClasses(3)=class'NewNet_MiniGunAltFire'
+    NewNetWeaponFireClasses(4)=class'NewNet_ClassicSniperFire'
 }

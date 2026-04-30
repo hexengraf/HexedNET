@@ -21,15 +21,12 @@ simulated function DoInstantFireEffect(int Mode)
     NewNet_ShockBeamFire(FireMode[Mode]).DoInstantFireEffect(Mode);
 }
 
-function NewNet_ServerStartFire(byte Mode, float Ping, ReplicatedRotator R, ReplicatedVector V, bool bBelievesHit, Actor A/*, bool bBelievesHit, ReplicatedVector BelievedHLDelta, Actor A, vector HN, vector HL*/)
+function NewNet_ServerStartFire(byte Mode, ReplicatedRotator R, ReplicatedVector V, bool bBelievesHit, Actor A/*, bool bBelievesHit, ReplicatedVector BelievedHLDelta, Actor A, vector HN, vector HL*/)
 {
     if (!ServerShouldStartFire())
     {
         return;
     }
-    ValidateNETClockPointer();
-    NewNet_ShockBeamFire(FireMode[Mode]).PingDT = Ping;
-
     if (bBelievesHit)
     {
         NewNet_ShockBeamFire(FireMode[Mode]).BelievedHitActor = A;
@@ -39,6 +36,7 @@ function NewNet_ServerStartFire(byte Mode, float Ping, ReplicatedRotator R, Repl
     if (FireMode[Mode].NextFireTime <= Level.TimeSeconds + FireMode[Mode].PreFireTime
         && StartFire(Mode))
     {
+        ValidateNETClockPointer();
         FireMode[Mode].ServerStartFireTime = Level.TimeSeconds;
         FireMode[Mode].bServerDelayStartFire = false;
         NewNet_ShockBeamFire(FireMode[Mode]).SavedVec.X = V.X;

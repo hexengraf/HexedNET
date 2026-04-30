@@ -7,7 +7,6 @@ var int bSkipNextEffectMode;
 var bool bBelievesHit;
 var Actor BelievedHitActor;
 var bool bFirstGo;
-var float PingDT;
 
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;

@@ -294,11 +294,11 @@ function DoFireEffect()
 function projectile SpawnProjectile(Vector Start, Rotator Dir)
 {
     local Projectile p;
-
     local vector End, HitNormal, HitLocation;
     local actor Other;
     local float f,g;
     local vector originalStart;
+    local float PingDT;
 
     originalStart = start;
 
@@ -307,6 +307,7 @@ function projectile SpawnProjectile(Vector Start, Rotator Dir)
     /* change this to use gravity */
     if( ProjectileClass != None )
     {
+        PingDT = FMin(Client.AveragePing, MAX_PROJECTILE_FUDGE);
         if(PingDT > 0.0 && Weapon.Owner!=None)
         {
             Start-=1.0*vector(Dir);

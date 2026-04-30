@@ -6,12 +6,14 @@ function TracePart(Vector Start, Vector End, Vector X, Rotator Dir, Pawn Ignored
     local Vector HitLocation;
     local Vector HitNormal;
     local vector PresentHitLocation;
+    local float PingDT;
 
     if (!IsEnhancedNetcodeEnabled())
     {
         Super.TracePart(Start, End, X, Dir, Ignored);
         return;
     }
+    pingDT = Client.AveragePing;
     HexedNET.TimeTravel(pingDT);
     if (bFirstGo)
     {

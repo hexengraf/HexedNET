@@ -1,7 +1,7 @@
 class NewNet_BioChargedFire extends BioChargedFire;
 
 const PROJ_TIMESTEP = 0.0201;
-const MAX_PROJECTILE_FUDGE = 0.07500;
+const MAX_PROJECTILE_FUDGE = 0.075;
 
 #include Classes\Include\WeaponFireBase.uci
 
@@ -11,15 +11,18 @@ function projectile SpawnProjectile(Vector Start, Rotator Dir)
     local float f,g;
     local vector End, HitLocation, HitNormal, VZ;
     local actor Other;
-
     local BioGlob Glob;
+    local float PingDT;
 
     GotoState('');
 
     if (GoopLoad == 0) return None;
 
-    if(!IsEnhancedNetcodeEnabled())
-        return super.SpawnProjectile(start,Dir);
+    if (!IsEnhancedNetcodeEnabled())
+    {
+        return Super.SpawnProjectile(start,Dir);
+    }
+    PingDT = FMin(Client.AveragePing, MAX_PROJECTILE_FUDGE);
     if( class'BioGlob' != none )
     {
         if(PingDT > 0.0 && Weapon.Owner!=None)

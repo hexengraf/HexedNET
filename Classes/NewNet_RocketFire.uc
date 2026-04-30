@@ -1,8 +1,6 @@
 
 class NewNet_RocketFire extends RocketFire;
 
-var float PingDT;
-
 var bool bUseReplicatedInfo;
 var rotator savedRot;
 var vector savedVec;

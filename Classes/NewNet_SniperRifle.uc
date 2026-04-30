@@ -82,8 +82,7 @@ simulated function NewNet_ClientStartFire(int Mode)
             {
                 b=true;
             }
-
-            NewNet_ServerStartFire(Mode, Client.AveragePing, R, V,b,A);
+            NewNet_ServerStartFire(Mode, R, V,b,A);
         }
     }
     else
@@ -92,15 +91,12 @@ simulated function NewNet_ClientStartFire(int Mode)
     }
 }
 
-function NewNet_ServerStartFire(byte Mode, float Ping, ReplicatedRotator R, ReplicatedVector V, bool bBelievesHit, optional actor A)
+function NewNet_ServerStartFire(byte Mode, ReplicatedRotator R, ReplicatedVector V, bool bBelievesHit, optional actor A)
 {
     if (!ServerShouldStartFire())
     {
         return;
     }
-    ValidateNETClockPointer();
-    NewNet_SniperFire(FireMode[Mode]).PingDT = Ping;
-   // Log(PlayerController(Pawn(Owner).Controller).ExactPing);
     if(bBelievesHit)
     {
         newNet_sniperFire(FireMode[Mode]).bBelievesHit=true;
@@ -114,6 +110,7 @@ function NewNet_ServerStartFire(byte Mode, float Ping, ReplicatedRotator R, Repl
     if ( (FireMode[Mode].NextFireTime <= Level.TimeSeconds + FireMode[Mode].PreFireTime)
 		&& StartFire(Mode) )
     {
+        ValidateNETClockPointer();
         FireMode[Mode].ServerStartFireTime = Level.TimeSeconds;
         FireMode[Mode].bServerDelayStartFire = false;
         NewNet_SniperFire(FireMode[Mode]).SavedVec.X = V.X;
@@ -178,7 +175,6 @@ simulated function bool StartFire(int Mode)
 
     return true;
 }
-
 
 defaultproperties
 {

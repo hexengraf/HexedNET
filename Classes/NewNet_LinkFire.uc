@@ -18,6 +18,7 @@ simulated function ModeTick(float dt)
 	local Vehicle LinkedVehicle;
 	local bool bNeedRevert;
 	local vector PawnHitLocation;
+    local float PingDT;
 
     if(Instigator.Role < Role_Authority || !IsEnhancedNetcodeEnabled())
     {
@@ -31,6 +32,7 @@ simulated function ModeTick(float dt)
         return;
     }
 
+    PingDT = Client.AveragePing;
     LinkGun = LinkGun(Weapon);
 
     if ( LinkGun.Links < 0 )

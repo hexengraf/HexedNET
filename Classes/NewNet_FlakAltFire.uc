@@ -138,11 +138,11 @@ function DoInstantFireEffect()
 function projectile SpawnProjectile(Vector Start, Rotator Dir)
 {
     local Projectile p;
-
     local rotator NewDir, outDir;
     local float f,g;
     local vector End, HitLocation, HitNormal, VZ;
     local actor Other;
+    local float PingDT;
 
     if (Level.NetMode == NM_Client && IsEnhancedNetcodeEnabled())
     {
@@ -154,6 +154,7 @@ function projectile SpawnProjectile(Vector Start, Rotator Dir)
     }
     if (ProjectileClass != none)
     {
+        PingDT = FMin(Client.AveragePing, MAX_PROJECTILE_FUDGE);
         if(PingDT > 0.0 && Weapon.Owner!=None)
         {
             //NewDir=Dir;

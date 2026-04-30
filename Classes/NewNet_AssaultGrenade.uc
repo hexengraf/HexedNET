@@ -17,12 +17,13 @@ function projectile SpawnProjectile(Vector Start, Rotator Dir)
     local actor Other;
     local vector HitNormal,HitLocation,End;
     local float h,f;
+    local float PingDT;
 
     if(!IsEnhancedNetcodeEnabled())
     {
         return super.SpawnProjectile(start,dir);
     }
-
+    pingDT = FMin(Client.AveragePing, MAX_PROJECTILE_FUDGE);
     Weapon.GetViewAxes(X,Y,Z);
     pawnSpeed = X dot Instigator.Velocity;
     if ( Bot(Instigator.Controller) != None )

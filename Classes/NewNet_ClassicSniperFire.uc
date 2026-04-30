@@ -12,12 +12,14 @@ function DoTrace(vector Start, Rotator Dir)
     local vector HitLocation;
     local vector HitNormal;
     local vector PresentHitLocation;
+    local float PingDT;
 
     if(!IsEnhancedNetcodeEnabled())
     {
         super.DoTrace(Start,Dir);
         return;
     }
+    pingDT = Client.AveragePing;
     X = vector(Dir);
     End = Start + TraceRange * X;
     HexedNET.TimeTravel(PingDT);

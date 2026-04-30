@@ -1,7 +1,7 @@
 class NewNet_BioFire extends BioFire;
 
 const PROJ_TIMESTEP = 0.0201;
-const MAX_PROJECTILE_FUDGE = 0.07500;
+const MAX_PROJECTILE_FUDGE = 0.075;
 const SLACK = 0.025;
 
 var class<Projectile> FakeProjectileClass;
@@ -17,16 +17,17 @@ var rotator OldAim;
 function projectile SpawnProjectile(Vector Start, Rotator Dir)
 {
     local Projectile p;
-
     local rotator NewDir, outDir;
     local float f,g;
     local vector End, HitLocation, HitNormal, VZ;
     local actor Other;
+    local float PingDT;
 
     if (!IsEnhancedNetcodeEnabled())
     {
         return Super.SpawnProjectile(start, Dir);
     }
+    PingDT = FMin(Client.AveragePing, MAX_PROJECTILE_FUDGE);
     if (Level.NetMode == NM_Client)
     {
         return SpawnFakeProjectile(Start, Dir);

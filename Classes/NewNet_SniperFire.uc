@@ -200,13 +200,14 @@ function DoTrace(Vector Start, Rotator Dir)
     local Pawn HeadShotPawn;
 	local vector EffectOffset;
 	local vector PresentHitLocation;
+    local float PingDT;
 
 	if(!IsEnhancedNetcodeEnabled())
 	{
         super.DoTrace(Start,Dir);
         return;
     }
-
+    pingDT = Client.AveragePing;
     if ( class'PlayerController'.Default.bSmallWeapons )
 		EffectOffset = Weapon.SmallEffectOffset;
 	else

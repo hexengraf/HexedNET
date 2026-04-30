@@ -20,11 +20,13 @@ function Projectile SpawnProjectile(Vector Start, Rotator Dir)
     local vector HitLocation, HitNormal, End;
     local actor Other;
     local float f,g;
+    local float PingDT;
 
     if (!IsEnhancedNetcodeEnabled())
     {
        return Super.SpawnProjectile(Start, Dir);
     }
+    PingDT = FMin(Client.AveragePing, MAX_PROJECTILE_FUDGE);
     if (Level.NetMode == NM_Client)
     {
         return SpawnFakeProjectile(Start, Dir);

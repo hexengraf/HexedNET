@@ -1,5 +1,3 @@
-var float PingDT;
-
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
 

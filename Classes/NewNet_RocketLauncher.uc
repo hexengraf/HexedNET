@@ -25,8 +25,6 @@ var private HxNTClock NETClock;
 var private const class<Weapon> BaseClass;
 var private bool bConfigCleared;
 
-var float PingDT;
-
 var float lastDT;
 
 replication
@@ -101,7 +99,7 @@ simulated event NewNet_ClientStartFire(int Mode)
             V.Y = Start.Y;
             V.Z = Start.Z;
 
-            NewNet_ServerStartFire(mode, Client.AveragePing, R, V);
+            NewNet_ServerStartFire(mode, R, V);
         }
     }
     else
@@ -110,14 +108,12 @@ simulated event NewNet_ClientStartFire(int Mode)
     }
 }
 
-function NewNet_ServerStartFire(byte Mode, float Ping, ReplicatedRotator R, ReplicatedVector V)
+function NewNet_ServerStartFire(byte Mode, ReplicatedRotator R, ReplicatedVector V)
 {
     if (!ServerShouldStartFire())
     {
         return;
     }
-    ValidateNETClockPointer();
-    PingDT = FMin(Ping, MAX_PROJECTILE_FUDGE);
     // if(NewNet_RocketFire(FireMode[Mode])!=None)
     // {
     //    NewNet_RocketFire(FireMode[Mode]).PingDT = FMin(Ping + 1.75*NETClock.AverDT, MAX_PROJECTILE_FUDGE_ALT);
@@ -135,6 +131,7 @@ function NewNet_ServerStartFire(byte Mode, float Ping, ReplicatedRotator R, Repl
 
         if(NewNet_RocketFire(FireMode[Mode])!=None)
         {
+            ValidateNETClockPointer();
             NewNet_RocketFire(FireMode[Mode]).SavedVec.X = V.X;
             NewNet_RocketFire(FireMode[Mode]).SavedVec.Y = V.Y;
             NewNet_RocketFire(FireMode[Mode]).SavedVec.Z = V.Z;
@@ -205,6 +202,7 @@ function Projectile SpawnProjectile(Vector Start, Rotator Dir)
 	local bot B;
 	local actor Other;
 	local float f,g;
+    local float PingDT;
 
 	local vector HitNormal, End, HitLocation;
 
@@ -212,6 +210,7 @@ function Projectile SpawnProjectile(Vector Start, Rotator Dir)
 	{
 	    return super.SpawnProjectile(Start, Dir);
 	}
+    PingDT = FMin(Client.AveragePing, MAX_PROJECTILE_FUDGE);
 
     bBreakLock = true;
 

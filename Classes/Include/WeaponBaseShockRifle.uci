@@ -54,7 +54,7 @@ simulated event NewNet_ClientStartFire(int Mode)
             {
                 b = true;
             }
-            NewNet_ServerStartFire(Mode, Client.AveragePing, R, V, b, A);
+            NewNet_ServerStartFire(Mode, R, V, b, A);
         }
     }
     else

@@ -2,9 +2,6 @@ class NewNet_FlakCannon extends FlakCannon
     HideDropDown
 	CacheExempt;
 
-const MAX_PROJECTILE_FUDGE = 0.075;
-const MAX_PROJECTILE_FUDGE_ALT = 0.075;
-
 struct ReplicatedRotator
 {
     var int Yaw;
@@ -28,11 +25,10 @@ var rotator RandSeed[9];
 var int RandIndex;
 var float lastDT;
 
-
 replication
 {
     reliable if(Role < Role_Authority)
-        NewNet_ServerStartFire, NewNet_OldServerStartFire;
+        NewNet_ServerStartFire;
     unreliable if(Role == Role_Authority && bNetOwner)
         RandSeed;
 }
@@ -64,7 +60,7 @@ simulated event NewNet_ClientStartFire(int Mode)
         {
             if(!ReadyToFire(Mode))
             {
-                NewNet_OldServerStartFire(Mode, Client.AveragePing);
+                Super.ClientStartFire(Mode);
                 return;
             }
             if(NewNet_FlakAltFire(FireMode[Mode])!=None)
@@ -79,7 +75,7 @@ simulated event NewNet_ClientStartFire(int Mode)
             V.Y = Start.Y;
             V.Z = Start.Z;
 
-            NewNet_ServerStartFire(mode, Client.AveragePing, R, V);
+            NewNet_ServerStartFire(mode, R, V);
         }
     }
     else
@@ -117,27 +113,18 @@ simulated function bool AltReadyToFire(int Mode)
 	return true;
 }
 
-function NewNet_ServerStartFire(byte Mode, float Ping, ReplicatedRotator R, ReplicatedVector V)
+function NewNet_ServerStartFire(byte Mode, ReplicatedRotator R, ReplicatedVector V)
 {
     if (!ServerShouldStartFire())
     {
         return;
     }
-    ValidateNETClockPointer();
-    if(NewNet_FlakFire(FireMode[Mode])!=None)
-    {
-        NewNet_FlakFire(FireMode[Mode]).PingDT = FMin(Ping, MAX_PROJECTILE_FUDGE_ALT);
-    }
-    else if(NewNet_FlakAltFire(FireMode[Mode])!=None)
-    {
-        NewNet_FlakAltFire(FireMode[Mode]).PingDT = FMin(Ping, MAX_PROJECTILE_FUDGE);
-    }
-
     if ( (FireMode[Mode].NextFireTime <= Level.TimeSeconds + FireMode[Mode].PreFireTime)
 		&& StartFire(Mode) )
     {
         FireMode[Mode].ServerStartFireTime = Level.TimeSeconds;
         FireMode[Mode].bServerDelayStartFire = false;
+        ValidateNETClockPointer();
 
         if(NewNet_FlakFire(FireMode[Mode])!=None)
         {
@@ -197,19 +184,6 @@ simulated event PostNetBeginPlay()
 {
     super.PostNetBeginPlay();
     SendNewRandSeed();
-}
-
-function NewNet_OldServerStartFire(byte Mode, float Ping)
-{
-    if(NewNet_FlakFire(FireMode[Mode])!=None)
-    {
-        NewNet_FlakFire(FireMode[Mode]).PingDT = FMin(Ping, MAX_PROJECTILE_FUDGE_ALT);
-    }
-    else if(NewNet_FlakAltFire(FireMode[Mode])!=None)
-    {
-        NewNet_FlakAltFire(FireMode[Mode]).PingDT = FMin(Ping, MAX_PROJECTILE_FUDGE);
-    }
-    ServerStartFire(mode);
 }
 
 defaultproperties
