@@ -110,7 +110,7 @@ function ServerSetEnhancedNetcode(bool bEnable)
     else
     {
         Enable('Timer');
-        SetTimer(float(GetServerProperty("PingFrequency")), true);
+        SetTimer(1.0 / float(GetServerProperty("PingFrequency")), true);
     }
 }
 
@@ -119,7 +119,7 @@ function SetServerProperty(int Index, string Value)
     Super.SetServerProperty(Index, Value);
     if (bClientEnhancedNetcode)
     {
-        SetTimer(float(GetServerProperty("PingFrequency")), true);
+        SetTimer(1.0 / float(GetServerProperty("PingFrequency")), true);
     }
 }
 
