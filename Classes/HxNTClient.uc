@@ -26,6 +26,7 @@ var config bool bEnhancedNetcode;
 
 var float AveragePing;
 
+var private HxNTUserConfig Config;
 var private FakeProjectileManager FPM;
 var private int PingCount;
 var private bool bClientEnhancedNetcode;
@@ -43,12 +44,21 @@ replication
         ServerSetEnhancedNetcode;
 }
 
-simulated function PostNetBeginPlay()
+simulated event PreBeginPlay()
+{
+    Super.PreBeginPlay();
+    if (Level.NetMode != NM_DedicatedServer)
+    {
+        Config = HxNTUserConfig(class'HxNTUserConfig'.static.Load());
+    }
+}
+
+simulated event PostNetBeginPlay()
 {
     Super.PostNetBeginPlay();
     if (Level.NetMode == NM_Client)
     {
-        ServerSetEnhancedNetcode(bEnhancedNetcode);
+        ServerSetEnhancedNetcode(Config.bEnhancedNetcode);
     }
 }
 
@@ -133,7 +143,7 @@ simulated function string GetProperty(int Index)
     switch (Index)
     {
         case 0:
-            return string(bEnhancedNetcode);
+            return string(Config.bEnhancedNetcode);
     }
     return "";
 }
@@ -142,10 +152,10 @@ simulated function SetProperty(int Index, string Value)
 {
     if (Index == 0)
     {
-        bEnhancedNetcode = bool(Value);
-        ServerSetEnhancedNetcode(bEnhancedNetcode);
+        Config.bEnhancedNetcode = bool(Value);
+        ServerSetEnhancedNetcode(Config.bEnhancedNetcode);
     }
-    SaveConfig();
+    Config.SaveConfig();
 }
 
 simulated function ClientSetAllowMultiHit(bool bEnable)
@@ -155,7 +165,7 @@ simulated function ClientSetAllowMultiHit(bool bEnable)
 
 simulated function bool IsEnhancedNetcodeEnabled()
 {
-    return (Level.NetMode == NM_Client && bEnhancedNetcode) || bClientEnhancedNetcode;
+    return (Level.NetMode == NM_Client && Config.bEnhancedNetcode) || bClientEnhancedNetcode;
 }
 
 // TODO: do we really need this?
@@ -173,7 +183,6 @@ defaultproperties
 {
     NetUpdateFrequency=10
     NetPriority=3
-    bEnhancedNetcode=true
 
     MutatorClass=class'MutHexedNET'
     Properties(0)=(Name="bEnhancedNetcode",Section="Enhanced Netcode",Caption="Enable Enhanced Netcode",Hint="Enable enhanced netcode on weapons.",Type=PIT_Check)
