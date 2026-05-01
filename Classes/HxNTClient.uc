@@ -22,14 +22,12 @@ class HxNTClient extends HxClientReplicationInfo
 const PING_WARMUP_COUNT = 10;
 const PING_SMOOTHING = 0.3;
 
-var config bool bEnhancedNetcode;
-
 var float AveragePing;
 
 var private HxNTUserConfig Config;
 var private FakeProjectileManager FPM;
 var private int PingCount;
-var private bool bClientEnhancedNetcode;
+var private bool bEnhancedNetcode;
 var private bool bClientUpdated;
 
 replication
@@ -50,6 +48,7 @@ simulated event PreBeginPlay()
     if (Level.NetMode != NM_DedicatedServer)
     {
         Config = HxNTUserConfig(class'HxNTUserConfig'.static.Load());
+        bEnhancedNetcode = Config.bEnhancedNetcode && Level.NetMode != NM_ListenServer;
     }
 }
 
@@ -58,7 +57,7 @@ simulated event PostNetBeginPlay()
     Super.PostNetBeginPlay();
     if (Level.NetMode == NM_Client)
     {
-        ServerSetEnhancedNetcode(Config.bEnhancedNetcode);
+        ServerSetEnhancedNetcode(bEnhancedNetcode);
     }
 }
 
@@ -112,7 +111,7 @@ function ServerPing(float Timestamp)
 
 function ServerSetEnhancedNetcode(bool bEnable)
 {
-    bClientEnhancedNetcode = bEnable;
+    bEnhancedNetcode = bEnable;
     if (!bEnable)
     {
         Disable('Timer');
@@ -127,7 +126,7 @@ function ServerSetEnhancedNetcode(bool bEnable)
 function SetServerProperty(int Index, string Value)
 {
     Super.SetServerProperty(Index, Value);
-    if (bClientEnhancedNetcode)
+    if (bEnhancedNetcode)
     {
         SetTimer(1.0 / float(GetServerProperty("PingFrequency")), true);
     }
@@ -153,7 +152,8 @@ simulated function SetProperty(int Index, string Value)
     if (Index == 0)
     {
         Config.bEnhancedNetcode = bool(Value);
-        ServerSetEnhancedNetcode(Config.bEnhancedNetcode);
+        bEnhancedNetcode = Config.bEnhancedNetcode && Level.NetMode != NM_ListenServer;
+        ServerSetEnhancedNetcode(bEnhancedNetcode);
     }
     Config.SaveConfig();
 }
@@ -165,7 +165,7 @@ simulated function ClientSetAllowMultiHit(bool bEnable)
 
 simulated function bool IsEnhancedNetcodeEnabled()
 {
-    return (Level.NetMode == NM_Client && Config.bEnhancedNetcode) || bClientEnhancedNetcode;
+    return bEnhancedNetcode;
 }
 
 // TODO: do we really need this?
