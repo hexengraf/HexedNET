@@ -18,7 +18,7 @@ function projectile SpawnProjectile(Vector Start, Rotator Dir)
 
     if (GoopLoad == 0) return None;
 
-    if (!IsEnhancedNetcodeEnabled())
+    if (Level.NetMode == NM_Client || !IsEnhancedNetcodeEnabled())
     {
         return Super.SpawnProjectile(start,Dir);
     }

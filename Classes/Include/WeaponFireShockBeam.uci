@@ -74,7 +74,7 @@ function DoFireEffect()
     local rotator R;
     local rotator Aim;
 
-    if (!IsEnhancedNetcodeEnabled() && Level.NetMode != NM_Client)
+    if (Level.NetMode == NM_Client || !IsEnhancedNetcodeEnabled())
     {
         Super.DoFireEffect();
         return;
@@ -112,7 +112,7 @@ function SpawnBeamEffect(vector Start,
 {
     local ShockBeamEffect Beam;
 
-    if (IsEnhancedNetcodeEnabled())
+    if (Level.NetMode != NM_Client && IsEnhancedNetcodeEnabled())
     {
         if (Weapon != None)
         {

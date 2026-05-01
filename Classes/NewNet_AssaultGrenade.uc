@@ -19,7 +19,7 @@ function projectile SpawnProjectile(Vector Start, Rotator Dir)
     local float h,f;
     local float PingDT;
 
-    if(!IsEnhancedNetcodeEnabled())
+    if(Level.NetMode == NM_Client || !IsEnhancedNetcodeEnabled())
     {
         return super.SpawnProjectile(start,dir);
     }

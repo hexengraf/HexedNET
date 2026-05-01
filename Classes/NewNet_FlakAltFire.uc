@@ -144,13 +144,17 @@ function projectile SpawnProjectile(Vector Start, Rotator Dir)
     local actor Other;
     local float PingDT;
 
-    if (Level.NetMode == NM_Client && IsEnhancedNetcodeEnabled())
+    if (Level.NetMode == NM_Client)
     {
-        return SpawnFakeProjectile(Start, Dir);
+        if (IsEnhancedNetcodeEnabled())
+        {
+            return SpawnFakeProjectile(Start, Dir);
+        }
+        return Super.SpawnProjectile(Start, Dir);
     }
     if (!IsEnhancedNetcodeEnabled())
     {
-        return Super.SpawnProjectile(start, Dir);
+        return Super.SpawnProjectile(Start, Dir);
     }
     if (ProjectileClass != none)
     {

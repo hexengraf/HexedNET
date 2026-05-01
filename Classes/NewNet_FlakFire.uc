@@ -225,7 +225,7 @@ function DoFireEffect()
     local float theta;
     local projectile proj;
 
-    if(!IsEnhancedNetcodeEnabled())
+    if (Level.NetMode == NM_Client || !IsEnhancedNetcodeEnabled())
     {
        super.DoFireEffect();
        return;
@@ -302,8 +302,10 @@ function projectile SpawnProjectile(Vector Start, Rotator Dir)
 
     originalStart = start;
 
-    if(!IsEnhancedNetcodeEnabled())
+    if (Level.NetMode == NM_Client || !IsEnhancedNetcodeEnabled())
+    {
         return super.SpawnProjectile(Start,Dir);
+    }
     /* change this to use gravity */
     if( ProjectileClass != None )
     {

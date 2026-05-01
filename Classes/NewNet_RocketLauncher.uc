@@ -206,7 +206,7 @@ function Projectile SpawnProjectile(Vector Start, Rotator Dir)
 
 	local vector HitNormal, End, HitLocation;
 
-	if(!IsEnhancedNetcodeEnabled())
+	if (Level.NetMode == NM_Client || !IsEnhancedNetcodeEnabled())
 	{
 	    return super.SpawnProjectile(Start, Dir);
 	}

@@ -337,7 +337,7 @@ function DoFireEffect()
 	local RocketProj FiredRockets[4];
 	local bool bCurl;
 
-	if(!NewNet_RocketLauncher(Weapon).IsEnhancedNetcodeEnabled())
+	if (Level.NetMode == NM_Client || !IsEnhancedNetcodeEnabled())
 	{
        super.DoFireEffect();
        return;

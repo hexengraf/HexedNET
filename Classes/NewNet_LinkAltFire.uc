@@ -22,15 +22,19 @@ function Projectile SpawnProjectile(Vector Start, Rotator Dir)
     local float f,g;
     local float PingDT;
 
-    if (!IsEnhancedNetcodeEnabled())
-    {
-       return Super.SpawnProjectile(Start, Dir);
-    }
-    PingDT = FMin(Client.AveragePing, MAX_PROJECTILE_FUDGE);
     if (Level.NetMode == NM_Client)
     {
-        return SpawnFakeProjectile(Start, Dir);
+        if (IsEnhancedNetcodeEnabled())
+        {
+            return SpawnFakeProjectile(Start, Dir);
+        }
+        return Super.SpawnProjectile(Start, Dir);
     }
+    if (!IsEnhancedNetcodeEnabled())
+    {
+        return Super.SpawnProjectile(Start, Dir);
+    }
+    PingDT = FMin(Client.AveragePing, MAX_PROJECTILE_FUDGE);
     Start += Vector(Dir) * 10.0 * LinkGun(Weapon).Links;
     if(PingDT > 0.0 && Weapon.Owner!=None)
     {

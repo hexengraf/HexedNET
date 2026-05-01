@@ -159,7 +159,7 @@ function DoFireEffect()
     local Vector StartTrace;
     local Rotator R, Aim;
 
-    if(!IsEnhancedNetcodeEnabled() && Level.NetMode != NM_Client)
+    if (Level.NetMode != NM_Client && !IsEnhancedNetcodeEnabled())
     {
         super.DoFireEffect();
         return;
@@ -202,7 +202,7 @@ function DoTrace(Vector Start, Rotator Dir)
 	local vector PresentHitLocation;
     local float PingDT;
 
-	if(!IsEnhancedNetcodeEnabled())
+	if (Level.NetMode == NM_Client || !IsEnhancedNetcodeEnabled())
 	{
         super.DoTrace(Start,Dir);
         return;

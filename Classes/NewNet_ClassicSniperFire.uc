@@ -14,7 +14,7 @@ function DoTrace(vector Start, Rotator Dir)
     local vector PresentHitLocation;
     local float PingDT;
 
-    if(!IsEnhancedNetcodeEnabled())
+    if (Level.NetMode == NM_Client || !IsEnhancedNetcodeEnabled())
     {
         super.DoTrace(Start,Dir);
         return;

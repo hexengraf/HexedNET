@@ -22,7 +22,7 @@ function DoTrace(vector Start, rotator Dir)
     local int ReflectNum;
     local float PingDT;
 
-    if (!IsEnhancedNetcodeEnabled())
+    if (Level.NetMode == NM_Client || !IsEnhancedNetcodeEnabled())
     {
         Super.DoTrace(Start, Dir);
         return;
