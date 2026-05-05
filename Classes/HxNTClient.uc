@@ -47,7 +47,7 @@ simulated event PreBeginPlay()
     Super.PreBeginPlay();
     if (Level.NetMode != NM_DedicatedServer)
     {
-        Config = HxNTUserConfig(class'HxNTUserConfig'.static.Load());
+        Config = HxNTUserConfig(Configs[0]);
         bEnhancedNetcode = Config.bEnhancedNetcode && Level.NetMode != NM_ListenServer;
     }
 }
@@ -111,6 +111,7 @@ function ServerPing(float Timestamp)
 
 function ServerSetEnhancedNetcode(bool bEnable)
 {
+    Log("ServerSetEnhancedNetcode:"@bEnable);
     bEnhancedNetcode = bEnable;
     if (!bEnable)
     {
@@ -137,25 +138,18 @@ simulated function ServerInfoReady()
     FPM = Spawn(Class'FakeProjectileManager', Self);
 }
 
-simulated function string GetProperty(int Index)
+simulated function bool SetConfigProperty(int ConfigIndex, int PropertyIndex, string Value)
 {
-    switch (Index)
+    if (Super.SetConfigProperty(ConfigIndex, PropertyIndex, Value))
     {
-        case 0:
-            return string(Config.bEnhancedNetcode);
+        if (PropertyIndex == 0)
+        {
+            bEnhancedNetcode = Config.bEnhancedNetcode && Level.NetMode != NM_ListenServer;
+            ServerSetEnhancedNetcode(bEnhancedNetcode);
+        }
+        return true;
     }
-    return "";
-}
-
-simulated function SetProperty(int Index, string Value)
-{
-    if (Index == 0)
-    {
-        Config.bEnhancedNetcode = bool(Value);
-        bEnhancedNetcode = Config.bEnhancedNetcode && Level.NetMode != NM_ListenServer;
-        ServerSetEnhancedNetcode(bEnhancedNetcode);
-    }
-    Config.SaveConfig();
+    return false;
 }
 
 simulated function ClientSetAllowMultiHit(bool bEnable)
@@ -185,5 +179,5 @@ defaultproperties
     NetPriority=3
 
     MutatorClass=class'MutHexedNET'
-    Properties(0)=(Name="bEnhancedNetcode",Section="Enhanced Netcode",Caption="Enable Enhanced Netcode",Hint="Enable enhanced netcode on weapons.",Type=PIT_Check)
+    ConfigClasses(0)=class'HxNTUserConfig'
 }
