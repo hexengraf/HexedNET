@@ -24,7 +24,7 @@ const PING_SMOOTHING = 0.3;
 
 var float AveragePing;
 
-var private HxNTUserConfig Config;
+var private HxNetcodeConfig Config;
 var private FakeProjectileManager FPM;
 var private int PingCount;
 var private bool bEnhancedNetcode;
@@ -47,7 +47,7 @@ simulated event PreBeginPlay()
     Super.PreBeginPlay();
     if (Level.NetMode != NM_DedicatedServer)
     {
-        Config = HxNTUserConfig(Configs[0]);
+        Config = HxNetcodeConfig(Configs[0]);
         bEnhancedNetcode = Config.bEnhancedNetcode && Level.NetMode != NM_ListenServer;
     }
 }
@@ -111,7 +111,6 @@ function ServerPing(float Timestamp)
 
 function ServerSetEnhancedNetcode(bool bEnable)
 {
-    Log("ServerSetEnhancedNetcode:"@bEnable);
     bEnhancedNetcode = bEnable;
     if (!bEnable)
     {
@@ -179,5 +178,5 @@ defaultproperties
     NetPriority=3
 
     MutatorClass=class'MutHexedNET'
-    ConfigClasses(0)=class'HxNTUserConfig'
+    ConfigClasses(0)=class'HxNetcodeConfig'
 }

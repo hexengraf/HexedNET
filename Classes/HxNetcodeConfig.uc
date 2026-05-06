@@ -1,4 +1,4 @@
-class HxNTUserConfig extends HxConfig
+class HxNetcodeConfig extends HxConfig
     config(User)
     PerObjectConfig;
 
