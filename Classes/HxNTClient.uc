@@ -10,6 +10,8 @@ var private HxNetcodeConfig Config;
 var private FakeProjectileManager FPM;
 var private int PingCount;
 var private bool bEnhancedNetcode;
+var private float PingInterval;
+var private float PingSmoothing;
 var private bool bClientUpdated;
 
 replication
@@ -21,7 +23,9 @@ replication
 
     reliable if (Role < ROLE_Authority)
         ServerPing,
-        ServerSetEnhancedNetcode;
+        ServerSetEnhancedNetcode,
+        ServerSetPingFrequency,
+        ServerSetPingSmoothingFactor;
 }
 
 simulated event PreBeginPlay()
@@ -39,6 +43,8 @@ simulated event PostNetBeginPlay()
     Super.PostNetBeginPlay();
     if (Level.NetMode == NM_Client)
     {
+        ServerSetPingSmoothingFactor(Config.PingSmoothing);
+        ServerSetPingFrequency(Config.PingFrequency);
         ServerSetEnhancedNetcode(bEnhancedNetcode);
     }
 }
@@ -86,7 +92,7 @@ function ServerPing(float Timestamp)
     }
     else
     {
-        AveragePing += (NewPing - AveragePing) * PING_SMOOTHING;
+        AveragePing += (NewPing - AveragePing) * PingSmoothing;
     }
     ClientUpdatePing(AveragePing);
 }
@@ -101,17 +107,27 @@ function ServerSetEnhancedNetcode(bool bEnable)
     else
     {
         Enable('Timer');
-        SetTimer(Level.TimeDilation / float(GetServerProperty("PingFrequency")), true);
+        SetTimer(PingInterval, true);
     }
 }
 
-function SetServerProperty(int Index, string Value)
+function ServerSetPingFrequency(float Frequency)
 {
-    Super.SetServerProperty(Index, Value);
+    Frequency = FClamp(
+        Frequency,
+        float(ConfigClasses[0].default.Properties[1].LowerLimit),
+        MutHexedNET(MutatorOwner).MaxPingFrequency);
+    PingInterval = Level.TimeDilation / Frequency;
     if (bEnhancedNetcode)
     {
-        SetTimer(Level.TimeDilation / float(GetServerProperty("PingFrequency")), true);
+        SetTimer(PingInterval, true);
     }
+}
+
+function ServerSetPingSmoothingFactor(float Factor)
+{
+    PingSmoothing = FClamp(
+        Factor, float(ConfigClasses[0].default.Properties[2].LowerLimit), 1.0);
 }
 
 simulated function ServerInfoReady()
@@ -123,10 +139,18 @@ simulated function bool SetConfigProperty(int ConfigIndex, int PropertyIndex, st
 {
     if (Super.SetConfigProperty(ConfigIndex, PropertyIndex, Value))
     {
-        if (PropertyIndex == 0)
+        switch (PropertyIndex)
         {
-            bEnhancedNetcode = Config.bEnhancedNetcode && Level.NetMode != NM_ListenServer;
-            ServerSetEnhancedNetcode(bEnhancedNetcode);
+            case 0:
+                bEnhancedNetcode = Config.bEnhancedNetcode && Level.NetMode != NM_ListenServer;
+                ServerSetEnhancedNetcode(bEnhancedNetcode);
+                break;
+            case 1:
+                ServerSetPingFrequency(Config.PingFrequency);
+                break;
+            case 2:
+                ServerSetPingSmoothingFactor(Config.PingSmoothing);
+                break;
         }
         return true;
     }
@@ -161,4 +185,6 @@ defaultproperties
 
     MutatorClass=class'MutHexedNET'
     ConfigClasses(0)=class'HxNetcodeConfig'
+    PingInterval=0.7
+    PingSmoothing=0.3
 }

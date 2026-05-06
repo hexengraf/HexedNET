@@ -1,6 +1,6 @@
 class MutHexedNET extends HxMutator;
 
-var config float PingFrequency;
+var config float MaxPingFrequency;
 var config float PawnCollisionTimeWindow;
 
 var HxNTClock NETClock;
@@ -370,12 +370,12 @@ defaultproperties
     Description="Modified version of UTComp's enhanced netcode (ping compensation)."
     bAddToServerPackages=true
     CRIClass=class'HxNTClient'
-    Properties(0)=(Name="PingFrequency",Section="Enhanced Netcode",Caption="Ping frequency",Hint="Frequency to send pings (pings/second).",Type="Text",Data="4;0.2:200",bMPOnly=true,bAdvanced=true)
+    Properties(0)=(Name="MaxPingFrequency",Section="Enhanced Netcode",Caption="Maximum ping frequency",Hint="Maximum frequency to send pings (pings/second).",Type="Text",Data="4;0.2:20",bMPOnly=true,bAdvanced=true)
     Properties(1)=(Name="PawnCollisionTimeWindow",Section="Enhanced Netcode",Caption="Pawn collision time window",Hint="Time window (in seconds) to look back for pawn collisions.",Type="Text",Data="4;0.05:1.5",bMPOnly=true,bAdvanced=true)
     bDisableTick=true
 
     // configs
-    PingFrequency=1.0
+    MaxPingFrequency=10.0
     PawnCollisionTimeWindow=0.35
     //original weapons
     WeaponClasses(0)=class'ShockRifle'
