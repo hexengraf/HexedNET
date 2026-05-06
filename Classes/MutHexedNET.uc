@@ -2,6 +2,7 @@ class MutHexedNET extends HxMutator;
 
 var config float MaxPingFrequency;
 var config float PawnCollisionTimeWindow;
+var config bool bRubberbandingFix;
 
 var HxNTClock NETClock;
 
@@ -18,6 +19,10 @@ event PreBeginPlay()
     {
         NETClock = Spawn(class'HxNTClock', Self);
         ApplyNewNetWeaponsOnMutators();
+        if (bRubberbandingFix)
+        {
+            Level.Game.PlayerControllerClassName = string(class'HxNTPlayer');
+        }
     }
 }
 
@@ -372,11 +377,13 @@ defaultproperties
     CRIClass=class'HxNTClient'
     Properties(0)=(Name="MaxPingFrequency",Section="Enhanced Netcode",Caption="Maximum ping frequency",Hint="Maximum frequency to send pings (pings/second).",Type="Text",Data="4;0.2:20",bMPOnly=true,bAdvanced=true)
     Properties(1)=(Name="PawnCollisionTimeWindow",Section="Enhanced Netcode",Caption="Pawn collision time window",Hint="Time window (in seconds) to look back for pawn collisions.",Type="Text",Data="4;0.05:1.5",bMPOnly=true,bAdvanced=true)
+    Properties(2)=(Name="bRubberbandingFix",Section="Enhanced Netcode",Caption="Backport rubberbanding fix",Hint="Backport OldUnreal's rubberbanding fix. Applied on restart/map change.",Type="Check")
     bDisableTick=true
 
     // configs
     MaxPingFrequency=10.0
     PawnCollisionTimeWindow=0.35
+    bRubberbandingFix=false
     //original weapons
     WeaponClasses(0)=class'ShockRifle'
     WeaponClasses(1)=class'LinkGun'
