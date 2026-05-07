@@ -375,9 +375,9 @@ defaultproperties
     Description="Modified version of UTComp's enhanced netcode (ping compensation)."
     bAddToServerPackages=true
     CRIClass=class'HxNTClient'
-    Properties(0)=(Name="MaxPingFrequency",Section="Enhanced Netcode",Caption="Maximum ping frequency",Hint="Maximum frequency to send pings (pings/second).",Type="Text",Data="4;0.2:20",bMPOnly=true,bAdvanced=true)
-    Properties(1)=(Name="PawnCollisionTimeWindow",Section="Enhanced Netcode",Caption="Pawn collision time window",Hint="Time window (in seconds) to look back for pawn collisions.",Type="Text",Data="4;0.05:1.5",bMPOnly=true,bAdvanced=true)
-    Properties(2)=(Name="bRubberbandingFix",Section="Enhanced Netcode",Caption="Backport rubberbanding fix",Hint="Backport OldUnreal's rubberbanding fix. Applied on restart/map change.",Type="Check")
+    Properties(0)=(Name="MaxPingFrequency",Caption="Maximum ping frequency",Hint="Maximum frequency to send pings (pings/second).",Type="Text",Data="4;0.2:20",bMPOnly=true,bAdvanced=true)
+    Properties(1)=(Name="PawnCollisionTimeWindow",Caption="Pawn collision time window",Hint="Time window (in seconds) to look back for pawn collisions.",Type="Text",Data="4;0.05:1.5",bMPOnly=true,bAdvanced=true)
+    Properties(2)=(Name="bRubberbandingFix",Caption="Backport rubberbanding fix",Hint="Backport OldUnreal's rubberbanding fix. Applied on restart/map change.",Type="Check")
     bDisableTick=true
 
     // configs
