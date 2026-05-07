@@ -2,7 +2,6 @@ class HxNTClient extends HxClientReplicationInfo
     config(User);
 
 const PING_WARMUP_COUNT = 10;
-const PING_SMOOTHING = 0.3;
 
 var float AveragePing;
 
@@ -16,13 +15,17 @@ var private bool bClientUpdated;
 
 replication
 {
-    reliable if (Role == ROLE_Authority)
+    unreliable if (Role == ROLE_Authority)
         ClientRequestPing,
-        ClientUpdatePing,
+        ClientUpdatePing;
+
+    reliable if (Role == ROLE_Authority)
         ClientSetAllowMultiHit;
 
+    unreliable if (Role < ROLE_Authority)
+        ServerPing;
+
     reliable if (Role < ROLE_Authority)
-        ServerPing,
         ServerSetEnhancedNetcode,
         ServerSetPingFrequency,
         ServerSetPingSmoothingFactor;
