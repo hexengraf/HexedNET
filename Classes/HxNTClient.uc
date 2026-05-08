@@ -188,6 +188,7 @@ defaultproperties
 
     MutatorClass=class'MutHexedNET'
     ConfigClasses(0)=class'HxNetcodeConfig'
+    Order=64
     PingInterval=0.7
     PingSmoothing=0.3
 }
