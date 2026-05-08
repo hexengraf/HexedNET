@@ -12,6 +12,7 @@ var private bool bEnhancedNetcode;
 var private float PingInterval;
 var private float PingSmoothing;
 var private bool bClientUpdated;
+var private array<float> ServerUpdateRequested;
 
 replication
 {
@@ -37,6 +38,7 @@ simulated event PreBeginPlay()
     if (Level.NetMode != NM_DedicatedServer)
     {
         Config = HxNetcodeConfig(Configs[0]);
+        ServerUpdateRequested.Length = Config.Properties.Length;
         bEnhancedNetcode = Config.bEnhancedNetcode && Level.NetMode != NM_ListenServer;
     }
 }
@@ -70,6 +72,24 @@ simulated function Tick(float DeltaTime)
         if (PlayerController(Owner) != None)
         {
             FixWeaponInstigator(PlayerController(Owner));
+        }
+        if (ServerUpdateRequested[0] > 0
+            && Level.TimeSeconds - ServerUpdateRequested[0] > Level.TimeDilation)
+        {
+            ServerSetEnhancedNetcode(bEnhancedNetcode);
+            ServerUpdateRequested[0] = 0;
+        }
+        if (ServerUpdateRequested[1] > 0
+            && Level.TimeSeconds - ServerUpdateRequested[1] > Level.TimeDilation)
+        {
+            ServerSetPingFrequency(Config.PingFrequency);
+            ServerUpdateRequested[1] = 0;
+        }
+        if (ServerUpdateRequested[2] > 0
+            && Level.TimeSeconds - ServerUpdateRequested[2] > Level.TimeDilation)
+        {
+            ServerSetPingSmoothingFactor(Config.PingSmoothing);
+            ServerUpdateRequested[2] = 0;
         }
     }
     else if (Level.NetMode == NM_DedicatedServer && !bClientUpdated)
@@ -146,14 +166,11 @@ simulated function bool SetConfigProperty(int ConfigIndex, int PropertyIndex, st
         {
             case 0:
                 bEnhancedNetcode = Config.bEnhancedNetcode && Level.NetMode != NM_ListenServer;
-                ServerSetEnhancedNetcode(bEnhancedNetcode);
                 break;
-            case 1:
-                ServerSetPingFrequency(Config.PingFrequency);
-                break;
-            case 2:
-                ServerSetPingSmoothingFactor(Config.PingSmoothing);
-                break;
+        }
+        if (ServerUpdateRequested[PropertyIndex] == 0)
+        {
+            ServerUpdateRequested[PropertyIndex] = Level.TimeSeconds;
         }
         return true;
     }
