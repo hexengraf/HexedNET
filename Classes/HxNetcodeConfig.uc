@@ -17,6 +17,6 @@ defaultproperties
     DisplayInfo(2)=(Caption="Ping smoothing factor",Hint="Factor to smooth out ping spikes from the average. Use low values for high smoothing (1.0 disables averaging completely).",Step="0.05",bAdvanced=true)
 
     bEnhancedNetcode=true
-    PingFrequency=1.5
+    PingFrequency=2.0
     PingSmoothing=0.3
 }
