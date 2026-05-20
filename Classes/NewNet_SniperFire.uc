@@ -159,7 +159,7 @@ function DoFireEffect()
     local Vector StartTrace;
     local Rotator R, Aim;
 
-    if (Level.NetMode != NM_Client && !IsEnhancedNetcodeEnabled())
+    if (!IsEnhancedNetcodeEnabled())
     {
         super.DoFireEffect();
         return;

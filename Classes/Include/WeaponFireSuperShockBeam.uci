@@ -8,7 +8,7 @@ function TracePart(Vector Start, Vector End, Vector X, Rotator Dir, Pawn Ignored
     local vector PresentHitLocation;
     local float PingDT;
 
-    if (!IsEnhancedNetcodeEnabled())
+    if (Level.NetMode == NM_Client || !IsEnhancedNetcodeEnabled())
     {
         Super.TracePart(Start, End, X, Dir, Ignored);
         return;
