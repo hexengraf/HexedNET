@@ -155,12 +155,12 @@ function ServerSetPingSmoothingFactor(float Factor)
 
 simulated function ServerInfoReady()
 {
-    FPM = Spawn(Class'FakeProjectileManager', Self);
+    FPM = FakeProjectileManager(SpawnUnique(Class'FakeProjectileManager', Self));
 }
 
-simulated function bool SetConfigProperty(int ConfigIndex, int PropertyIndex, string Value)
+simulated function bool SetProperty(int ConfigIndex, int PropertyIndex, string Value)
 {
-    if (Super.SetConfigProperty(ConfigIndex, PropertyIndex, Value))
+    if (Super.SetProperty(ConfigIndex, PropertyIndex, Value))
     {
         switch (PropertyIndex)
         {
