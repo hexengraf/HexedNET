@@ -153,7 +153,7 @@ function ServerSetPingSmoothingFactor(float Factor)
         Factor, float(ConfigClasses[0].default.Properties[2].LowerLimit), 1.0);
 }
 
-simulated function ServerInfoReady()
+simulated function ServerPropertiesReady()
 {
     FPM = FakeProjectileManager(SpawnUnique(Class'FakeProjectileManager', Self));
 }
