@@ -5,7 +5,7 @@ const PING_WARMUP_COUNT = 10;
 
 var float AveragePing;
 
-var private HxNetcodeConfig Config;
+var private HxNetcodeConfig NetConfig;
 var private FakeProjectileManager FPM;
 var private int PingCount;
 var private bool bEnhancedNetcode;
@@ -37,9 +37,9 @@ simulated event PreBeginPlay()
     Super.PreBeginPlay();
     if (Level.NetMode != NM_DedicatedServer)
     {
-        Config = HxNetcodeConfig(Configs[0]);
-        ServerUpdateRequested.Length = Config.Properties.Length;
-        bEnhancedNetcode = Config.bEnhancedNetcode && Level.NetMode != NM_ListenServer;
+        NetConfig = HxNetcodeConfig(Configs[0]);
+        ServerUpdateRequested.Length = NetConfig.Properties.Length;
+        bEnhancedNetcode = NetConfig.bEnhancedNetcode && Level.NetMode != NM_ListenServer;
     }
 }
 
@@ -48,8 +48,8 @@ simulated event PostNetBeginPlay()
     Super.PostNetBeginPlay();
     if (Level.NetMode == NM_Client)
     {
-        ServerSetPingSmoothingFactor(Config.PingSmoothing);
-        ServerSetPingFrequency(Config.PingFrequency);
+        ServerSetPingSmoothingFactor(NetConfig.PingSmoothing);
+        ServerSetPingFrequency(NetConfig.PingFrequency);
         ServerSetEnhancedNetcode(bEnhancedNetcode);
     }
 }
@@ -82,13 +82,13 @@ simulated function Tick(float DeltaTime)
         if (ServerUpdateRequested[1] > 0
             && Level.TimeSeconds - ServerUpdateRequested[1] > Level.TimeDilation)
         {
-            ServerSetPingFrequency(Config.PingFrequency);
+            ServerSetPingFrequency(NetConfig.PingFrequency);
             ServerUpdateRequested[1] = 0;
         }
         if (ServerUpdateRequested[2] > 0
             && Level.TimeSeconds - ServerUpdateRequested[2] > Level.TimeDilation)
         {
-            ServerSetPingSmoothingFactor(Config.PingSmoothing);
+            ServerSetPingSmoothingFactor(NetConfig.PingSmoothing);
             ServerUpdateRequested[2] = 0;
         }
     }
@@ -153,28 +153,23 @@ function ServerSetPingSmoothingFactor(float Factor)
         Factor, float(ConfigClasses[0].default.Properties[2].LowerLimit), 1.0);
 }
 
-simulated function ServerPropertiesReady()
+simulated function NotifyServerPropertiesReady()
 {
     FPM = FakeProjectileManager(SpawnUnique(Class'FakeProjectileManager', Self));
 }
 
-simulated function bool SetProperty(int ConfigIndex, int PropertyIndex, string Value)
+simulated function NotifyUserPropertyChanged(HxConfig Config, int Index, string OldValue)
 {
-    if (Super.SetProperty(ConfigIndex, PropertyIndex, Value))
+    switch (Config.Properties[Index].Name)
     {
-        switch (PropertyIndex)
-        {
-            case 0:
-                bEnhancedNetcode = Config.bEnhancedNetcode && Level.NetMode != NM_ListenServer;
-                break;
-        }
-        if (ServerUpdateRequested[PropertyIndex] == 0)
-        {
-            ServerUpdateRequested[PropertyIndex] = Level.TimeSeconds;
-        }
-        return true;
+        case "bEnhancedNetcode":
+            bEnhancedNetcode = NetConfig.bEnhancedNetcode && Level.NetMode != NM_ListenServer;
+            break;
     }
-    return false;
+    if (ServerUpdateRequested[Index] == 0)
+    {
+        ServerUpdateRequested[Index] = Level.TimeSeconds;
+    }
 }
 
 simulated function ClientSetAllowMultiHit(bool bEnable)
