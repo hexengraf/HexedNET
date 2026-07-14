@@ -3,6 +3,7 @@ class MutHexedNET extends HxMutator;
 var config float MaxPingFrequency;
 var config float PawnCollisionTimeWindow;
 var config bool bRubberbandingFix;
+var config bool bLinkMeshes;
 
 var HxNTClock NETClock;
 
@@ -378,15 +379,18 @@ defaultproperties
     Properties(0)=(Name="MaxPingFrequency",Type=HX_PROPERTY_Float,LowerLimit="0.2",UpperLimit="20.0")
     Properties(1)=(Name="PawnCollisionTimeWindow",Type=HX_PROPERTY_Float,LowerLimit="0.05",UpperLimit="1.5")
     Properties(2)=(Name="bRubberbandingFix",Type=HX_PROPERTY_Bool)
+    Properties(3)=(Name="bLinkMeshes",Type=HX_PROPERTY_Bool)
     DisplayInfo(0)=(Caption="Maximum ping frequency",Hint="Maximum frequency to send pings (pings/second).",bMPOnly=true,bAdvanced=true)
     DisplayInfo(1)=(Caption="Pawn collision time window",Hint="Time window (in seconds) to look back for pawn collisions.",bMPOnly=true,bAdvanced=true)
-    DisplayInfo(2)=(Caption="Backport rubberbanding fix",Hint="Backport OldUnreal's rubberbanding fix. Applied on restart/map change.")
+    DisplayInfo(2)=(Caption="Backport rubberbanding fix",Hint="Backport OldUnreal's rubberbanding fix. Applied on restart/map change.",bMPOnly=true)
+    DisplayInfo(3)=(Caption="Link meshes",Hint="Link meshes for collision detection. Disable this if experiencing crashes.",bMPOnly=true)
     bDisableTick=true
 
     // configs
     MaxPingFrequency=10.0
     PawnCollisionTimeWindow=0.35
     bRubberbandingFix=false
+    bLinkMeshes=true
     //original weapons
     WeaponClasses(0)=class'ShockRifle'
     WeaponClasses(1)=class'LinkGun'

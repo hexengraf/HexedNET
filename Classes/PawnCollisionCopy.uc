@@ -90,7 +90,7 @@ function SetPawn(Pawn Other)
     if(!bUseCylinderCollision)
     {
         //snarf LinkMesh is causing crashes, works ok without it
-		if(M != None && M.bUseLinkMesh)
+		if (HexedNET.bLinkMeshes)
 			LinkMesh(CopiedPawn.Mesh); // This is required for high pingers to be able to hit vehicles properly; cylinders don't work - Calypto
 
 		// for weapon pawn, we need the vehicle's collision radius, not the turret
