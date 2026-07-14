@@ -3,7 +3,21 @@ class NewNet_BioChargedFire extends BioChargedFire;
 const PROJ_TIMESTEP = 0.0201;
 const MAX_PROJECTILE_FUDGE = 0.075;
 
-#include Classes\Include\WeaponFireBase.uci
+var private MutHexedNET HexedNET;
+var private HxNTClient Client;
+
+function PreBeginPlay()
+{
+    Super.PreBeginPlay();
+    foreach Weapon.DynamicActors(class'MutHexedNET', HexedNET) break;
+    class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
+}
+
+function bool IsEnhancedNetcodeEnabled()
+{
+    return class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
+        && Client.IsEnhancedNetcodeEnabled();
+}
 
 function projectile SpawnProjectile(Vector Start, Rotator Dir)
 {

@@ -17,8 +17,6 @@ struct ReplicatedVector
 
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
-var private HxNTClock NETClock;
-var private const class<Weapon> BaseClass;
 var private bool bConfigCleared;
 var float lastDT;
 
@@ -30,14 +28,65 @@ replication
         SpawnLGEffect;
 }
 
-#include Classes\Include\WeaponBaseFunctions.uci
+simulated event PreBeginPlay()
+{
+    Super.PreBeginPlay();
+    if (Level.NetMode != NM_Client)
+    {
+        foreach DynamicActors(class'MutHexedNET', HexedNET) break;
+    }
+    class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
+}
+
+simulated function bool IsEnhancedNetcodeEnabled()
+{
+    return class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
+        && Client.IsEnhancedNetcodeEnabled();
+}
+
+simulated event ClientStartFire(int Mode)
+{
+    if (Level.NetMode != NM_Client
+        || !IsEnhancedNetcodeEnabled()
+        || Pawn(Owner).Controller.IsInState('GameEnded')
+        || Pawn(Owner).Controller.IsInState('RoundEnded'))
+    {
+        Super.ClientStartFire(Mode);
+    }
+    else
+    {
+        NewNet_ClientStartFire(Mode);
+    }
+}
+
+function bool ServerShouldStartFire()
+{
+    if (Instigator != None && Instigator.Weapon != Self)
+    {
+        if (Instigator.Weapon == None)
+        {
+            Instigator.ServerChangedWeapon(None, Self);
+        }
+        else
+        {
+            Instigator.Weapon.SynchronizeWeapon(Self);
+        }
+        return false;
+    }
+    return true;
+}
 
 simulated function PostBeginPlay()
 {
     Super.PostBeginPlay();
     if (Level.NetMode != NM_DedicatedServer)
     {
-        ForceBaseClassConfig();
+        if (!default.bConfigCleared)
+        {
+            ClearConfig();
+            default.bConfigCleared = true;
+        }
+        class'HxNTWeapon'.static.ForceBaseClassConfig(Self, class'SniperRifle');
     }
 }
 
@@ -60,7 +109,7 @@ simulated function NewNet_ClientStartFire(int Mode)
     local actor A;
     local vector HN,HL;
 
-    if (Mode == 1 || !ValidateClient())
+    if (Mode == 1 || !class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
     {
         Super.ClientStartFire(Mode);
     }
@@ -110,7 +159,6 @@ function NewNet_ServerStartFire(byte Mode, ReplicatedRotator R, ReplicatedVector
     if ( (FireMode[Mode].NextFireTime <= Level.TimeSeconds + FireMode[Mode].PreFireTime)
 		&& StartFire(Mode) )
     {
-        ValidateNETClockPointer();
         FireMode[Mode].ServerStartFireTime = Level.TimeSeconds;
         FireMode[Mode].bServerDelayStartFire = false;
         NewNet_SniperFire(FireMode[Mode]).SavedVec.X = V.X;
@@ -118,7 +166,8 @@ function NewNet_ServerStartFire(byte Mode, ReplicatedRotator R, ReplicatedVector
         NewNet_SniperFire(FireMode[Mode]).SavedVec.Z = V.Z;
         NewNet_SniperFire(FireMode[Mode]).SavedRot.Yaw = R.Yaw;
         NewNet_SniperFire(FireMode[Mode]).SavedRot.Pitch = R.Pitch;
-        NewNet_SniperFire(FireMode[Mode]).bUseReplicatedInfo=NETClock.IsReasonable(Self, NewNet_SniperFire(FireMode[Mode]).SavedVec);
+        NewNet_SniperFire(FireMode[Mode]).bUseReplicatedInfo =
+            HexedNET.IsReasonable(Self, NewNet_SniperFire(FireMode[Mode]).SavedVec);
    //     NewNet_SniperFire(FireMode[Mode]).bBelievesHit=bBelievesHit;
    //     NewNet_SniperFire(FireMode[Mode]).bCount=true;
    /*     NewNet_SniperFire(FireMode[Mode]).BelievedHLDelta.X = BelievedHLDelta.X;
@@ -178,6 +227,5 @@ simulated function bool StartFire(int Mode)
 
 defaultproperties
 {
-    BaseClass=class'SniperRifle'
     FireModeClass(0) = class'NewNet_SniperFire'
 }

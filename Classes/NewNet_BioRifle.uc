@@ -4,7 +4,6 @@ class NewNet_BioRifle extends BioRifle
 
 var int CurIndex;
 
-var private const class<Weapon> BaseClass;
 var private bool bConfigCleared;
 
 replication
@@ -13,20 +12,22 @@ replication
         CurIndex;
 }
 
-#include Classes\Include\ForceBaseClassConfig.uci
-
 simulated function PostBeginPlay()
 {
     Super.PostBeginPlay();
     if (Level.NetMode != NM_DedicatedServer)
     {
-        ForceBaseClassConfig();
+        if (!default.bConfigCleared)
+        {
+            ClearConfig();
+            default.bConfigCleared = true;
+        }
+        class'HxNTWeapon'.static.ForceBaseClassConfig(Self, class'BioRifle');
     }
 }
 
 DefaultProperties
 {
-    BaseClass=class'BioRifle'
     FireModeClass(0)=class'NewNet_BioFire'
     FireModeClass(1)=class'NewNet_BioChargedFire'
 }

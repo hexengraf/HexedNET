@@ -12,7 +12,21 @@ var Vector OldInstigatorEyePosition;
 var vector OldXAxis,OldYAxis, OldZAxis;
 var rotator OldAim;
 
-#include Classes\Include\WeaponFireBase.uci
+var private MutHexedNET HexedNET;
+var private HxNTClient Client;
+
+function PreBeginPlay()
+{
+    Super.PreBeginPlay();
+    foreach Weapon.DynamicActors(class'MutHexedNET', HexedNET) break;
+    class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
+}
+
+function bool IsEnhancedNetcodeEnabled()
+{
+    return class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
+        && Client.IsEnhancedNetcodeEnabled();
+}
 
 function projectile SpawnProjectile(Vector Start, Rotator Dir)
 {
@@ -123,19 +137,22 @@ function vector Extrapolate(out rotator Dir, float dF, bool bTossZ)
 
 function CheckFireEffect()
 {
-   if(Level.NetMode == NM_Client && Instigator.IsLocallyControlled() && ValidateClient())
-   {
-       if (Client.AveragePing - SLACK > MAX_PROJECTILE_FUDGE)
-       {
-           OldInstigatorLocation = Instigator.Location;
-           OldInstigatorEyePosition = Instigator.EyePosition();
-           Weapon.GetViewAxes(OldXAxis,OldYAxis,OldZAxis);
-           OldAim=AdjustAim(OldInstigatorLocation+OldInstigatorEyePosition, AimError);
-           SetTimer(Client.AveragePing - SLACK - MAX_PROJECTILE_FUDGE, false);
-       }
-       else
-           DoClientFireEffect();
-   }
+    if (Level.NetMode == NM_Client && Instigator.IsLocallyControlled()
+        && class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
+    {
+        if (Client.AveragePing - SLACK > MAX_PROJECTILE_FUDGE)
+        {
+            OldInstigatorLocation = Instigator.Location;
+            OldInstigatorEyePosition = Instigator.EyePosition();
+            Weapon.GetViewAxes(OldXAxis,OldYAxis,OldZAxis);
+            OldAim=AdjustAim(OldInstigatorLocation+OldInstigatorEyePosition, AimError);
+            SetTimer(Client.AveragePing - SLACK - MAX_PROJECTILE_FUDGE, false);
+        }
+        else
+        {
+            DoClientFireEffect();
+        }
+    }
 }
 
 function Timer()
@@ -242,7 +259,8 @@ simulated function projectile SpawnFakeProjectile(Vector Start, Rotator Dir)
         FindFPM();
 
     if (FPM.AllowFakeProjectile(FakeProjectileClass, NewNet_BioRifle(Weapon).CurIndex)
-        && ValidateClient() && Client.AveragePing >= 0.050)
+        && class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
+        && Client.AveragePing >= 0.050)
     {
         p = Spawn(FakeProjectileClass,Weapon.Owner,, Start, Dir);
     }

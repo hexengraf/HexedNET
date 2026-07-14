@@ -1,11 +1,130 @@
 class NewNet_ShockBeamFire extends ShockBeamFire;
 
-#include Classes\Include\WeaponFireShockBeam.uci
+var bool bUseReplicatedInfo;
+var rotator SavedRot;
+var vector SavedVec;
+
+var bool bSkipNextEffect;
+var int bSkipNextEffectMode;
+var bool bBelievesHit;
+var Actor BelievedHitActor;
+var bool bFirstGo;
+
+var private MutHexedNET HexedNET;
+var private HxNTClient Client;
 
 function PreBeginPlay()
 {
     Super.PreBeginPlay();
     foreach Weapon.DynamicActors(class'MutHexedNET', HexedNET) break;
+    class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
+}
+
+function bool IsEnhancedNetcodeEnabled()
+{
+    return class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
+        && Client.IsEnhancedNetcodeEnabled();
+}
+
+function PlayFiring()
+{
+    Super.PlayFiring();
+    if (Level.NetMode == NM_Client && IsEnhancedNetcodeEnabled())
+    {
+        if (bSkipNextEffect)
+        {
+            bSkipNextEffect = false;
+            Weapon.ClientStopFire(bSkipNextEffectMode);
+        }
+        else
+        {
+            CheckFireEffect();
+        }
+    }
+}
+
+function CheckFireEffect()
+{
+   if (Level.NetMode == NM_Client && Instigator.IsLocallyControlled())
+   {
+       DoFireEffect();
+   }
+}
+
+function DoInstantFireEffect(int Mode)
+{
+   if (Level.NetMode == NM_Client && Instigator.IsLocallyControlled())
+   {
+       DoFireEffect();
+       bSkipNextEffectMode = Mode;
+       bSkipNextEffect = true;
+   }
+}
+
+function DoFireEffect()
+{
+    local vector StartTrace;
+    local rotator R;
+    local rotator Aim;
+
+    if (!IsEnhancedNetcodeEnabled())
+    {
+        Super.DoFireEffect();
+        return;
+    }
+
+    Instigator.MakeNoise(1.0);
+    if (bUseReplicatedInfo)
+    {
+        StartTrace=SavedVec;
+        R=SavedRot;
+        bUseReplicatedInfo=false;
+	}
+    else
+    {
+        // the to-hit trace always starts right in front of the eye
+        StartTrace = Instigator.Location + Instigator.EyePosition();
+        Aim = AdjustAim(StartTrace, AimError);
+	    R = rotator(vector(Aim) + VRand() * FRand() * Spread);
+    }
+    if (Level.NetMode == NM_Client)
+    {
+        DoClientTrace(StartTrace, R);
+    }
+    else
+    {
+        DoTrace(StartTrace, R);
+    }
+}
+
+function SpawnBeamEffect(vector Start,
+                         rotator Dir,
+                         vector HitLocation,
+                         vector HitNormal,
+                         int ReflectNum)
+{
+    local ShockBeamEffect Beam;
+
+    if (Level.NetMode != NM_Client && IsEnhancedNetcodeEnabled())
+    {
+        if (Weapon != None)
+        {
+            Beam = NewNet_SpawnBeamEffect(Start, Dir);
+            if (Beam != None)
+            {
+                if (ReflectNum != 0)
+                {
+                    // prevents client side repositioning of beam start
+                    Beam.Instigator = None;
+                }
+                Beam.AimAt(HitLocation, HitNormal);
+            }
+        }
+    }
+    else
+    {
+        Super.SpawnBeamEffect(Start, Dir, HitLocation, HitNormal, ReflectNum);
+    }
 }
 
 function DoTrace(vector Start, rotator Dir)

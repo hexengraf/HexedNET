@@ -1,6 +1,20 @@
 class NewNet_LinkFire extends LinkFire;
 
-#include Classes\Include\WeaponFireBase.uci
+var private MutHexedNET HexedNET;
+var private HxNTClient Client;
+
+function PreBeginPlay()
+{
+    Super.PreBeginPlay();
+    foreach Weapon.DynamicActors(class'MutHexedNET', HexedNET) break;
+    class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
+}
+
+function bool IsEnhancedNetcodeEnabled()
+{
+    return class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
+		&& Client.IsEnhancedNetcodeEnabled();
+}
 
 simulated function ModeTick(float dt)
 {

@@ -34,7 +34,6 @@ var float CrouchHeight;
 var float CrouchRadius;
 
 var MutHexedNET HexedNET;
-var HxNTClock NETClock;
 
 var Pawn CopiedPawn;
 var bool bNormalDestroy;
@@ -62,7 +61,6 @@ function PostBeginPlay()
 {
     super.PostBeginPlay();
     HexedNET = MutHexedNET(Owner);
-    NETClock = HexedNET.NETClock;
     MaxHistoryLength = HexedNET.PawnCollisionTimeWindow;
 }
 

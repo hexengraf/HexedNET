@@ -18,7 +18,21 @@ const PROJ_TIMESTEP = 0.0251;
 const MAX_PROJECTILE_FUDGE = 0.075;
 const SLACK = 0.035;
 
-#include Classes\Include\WeaponFireBase.uci
+var private MutHexedNET HexedNET;
+var private HxNTClient Client;
+
+function PreBeginPlay()
+{
+    Super.PreBeginPlay();
+    foreach Weapon.DynamicActors(class'MutHexedNET', HexedNET) break;
+    class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
+}
+
+function bool IsEnhancedNetcodeEnabled()
+{
+    return class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
+        && Client.IsEnhancedNetcodeEnabled();
+}
 
 function PlayFiring()
 {
@@ -39,19 +53,22 @@ function PlayFiring()
 
 function CheckFireEffect()
 {
-   if(Level.NetMode == NM_Client && Instigator.IsLocallyControlled() && ValidateClient())
-   {
-       if (Client.AveragePing - SLACK > MAX_PROJECTILE_FUDGE)
-       {
-           OldInstigatorLocation = Instigator.Location;
-           OldInstigatorEyePosition = Instigator.EyePosition();
-           Weapon.GetViewAxes(OldXAxis,OldYAxis,OldZAxis);
-           OldAim=AdjustAim(OldInstigatorLocation+OldInstigatorEyePosition, AimError);
-           SetTimer(Client.AveragePing - SLACK - MAX_PROJECTILE_FUDGE, false);
-       }
-       else
-           DoClientFireEffect();
-   }
+    if (Level.NetMode == NM_Client && Instigator.IsLocallyControlled()
+        && class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
+    {
+        if (Client.AveragePing - SLACK > MAX_PROJECTILE_FUDGE)
+        {
+            OldInstigatorLocation = Instigator.Location;
+            OldInstigatorEyePosition = Instigator.EyePosition();
+            Weapon.GetViewAxes(OldXAxis,OldYAxis,OldZAxis);
+            OldAim=AdjustAim(OldInstigatorLocation+OldInstigatorEyePosition, AimError);
+            SetTimer(Client.AveragePing - SLACK - MAX_PROJECTILE_FUDGE, false);
+        }
+        else
+        {
+            DoClientFireEffect();
+        }
+    }
 }
 
 function Timer()

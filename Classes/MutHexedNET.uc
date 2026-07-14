@@ -5,13 +5,12 @@ var config float PawnCollisionTimeWindow;
 var config bool bRubberbandingFix;
 var config bool bLinkMeshes;
 
-var HxNTClock NETClock;
-
 var const private class<Weapon> WeaponClasses[13];
 var const private class<Weapon> NewNetWeaponClasses[13];
 var const private class<WeaponFire> WeaponFireClasses[5];
 var const private class<WeaponFire> NewNetWeaponFireClasses[5];
 var private PawnCollisionCopy PCC;
+var private HxNTClock NETClock;
 
 event PreBeginPlay()
 {
@@ -246,6 +245,23 @@ function Actor CompensatedTrace2(float Delta,
         // if (abs(f) < 9.0) log("Failed to reverse fix");
     }
     return Other;
+}
+
+function bool IsReasonable(Weapon W, Vector V)
+{
+    local vector LocDiff;
+
+    if (Pawn(W.Owner) == None)
+    {
+        return true;
+    }
+    LocDiff = V - (Pawn(W.Owner).Location + Pawn(W.Owner).EyePosition());
+    // clErr = (LocDiff dot LocDiff);
+    // if (clErr > 500.0*NETClock.AverDT)
+        // PlayerController(Pawn(Owner).Controller).ClientMessage("Exceeded error"@clErr);
+    // Log(ClErr@(Pawn(Owner).Velocity dot Pawn(Owner).Velocity));
+    // if(clErr >= 750) Log("ERROR TOO GREAT");
+    return (LocDiff dot LocDiff) < 1250.0;
 }
 
 function DriverEnteredVehicle(Vehicle V, Pawn P)
