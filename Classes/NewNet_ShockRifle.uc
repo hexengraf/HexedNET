@@ -153,7 +153,7 @@ simulated function bool StartFire(int Mode)
     }
     Alt = 1 - Mode;
     FireMode[Mode].bIsFiring = true;
-    FireMode[Mode].NextFireTime = Level.TimeSeconds-LastDT * 0.5 + FireMode[Mode].PreFireTime;
+    FireMode[Mode].NextFireTime = Level.TimeSeconds - LastDT * 0.5 + FireMode[Mode].PreFireTime;
     if (FireMode[Alt].bModeExclusive)
     {
         // prevents rapidly alternating fire modes
@@ -208,6 +208,19 @@ function NewNet_ServerStartFire(byte Mode, ReplicatedRotator R, ReplicatedVector
     {
         ClientForceAmmoUpdate(Mode, AmmoAmount(Mode));
     }
+}
+
+simulated function bool ReadyToFire(int Mode)
+{
+    if (Level.NetMode == NM_Client && IsEnhancedNetcodeEnabled())
+    {
+        if (FireMode[Mode].bModeExclusive)
+        {
+            FireMode[Mode].NextFireTime = FMax(
+                FireMode[Mode].NextFireTime, FireMode[1 - Mode].NextFireTime);
+        }
+    }
+	return Super.ReadyToFire(Mode);
 }
 
 DefaultProperties
