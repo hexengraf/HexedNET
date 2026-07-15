@@ -6,7 +6,6 @@ var Vector OldInstigatorEyePosition;
 var vector OldXAxis,OldYAxis, OldZAxis;
 var rotator OldAim;
 var float OldLoad;
-const MAX_PROJECTILE_FUDGE = 0.075;
 
 var class<Projectile> FakeProjectileClass;
 var FakeProjectileManager FPM;
@@ -48,10 +47,12 @@ simulated function CheckFireEffect()
 
    if(Level.NetMode == NM_Client && Instigator.IsLocallyControlled() && ValidateClient())
    {
-        Ping = Client.AveragePing - 0.5*class'HxNTClock'.default.AverDT;
+        Ping = Client.AveragePing - 0.5 * class'HxNTClock'.default.AverDT;
 
-        if(Ping <= MAX_PROJECTILE_FUDGE)
+        if (Ping <= Client.ProjectileCompensationLimit)
+        {
             DoClientFireEffect();
+        }
         else
         {
             OldInstigatorLocation = Instigator.Location;
@@ -59,7 +60,7 @@ simulated function CheckFireEffect()
             Weapon.GetViewAxes(OldXAxis,OldYAxis,OldZAxis);
             OldAim=AdjustAim(OldInstigatorLocation+OldInstigatorEyePosition, AimError);
             OldLoad=Load;
-            SetAltTimer(Ping - MAX_PROJECTILE_FUDGE, false);
+            SetAltTimer(Ping - Client.ProjectileCompensationLimit, false);
         }
    }
 }

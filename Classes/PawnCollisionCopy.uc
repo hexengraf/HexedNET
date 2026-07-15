@@ -61,7 +61,12 @@ function PostBeginPlay()
 {
     super.PostBeginPlay();
     HexedNET = MutHexedNET(Owner);
-    MaxHistoryLength = HexedNET.PawnCollisionTimeWindow;
+    SetMaxHistoryLength(HexedNET.PingCompensationLimit);
+}
+
+function SetMaxHistoryLength(int PingCompensationLimit)
+{
+    MaxHistoryLength = PingCompensationLimit / 1000.0;
 }
 
 /* Set up the collision properties of our copy */

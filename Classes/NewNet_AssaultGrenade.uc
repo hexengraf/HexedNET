@@ -1,7 +1,6 @@
 class NewNet_AssaultGrenade extends AssaultGrenade;
 
 const PROJ_TIMESTEP = 0.0201;
-const MAX_PROJECTILE_FUDGE = 0.0750;
 
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
@@ -37,7 +36,7 @@ function projectile SpawnProjectile(Vector Start, Rotator Dir)
     {
         return super.SpawnProjectile(start,dir);
     }
-    pingDT = FMin(Client.AveragePing, MAX_PROJECTILE_FUDGE);
+    pingDT = Client.GetProjectilePing();
     Weapon.GetViewAxes(X,Y,Z);
     pawnSpeed = X dot Instigator.Velocity;
     if ( Bot(Instigator.Controller) != None )

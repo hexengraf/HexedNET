@@ -1,7 +1,6 @@
 class NewNet_BioChargedFire extends BioChargedFire;
 
 const PROJ_TIMESTEP = 0.0201;
-const MAX_PROJECTILE_FUDGE = 0.075;
 
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
@@ -36,7 +35,7 @@ function projectile SpawnProjectile(Vector Start, Rotator Dir)
     {
         return Super.SpawnProjectile(start,Dir);
     }
-    PingDT = FMin(Client.AveragePing, MAX_PROJECTILE_FUDGE);
+    PingDT = Client.GetProjectilePing();
     if( class'BioGlob' != none )
     {
         if(PingDT > 0.0 && Weapon.Owner!=None)

@@ -2,8 +2,6 @@ class NewNet_RocketLauncher extends RocketLauncher
     HideDropDown
 	CacheExempt;
 
-const MAX_PROJECTILE_FUDGE = 0.275;
-const MAX_PROJECTILE_FUDGE_ALT = 0.275;
 const PROJ_TIMESTEP = 0.0201;
 
 struct ReplicatedRotator
@@ -158,11 +156,11 @@ function NewNet_ServerStartFire(byte Mode, ReplicatedRotator R, ReplicatedVector
     }
     // if(NewNet_RocketFire(FireMode[Mode])!=None)
     // {
-    //    NewNet_RocketFire(FireMode[Mode]).PingDT = FMin(Ping + 1.75*NETClock.AverDT, MAX_PROJECTILE_FUDGE_ALT);
+    //    NewNet_RocketFire(FireMode[Mode]).PingDT = FMin(Ping + 1.75*NETClock.AverDT, Client.ProjectileCompensationLimit);
     // }
     // else if(NewNet_RocketMultiFire(FireMode[Mode])!=None)
     // {
-    //    NewNet_RocketMultiFire(FireMode[Mode]).PingDT = FMin(Ping + 1.75*NETClock.AverDT, MAX_PROJECTILE_FUDGE);
+    //    NewNet_RocketMultiFire(FireMode[Mode]).PingDT = FMin(Ping + 1.75*NETClock.AverDT, Client.ProjectileCompensationLimit);
     // }
 
     if ( (FireMode[Mode].NextFireTime <= Level.TimeSeconds + FireMode[Mode].PreFireTime)
@@ -252,7 +250,7 @@ function Projectile SpawnProjectile(Vector Start, Rotator Dir)
 	{
 	    return super.SpawnProjectile(Start, Dir);
 	}
-    PingDT = FMin(Client.AveragePing, MAX_PROJECTILE_FUDGE);
+    PingDT = Client.GetProjectilePing();
 
     bBreakLock = true;
 

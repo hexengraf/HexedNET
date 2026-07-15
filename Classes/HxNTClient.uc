@@ -4,6 +4,7 @@ class HxNTClient extends HxClientReplicationInfo
 const PING_WARMUP_COUNT = 10;
 
 var float AveragePing;
+var float ProjectileCompensationLimit;
 
 var private HxNetcodeConfig NetConfig;
 var private FakeProjectileManager FPM;
@@ -120,6 +121,15 @@ function ServerPing(float Timestamp)
     ClientUpdatePing(AveragePing);
 }
 
+function SetServerProperty(int Index, string Value)
+{
+    Super.SetServerProperty(Index, Value);
+    if (MutatorClass.default.Properties[Index].Name == "ProjectileCompensationLimit")
+    {
+        ProjectileCompensationLimit = float(Value)  / 1000;
+    }
+}
+
 function ServerSetEnhancedNetcode(bool bEnable)
 {
     bEnhancedNetcode = bEnable;
@@ -156,6 +166,16 @@ function ServerSetPingSmoothingFactor(float Factor)
 simulated function NotifyServerPropertiesReady()
 {
     FPM = FakeProjectileManager(SpawnUnique(Class'FakeProjectileManager', Self));
+    ProjectileCompensationLimit = float(GetServerProperty("ProjectileCompensationLimit")) / 1000;
+}
+
+simulated function NotifyServerPropertyChanged(int Index, string OldValue)
+{
+    if (MutatorClass.default.Properties[Index].Name == "ProjectileCompensationLimit")
+    {
+        ProjectileCompensationLimit =
+            float(GetServerProperty("ProjectileCompensationLimit")) / 1000;
+    }
 }
 
 simulated function NotifyUserPropertyChanged(HxConfig Config, int Index, string OldValue)
@@ -175,6 +195,11 @@ simulated function NotifyUserPropertyChanged(HxConfig Config, int Index, string 
 simulated function ClientSetAllowMultiHit(bool bEnable)
 {
     class'NewNet_ZoomSuperShockBeamFire'.default.bServerAllowMultiHit = bEnable;
+}
+
+simulated function float GetProjectilePing()
+{
+    return FMin(AveragePing, ProjectileCompensationLimit);
 }
 
 simulated function bool IsEnhancedNetcodeEnabled()

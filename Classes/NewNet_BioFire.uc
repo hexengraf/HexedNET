@@ -1,7 +1,6 @@
 class NewNet_BioFire extends BioFire;
 
 const PROJ_TIMESTEP = 0.0201;
-const MAX_PROJECTILE_FUDGE = 0.075;
 const SLACK = 0.025;
 
 var class<Projectile> FakeProjectileClass;
@@ -49,7 +48,7 @@ function projectile SpawnProjectile(Vector Start, Rotator Dir)
     {
         return Super.SpawnProjectile(Start, Dir);
     }
-    PingDT = FMin(Client.AveragePing, MAX_PROJECTILE_FUDGE);
+    PingDT = Client.GetProjectilePing();
     if (ProjectileClass != none)
     {
         if(PingDT > 0.0 && Weapon.Owner!=None)
@@ -140,13 +139,13 @@ function CheckFireEffect()
     if (Level.NetMode == NM_Client && Instigator.IsLocallyControlled()
         && class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
     {
-        if (Client.AveragePing - SLACK > MAX_PROJECTILE_FUDGE)
+        if (Client.AveragePing - SLACK > Client.ProjectileCompensationLimit)
         {
             OldInstigatorLocation = Instigator.Location;
             OldInstigatorEyePosition = Instigator.EyePosition();
             Weapon.GetViewAxes(OldXAxis,OldYAxis,OldZAxis);
             OldAim=AdjustAim(OldInstigatorLocation+OldInstigatorEyePosition, AimError);
-            SetTimer(Client.AveragePing - SLACK - MAX_PROJECTILE_FUDGE, false);
+            SetTimer(Client.AveragePing - SLACK - Client.ProjectileCompensationLimit, false);
         }
         else
         {
