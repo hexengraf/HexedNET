@@ -33,9 +33,9 @@ replication
         ServerSetPingSmoothingFactor;
 }
 
-simulated event PreBeginPlay()
+simulated event PostBeginPlay()
 {
-    Super.PreBeginPlay();
+    Super.PostBeginPlay();
     if (Level.NetMode != NM_DedicatedServer)
     {
         NetConfig = HxNetcodeConfig(Configs[0]);

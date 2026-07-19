@@ -13,9 +13,9 @@ var const private class<WeaponFire> NewNetWeaponFireClasses[5];
 var private PawnCollisionCopy PCC;
 var private HxNTClock NETClock;
 
-event PreBeginPlay()
+event PostBeginPlay()
 {
-    Super.PreBeginPlay();
+    Super.PostBeginPlay();
     if (!bDeleteMe && !bPendingDelete)
     {
         NETClock = Spawn(class'HxNTClock', Self);

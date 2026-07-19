@@ -8,7 +8,7 @@ replication
         AverDT;
 }
 
-simulated function PostBeginPlay()
+simulated event PostBeginPlay()
 {
     // TODO: Why? And why here?
     class'ShieldFire'.default.AutoFireTestFreq = 0.05;
