@@ -1,5 +1,4 @@
-class HxNTClient extends HxClientReplicationInfo
-    config(User);
+class HxNTClient extends HxClientReplicationInfo;
 
 const PING_WARMUP_COUNT = 10;
 
@@ -70,9 +69,9 @@ simulated function Tick(float DeltaTime)
     Super.Tick(DeltaTime);
     if (Level.NetMode == NM_Client)
     {
-        if (PlayerController(Owner) != None)
+        if (PlayerOwner != None)
         {
-            FixWeaponInstigator(PlayerController(Owner));
+            FixWeaponInstigator(PlayerOwner);
         }
         if (ServerUpdateRequested[0] > 0
             && Level.TimeSeconds - ServerUpdateRequested[0] > Level.TimeDilation)
