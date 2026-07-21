@@ -398,11 +398,11 @@ defaultproperties
     Properties(2)=(Name="ProjectileCompensationLimit",Type=HX_PROPERTY_Int,LowerLimit="50",UpperLimit="999")
     Properties(3)=(Name="bRubberbandingFix",Type=HX_PROPERTY_Bool)
     Properties(4)=(Name="bLinkMeshes",Type=HX_PROPERTY_Bool)
-    DisplayInfo(0)=(Caption="Maximum ping frequency",Hint="Maximum frequency to send pings (pings/second).",bMPOnly=true,bAdvanced=true)
-    DisplayInfo(1)=(Caption="Ping compensation limit",Hint="Global ping compensation limit (in milliseconds) applied to all weapon types.",Step="10",bMPOnly=true,bAdvanced=true)
-    DisplayInfo(2)=(Caption="Projectile compensation limit",Hint="Ping compensation limit (in milliseconds) applied to projectiles.",Step="10",bMPOnly=true,bAdvanced=true)
-    DisplayInfo(3)=(Caption="Backport rubberbanding fix",Hint="Backport OldUnreal's rubberbanding fix. Applied on restart/map change.",bMPOnly=true,bAdvanced=true)
-    DisplayInfo(4)=(Caption="Link meshes",Hint="Link meshes for collision detection. Disable this if experiencing crashes.",bMPOnly=true,bAdvanced=true)
+    DisplayInfo(0)=(Caption="Maximum Ping Frequency",Hint="Maximum frequency to send pings (pings/second).",bMPOnly=true,bAdvanced=true)
+    DisplayInfo(1)=(Caption="Ping Compensation Limit",Hint="Global ping compensation limit (in milliseconds) applied to all weapon types.",Step="10",bMPOnly=true,bAdvanced=true)
+    DisplayInfo(2)=(Caption="Projectile Compensation Limit",Hint="Ping compensation limit (in milliseconds) applied to projectiles.",Step="10",bMPOnly=true,bAdvanced=true)
+    DisplayInfo(3)=(Caption="Backport Rubberbanding Fix",Hint="Backport OldUnreal's rubberbanding fix. Applied on restart/map change.",bMPOnly=true,bAdvanced=true)
+    DisplayInfo(4)=(Caption="Link Meshes",Hint="Link meshes for collision detection. Disable this if experiencing crashes.",bMPOnly=true,bAdvanced=true)
     bDisableTick=true
 
     // configs
