@@ -1,5 +1,5 @@
 class MutHexedNET extends HxMutator
-    config(HexedServer);
+    config(HexedMutators);
 
 var config float MaxPingFrequency;
 var config int PingCompensationLimit;
