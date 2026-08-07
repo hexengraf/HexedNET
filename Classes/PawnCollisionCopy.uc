@@ -28,88 +28,71 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //-----------------------------------------------------------
 class PawnCollisionCopy extends Actor;
 
-var PawnCollisionCopy Next;
-
-var float CrouchHeight;
-var float CrouchRadius;
-
-var MutHexedNET HexedNET;
-
-var Pawn CopiedPawn;
-var bool bNormalDestroy;
-
 struct PawnHistoryElement
 {
+    var float Timestamp;
     var vector Location;
     var rotator Rotation;
     var bool bCrouched;
-    var float TimeStamp;
-//    var EPhysics Physics;
 };
 
-var array<PawnHistoryElement> PawnHistory;
+var PawnCollisionCopy Next;
+var Pawn CopiedPawn;
 
-//Furthest we will allow backtracking
-var float MaxHistoryLength;
-
-var bool bCrouched;
-
-
-var InterpCurve LocCurveX, LocCurveY,LocCurveZ;
+var private MutHexedNET HexedNET;
+var private array<PawnHistoryElement> Snapshots;
+var private float MaxDeltaTime;
+var private float CrouchHeight;
+var private float CrouchRadius;
+var private bool bCrouched;
 
 function PostBeginPlay()
 {
-    super.PostBeginPlay();
+    Super.PostBeginPlay();
     HexedNET = MutHexedNET(Owner);
-    SetMaxHistoryLength(HexedNET.PingCompensationLimit);
+    MaxDeltaTime = HexedNET.PingCompensationLimit / 1000.0;
 }
 
-function SetMaxHistoryLength(int PingCompensationLimit)
-{
-    MaxHistoryLength = PingCompensationLimit / 1000.0;
-}
-
-/* Set up the collision properties of our copy */
+// Set up the collision properties of our copy
 function SetPawn(Pawn Other)
 {
-    if(Level.NetMode == NM_Client)
-        Warn("Client should never have a collision copy");
-
-    if(Other == none)
+    if (Other == None)
     {
         Warn("PawnCopy spawned without proper Other");
-        //  Destroy();
+        // Destroy();
         return;
     }
- //   if(CopiedPawn==None)
-    CopiedPawn=Other;
-
-    CrouchHeight=CopiedPawn.CrouchHeight;
-    CrouchRadius=CopiedPawn.CrouchRadius;
+    CopiedPawn = Other;
+    CrouchHeight = CopiedPawn.CrouchHeight;
+    CrouchRadius = CopiedPawn.CrouchRadius;
     bUseCylinderCollision = CopiedPawn.bUseCylinderCollision;
-    bCrouched=CopiedPawn.bIsCrouched;
-
-    //If we cant use simple collisions, set up the mesh
-    if(!bUseCylinderCollision)
+    bCrouched = CopiedPawn.bIsCrouched;
+    // If we cant use simple collisions, set up the mesh
+    if (!bUseCylinderCollision)
     {
-        //snarf LinkMesh is causing crashes, works ok without it
-		if (HexedNET.bLinkMeshes)
-			LinkMesh(CopiedPawn.Mesh); // This is required for high pingers to be able to hit vehicles properly; cylinders don't work - Calypto
-
-		// for weapon pawn, we need the vehicle's collision radius, not the turret
-		if(ONSWeaponPawn(CopiedPawn) != None)
-		{
-			// Check if the VehicleBase actually exists before accessing its properties
-			if (ONSWeaponPawn(CopiedPawn).VehicleBase != None)
-			{
-				SetCollisionSize(ONSWeaponPawn(CopiedPawn).VehicleBase.CollisionRadius, ONSWeaponPawn(CopiedPawn).VehicleBase.CollisionHeight);
-			}
-			else
-			{
-				// Fallback to the turret's own collision if VehicleBase is missing
-				SetCollisionSize(CopiedPawn.CollisionRadius, CopiedPawn.CollisionHeight);
-			}
-		}
+        // snarf LinkMesh is causing crashes, works ok without it
+        if (HexedNET.bLinkMeshes)
+        {
+            // This is required for high pingers to be able to hit vehicles properly;
+            // cylinders don't work - Calypto
+            LinkMesh(CopiedPawn.Mesh);
+        }
+        // for weapon pawn, we need the vehicle's collision radius, not the turret
+        if(ONSWeaponPawn(CopiedPawn) != None)
+        {
+            // Check if the VehicleBase actually exists before accessing its properties
+            if (ONSWeaponPawn(CopiedPawn).VehicleBase != None)
+            {
+                SetCollisionSize(
+                    ONSWeaponPawn(CopiedPawn).VehicleBase.CollisionRadius,
+                    ONSWeaponPawn(CopiedPawn).VehicleBase.CollisionHeight);
+            }
+            else
+            {
+                // Fallback to the turret's own collision if VehicleBase is missing
+                SetCollisionSize(CopiedPawn.CollisionRadius, CopiedPawn.CollisionHeight);
+            }
+        }
     }
     else
     {
@@ -117,167 +100,102 @@ function SetPawn(Pawn Other)
     }
 }
 
-/*
-What happens if its not an xpawn and its changing shapes?
-*/
+// What happens if its not an xpawn and its changing shapes?
 function GoToPawn()
 {
-    if(CopiedPawn == none)
-        return;
-
-    SetLocation(CopiedPawn.Location);
-    SetCollisionSize(CopiedPawn.CollisionRadius,CopiedPawn.CollisionHeight);
-
-    if(bUseCylinderCollision)
+    if (CopiedPawn != None)
     {
-        if(!bCrouched && CopiedPawn.bIsCrouched)
+        SetLocation(CopiedPawn.Location);
+        SetCollisionSize(CopiedPawn.CollisionRadius, CopiedPawn.CollisionHeight);
+        if (bUseCylinderCollision)
         {
-             SetCollisionSize(CrouchRadius, CrouchHeight);
-             bCrouched=True;
+            if (!bCrouched && CopiedPawn.bIsCrouched)
+            {
+                SetCollisionSize(CrouchRadius, CrouchHeight);
+                bCrouched = true;
+            }
+            else if (bCrouched && !CopiedPawn.bIsCrouched)
+            {
+                SetCollisionSize(default.CollisionRadius, default.CollisionHeight);
+                bCrouched = false;
+            }
         }
-        else if(bCrouched && !CopiedPawn.bIsCrouched)
-        {
-            SetCollisionSize(default.CollisionRadius, default.CollisionHeight);
-            bCrouched=false;
-        }
+        SetCollision(true);
     }
-
-    SetCollision(true);
 }
 
-/*
-What happens if its not an xpawn and its changing shapes?
-*/
-function TimeTravelPawn(float DT)
+// What happens if its not an xpawn and its changing shapes?
+function TimeTravelPawn(float DeltaTime)
 {
-    local int i, Floor, Ceiling;
-    local bool bFloor, bCeiling;
-  //  local vector V;
-    local vector V2;
-    local float StampDT;
-//    local float Alpha;
-  //  local float Interpdt;
+    local float TargetTimestamp;
+    local float Alpha;
+    local int Lo;
+    local int Up;
 
-    if(CopiedPawn == none || CopiedPawn.DrivenVehicle!=None)
+    if (CopiedPawn == None || CopiedPawn.DrivenVehicle != None)
+    {
        return;
-    StampDT = Level.TimeSeconds - DT;
+    }
+    TargetTimestamp = Level.TimeSeconds - DeltaTime;
     SetCollision(false);
-
-    //We cant backtrack, too recent, just go straight to the pawn
-    if(PawnHistory.Length == 0 || PawnHistory[PawnHistory.Length-1].TimeStamp < StampDT )
+    if (Snapshots.Length == 0 || Snapshots[Snapshots.Length - 1].Timestamp < TargetTimestamp)
     {
         GoToPawn();
         return;
     }
-
-    //Sandwich between 2 history parts Ceiling and Floor
-    for(i=PawnHistory.Length-1; i >= 0; i--)
+    Lo = FindLowerBound(TargetTimestamp);
+    if (Snapshots.Length > 1 && Snapshots[Lo].Timestamp < TargetTimestamp)
     {
-        //This will set the more recent part
-        if(PawnHistory[i].TimeStamp >= StampDT)
+        Up = Lo + 1;
+        if (bUseCylinderCollision)
         {
-            bFloor=true;
-            Floor = i;
+            if (!bCrouched && Snapshots[Up].bCrouched && Snapshots[Lo].bCrouched)
+            {
+                SetCollisionSize(CrouchRadius, CrouchHeight);
+                bCrouched = true;
+            }
+            else if (bCrouched && (!Snapshots[Up].bCrouched || !Snapshots[Lo].bCrouched))
+            {
+                SetCollisionSize(default.CollisionRadius, default.CollisionHeight);
+                bCrouched = false;
+            }
         }
-        // we either ran into, or got under the stamp
-        // this is the older stamp
-        // Now we should have a ceiling and floor both
-        else
-        {
-            bCeiling=true;
-            Ceiling=i;
-            break;
-        }
-    }
-
-    if(bCeiling)
-    {
-        /* if(bFloor)
-         {
-             // interpolate between the 2 locations based on stampDT
-             Alpha = (PawnHistory[Floor].TimeStamp - StampDT) / (PawnHistory[Floor].TimeStamp - PawnHistory[ceiling].TimeStamp);
-             if(Alpha > 1.0 || alpha < 0.0)
-                log("Error, alpha out of expected range");
-
-             V.X = lerp(Alpha, PawnHistory[Floor].Location.X, PawnHistory[ceiling].Location.X, true);
-             V.Y = lerp(Alpha, PawnHistory[Floor].Location.Y, PawnHistory[ceiling].Location.Y, true);
-             V.Z = lerp(Alpha, PawnHistory[Floor].Location.Z, PawnHistory[ceiling].Location.Z, true);
-         }
-         else
-         {
-            log("Error, no floor");
-         }
-        */
-         /* Highest gravity error at center of the 2 samples, 0 at ends
-         This doesn't amount to a pinch of shit on any realistic tickrate
-         but might as well keep it for now, can always remove it later*/
-       /*  if(PawnHistory[Floor].Physics == PHYS_FALLING && PawnHistory[Ceiling].Physics == PHYS_FALLING)
-         {
-             if(alpha > 0.50)
-                InterpDT= (1.0-Alpha)*(PawnHistory[Floor].TimeStamp - PawnHistory[ceiling].TimeStamp);
-             else
-                InterpDT = (Alpha)*(PawnHistory[Floor].TimeStamp - PawnHistory[ceiling].TimeStamp);
-             V = V - 0.5*CopiedPawn.PhysicsVolume.Gravity*Square(InterpDT);   //close enough??
-         }     */
-
-
-         V2.X = InterpCurveEval(LocCurveX,StampDT);
-         V2.Y = InterpCurveEval(LocCurveY,StampDT);
-         V2.Z = InterpCurveEval(LocCurveZ,StampDT);
-
-         SetLocation(V2);
-         SetRotation(PawnHistory[Floor].Rotation);
-
-         if(bUseCylinderCollision)
-         {
-             if(!bCrouched && PawnHistory[Floor].bCrouched && PawnHistory[Ceiling].bCrouched)
-             {
-                 SetCollisionSize(CrouchRadius, CrouchHeight);
-                 bCrouched=True;
-             }
-             else if(bCrouched && (!PawnHistory[Floor].bCrouched || !PawnHistory[Ceiling].bCrouched))
-             {
-                 SetCollisionSize(default.CollisionRadius, default.CollisionHeight);
-                 bCrouched=false;
-             }
-         }
-
-         /* Maybe interpolate rotation? */
-
-
+        Alpha = GetAlpha(TargetTimestamp, Snapshots[Lo].Timestamp, Snapshots[Up].Timestamp);
+        SetLocation(
+            Snapshots[Up].Location + Alpha * (Snapshots[Lo].Location - Snapshots[Up].Location));
+        // TODO: interpolate rotation?
+        SetRotation(Snapshots[Up].Rotation);
     }
     else
     {
-          /* FixMe:  This shouldn't need to be set unless it changes, but for now
-         lets just be safe and set it every time for now*/
-         if(PawnHistory[Floor].bCrouched)
-             SetCollisionSize(CrouchRadius, CrouchHeight);
-         else if(CopiedPawn.IsA('xPawn'))
-             SetCollisionSize(default.CollisionRadius, default.CollisionHeight);
-         else if(bUseCylinderCollision)
-             SetCollisionSize(CopiedPawn.CollisionRadius, CopiedPawn.CollisionHeight);
-
-         SetLocation(PawnHistory[Floor].Location);
-         SetRotation(PawnHistory[Floor].Rotation);
+        // FixMe: This shouldn't need to be set unless it changes
+        if (Snapshots[Lo].bCrouched)
+        {
+            SetCollisionSize(CrouchRadius, CrouchHeight);
+        }
+        else if (CopiedPawn.IsA('xPawn'))
+        {
+            SetCollisionSize(default.CollisionRadius, default.CollisionHeight);
+        }
+        else if (bUseCylinderCollision)
+        {
+            SetCollisionSize(CopiedPawn.CollisionRadius, CopiedPawn.CollisionHeight);
+        }
+        SetLocation(Snapshots[Lo].Location);
+        SetRotation(Snapshots[Lo].Rotation);
     }
-
-	// Add checks for vehicles to not use cylinders (and use LinkMesh instead), otherwise it causes hitscan noregs on high ping (>70ms)..
-	// Without LinkMesh enabled, this logic will not let you hit the vehicle if the main seat is occupied (if gunner then works fine) - Calypto
-    if (CopiedPawn != None)
+    // Without LinkMesh enabled, this logic will not let you hit the vehicle if the main seat is
+    // occupied (if gunner then works fine) - Calypto
+    // Do not enable collision for passenger seats to prevent the phantom cylinder shield
+    // A vehicle attached to another vehicle is a passenger seat
+    if (CopiedPawn.bCollideActors
+        && (!CopiedPawn.IsA('Vehicle') || CopiedPawn.Base == None
+            || !CopiedPawn.Base.IsA('Vehicle')))
     {
-        // If the copied pawn is a vehicle, and it is attached to another vehicle, it's a passenger seat
-        if (CopiedPawn.IsA('Vehicle') && CopiedPawn.Base != None && CopiedPawn.Base.IsA('Vehicle'))
-        {
-            // Do not enable collision for passenger seats to prevent the phantom cylinder shield
-        }
-        else if (CopiedPawn.bCollideActors)
-        {
-            // Enable collision for infantry and main vehicles
-            SetCollision(true);
-        }
+        // Enable collision for infantry and main vehicles
+        SetCollision(true);
     }
 }
-
 
 function TurnOffCollision()
 {
@@ -297,128 +215,76 @@ function AddPawnToList(Pawn Other)
     }
 }
 
-//snarf
-function PawnCollisionCopy RemovePawnFromList(Pawn Other, PawnCollisionCopy Head)
-{
-    local PawnCollisionCopy Current, Previous;
-    Current = Head;
-    while(Current != None)
-    {
-        if(Current.CopiedPawn == Other)
-        {
-            if(Previous == None)
-            {
-                Head = Current.Next;
-            }
-            else
-            {
-                Previous.Next = Current.Next;
-            }
-            Current.CopiedPawn=None;
-            Current.LinkMesh(None);
-            Current.Destroy();
-            return Head;
-        }
-
-        Previous = Current;
-        Current = Current.Next;
-    }
-
-    return Head;
-}
-
-//Remove old pawns, returns what Next should be for the caller
-//PawnCollisionCopies
+// Remove old pawns, returns what Next should be for the caller PawnCollisionCopies
 function PawnCollisionCopy RemoveOldPawns()
 {
-    if(CopiedPawn == none)
+    if (CopiedPawn == None)
     {
-        bNormalDestroy=True;
         Destroy();
-        if(Next!=None)
+        if (Next != None)
+        {
             return Next.RemoveOldPawns();
-        return none;
+        }
+        return None;
     }
-    else if(Next!=None)
+    if (Next != None)
+    {
         Next = Next.RemoveOldPawns();
-    return self;
+    }
+    return Self;
 }
 
-/* damage the copied pawn, NOT THIS */
-event TakeDamage(int Damage, Pawn EventInstigator, vector HitLocation, vector Momentum, class<DamageType> DamageType)
+// damage the copied pawn, NOT THIS
+event TakeDamage(int Damage,
+                 Pawn EventInstigator,
+                 vector HitLocation,
+                 vector Momentum,
+                 class<DamageType> DamageType)
 {
+    // TODO: could some code be simplified by redirecting damage to CopiedPawn here?
     Warn("Pawn collision copy should never take damage");
 }
 
-event destroyed()
+event Destroyed()
 {
-//	if(!bNormalDestroy)
-//		Warn("DESTROYED WITHOUT SETTING UP LIST");
-
-	LinkMesh(None);
-	super.Destroyed();
+    LinkMesh(None);
+    Super.Destroyed();
 }
 
 function Identify()
 {
-   if(CopiedPawn==None)
-      Log("PCC: No pawn");
-   else
-   {
-      if(CopiedPawn.PlayerReplicationInfo!=None)
-          Log("PCC: Pawn"@CopiedPawn.PlayerReplicationInfo.PlayerName);
-      else
-          Log("PCC: Unnamed Pawn");
-   }
-}
-
-function tick(float DeltaTime)
-{
-    if(CopiedPawn==None)
-        return;
-
-    AddHistory();
-    RemoveOutdatedHistory();
-}
-
-function AddHistory()
-{
-    local int i;
-    local InterpCurvePoint XPoint,YPoint,ZPoint;
-
-    i=Pawnhistory.Length;
-    PawnHistory.Length=i+1;
-    PawnHistory[i].Location = CopiedPawn.Location;
-    PawnHistory[i].Rotation = CopiedPawn.Rotation;
-    PawnHistory[i].bCrouched = CopiedPawn.bIsCrouched;
-    PawnHistory[i].TimeStamp = Level.TimeSeconds;
-    //PawnHistory[i].Physics = CopiedPawn.Physics;
-
-    XPoint.InVal = Level.TimeSeconds;
-    XPoint.OutVal = CopiedPawn.Location.X;
-    LocCurveX.Points.Insert(LocCurveX.Points.Length,1);
-    LocCurveX.Points[LocCurveX.Points.Length-1]=XPoint;
-
-    YPoint.InVal = Level.TimeSeconds;
-    YPoint.OutVal = CopiedPawn.Location.Y;
-    LocCurveY.Points.Insert(LocCurveY.Points.Length,1);
-    LocCurveY.Points[LocCurveY.Points.Length-1]=YPoint;
-
-    ZPoint.InVal = Level.TimeSeconds;
-    ZPoint.OutVal = CopiedPawn.Location.Z;
-    LocCurveZ.Points.Insert(LocCurveZ.Points.Length,1);
-    LocCurveZ.Points[LocCurveZ.Points.Length-1]=ZPoint;
-}
-
-function RemoveOutdatedHistory()
-{
-    while(PawnHistory.Length > 0 && PawnHistory[0].TimeStamp + MaxHistoryLength < Level.TimeSeconds )
-       PawnHistory.Remove(0,1);
-    while(LocCurveX.Points.Length > 0 &&  LocCurveX.Points[0].InVal + MaxHistoryLength < Level.TimeSeconds)
+    if (CopiedPawn == None)
     {
-        LocCurveX.Points.Remove(0,1);
-        LocCurveY.Points.Remove(0,1);
-        LocCurveZ.Points.Remove(0,1);
+        Log("PCC: No pawn");
+    }
+    else if (CopiedPawn.PlayerReplicationInfo != None)
+    {
+        Log("PCC: Pawn"@CopiedPawn.PlayerReplicationInfo.PlayerName);
+    }
+    else
+    {
+        Log("PCC: Unnamed Pawn");
+    }
+}
+
+function Tick(float DeltaTime)
+{
+    local float OldestTimestamp;
+    local int i;
+
+    if (CopiedPawn != None)
+    {
+        OldestTimestamp = Level.TimeSeconds - MaxDeltaTime;
+        while (Snapshots.Length > 0 && Snapshots[0].Timestamp < OldestTimestamp)
+        {
+            Snapshots.Remove(0, 1);
+        }
+        i = Snapshots.Length;
+        Snapshots.Length = i + 1;
+        Snapshots[i].Timestamp = Level.TimeSeconds;
+        Snapshots[i].Location = CopiedPawn.Location;
+        Snapshots[i].Rotation = CopiedPawn.Rotation;
+        Snapshots[i].bCrouched = CopiedPawn.bIsCrouched;
     }
 }
 
@@ -436,7 +302,6 @@ function UnTimeTravel()
 {
     local PawnCollisionCopy PCC;
 
-    //Now, lets turn off the old hits
     for (PCC = Self; PCC != None; PCC = PCC.Next)
     {
         PCC.TurnOffCollision();
@@ -449,12 +314,45 @@ function vector GetPresentHitLocation(vector HitLocation)
     return HitLocation + CopiedPawn.Location - Location;
 }
 
+final function int FindLowerBound(float Timestamp)
+{
+    local int Result;
+    local int Middle;
+    local int Low;
+    local int High;
+
+    Result = 0;
+    Low = 0;
+    if (Snapshots[Low].Timestamp <= Timestamp)
+    {
+        High = Snapshots.Length - 1;
+        while (Low <= High)
+        {
+            Middle = (Low + High) / 2;
+            if (Snapshots[Middle].Timestamp > Timestamp)
+            {
+                High = Middle - 1;
+            }
+            else
+            {
+                Result = Middle;
+                Low = Middle + 1;
+            }
+        }
+    }
+    return Result;
+}
+
+final function float GetAlpha(float Value, float A, float B)
+{
+    return FClamp((B - Value) / (B - A), 0.0, 1.0);
+}
+
 defaultproperties
 {
-    RemoteRole=ROLE_NONE
-    Physics=PHYS_NONE
-
-    //Dont collide with ANYTHING but the traces if we can avoid it
+    RemoteRole=ROLE_None
+    Physics=PHYS_None
+    // Don't collide with ANYTHING but the traces if we can avoid it
     bCollideActors=false
     bCollideWorld=false
     bBlockActors=false
@@ -467,12 +365,12 @@ defaultproperties
     bCanTeleport=false
     bHidden=true
     bOnlyDirtyReplication=true
-	bSkipActorPropertyReplication=true
-
-    CollisionRadius=25.000000    //Direct copies from xPawn
+    bSkipActorPropertyReplication=true
+    // Direct copies from xPawn
+    CollisionRadius=25.000000
     CollisionHeight=44.000000
-
-    CrouchHeight=29.000000   //Direct copies from xPawn
+    CrouchHeight=29.000000
     CrouchRadius=25.000000
-    MaxHistoryLength=0.35
+
+    MaxDeltaTime=0.35
 }
