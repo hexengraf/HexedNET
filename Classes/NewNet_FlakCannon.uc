@@ -49,6 +49,10 @@ simulated function bool IsEnhancedNetcodeEnabled()
 
 simulated event ClientStartFire(int Mode)
 {
+    local ReplicatedRotator R;
+    local ReplicatedVector V;
+    local vector Start;
+
     if (Level.NetMode != NM_Client
         || !IsEnhancedNetcodeEnabled()
         || Pawn(Owner).Controller.IsInState('GameEnded')
@@ -56,9 +60,35 @@ simulated event ClientStartFire(int Mode)
     {
         Super.ClientStartFire(Mode);
     }
+    else if (Role < ROLE_Authority)
+    {
+        if (AltReadyToFire(Mode) && StartFire(Mode))
+        {
+            if (!ReadyToFire(Mode))
+            {
+                Super.ClientStartFire(Mode);
+                return;
+            }
+            if (NewNet_FlakAltFire(FireMode[Mode]) != None)
+            {
+                NewNet_FlakAltFire(FireMode[Mode]).DoInstantFireEffect();
+            }
+            else if (NewNet_FlakFire(FireMode[Mode]) != None)
+            {
+                NewNet_FlakFire(FireMode[Mode]).DoInstantFireEffect();
+            }
+            R.Pitch = Pawn(Owner).Controller.Rotation.Pitch;
+            R.Yaw = Pawn(Owner).Controller.Rotation.Yaw;
+            Start = Pawn(Owner).Location + Pawn(Owner).EyePosition();
+            V.X = Start.X;
+            V.Y = Start.Y;
+            V.Z = Start.Z;
+            NewNet_ServerStartFire(mode, R, V);
+        }
+    }
     else
     {
-        NewNet_ClientStartFire(Mode);
+        StartFire(Mode);
     }
 }
 
@@ -90,46 +120,6 @@ simulated function PostBeginPlay()
             default.bConfigCleared = true;
         }
         class'HxNTWeapon'.static.ForceBaseClassConfig(Self, class'FlakCannon');
-    }
-}
-
-simulated event NewNet_ClientStartFire(int Mode)
-{
-    local ReplicatedRotator R;
-    local ReplicatedVector V;
-    local vector Start;
-
-    if (!class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
-    {
-        Super.ClientStartFire(Mode);
-    }
-    else if (Role < ROLE_Authority)
-    {
-        if (AltReadyToFire(Mode) && StartFire(Mode) )
-        {
-            if(!ReadyToFire(Mode))
-            {
-                Super.ClientStartFire(Mode);
-                return;
-            }
-            if(NewNet_FlakAltFire(FireMode[Mode])!=None)
-                NewNet_FlakAltFire(FireMode[Mode]).DoInstantFireEffect();
-            else if(NewNet_FlakFire(FireMode[Mode])!=None)
-                NewNet_FlakFire(FireMode[Mode]).DoInstantFireEffect();
-            R.Pitch = Pawn(Owner).Controller.Rotation.Pitch;
-            R.Yaw = Pawn(Owner).Controller.Rotation.Yaw;
-            STart=Pawn(Owner).Location + Pawn(Owner).EyePosition();
-
-            V.X = Start.X;
-            V.Y = Start.Y;
-            V.Z = Start.Z;
-
-            NewNet_ServerStartFire(mode, R, V);
-        }
-    }
-    else
-    {
-        StartFire(Mode);
     }
 }
 

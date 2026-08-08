@@ -250,7 +250,6 @@ simulated function projectile SpawnFakeProjectile(Vector Start, Rotator Dir)
         FindFPM();
 
     if (FPM.AllowFakeProjectile(FakeProjectileClass, NewNet_BioRifle(Weapon).CurIndex)
-        && class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
         && Client.AveragePing >= 0.050)
     {
         p = Spawn(FakeProjectileClass,Weapon.Owner,, Start, Dir);

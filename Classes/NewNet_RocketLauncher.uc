@@ -47,6 +47,11 @@ simulated function bool IsEnhancedNetcodeEnabled()
 
 simulated event ClientStartFire(int Mode)
 {
+    local ReplicatedRotator R;
+    local ReplicatedVector V;
+    local vector Start;
+	local int OtherMode;
+
     if (Level.NetMode != NM_Client
         || !IsEnhancedNetcodeEnabled()
         || Pawn(Owner).Controller.IsInState('GameEnded')
@@ -56,7 +61,59 @@ simulated event ClientStartFire(int Mode)
     }
     else
     {
-        NewNet_ClientStartFire(Mode);
+        if ( RocketMultiFire(FireMode[Mode]) != None )
+        {
+            SetTightSpread(false);
+        }
+        else
+        {
+            if (Mode == 0)
+            {
+                OtherMode = 1;
+            }
+            else
+            {
+                OtherMode = 0;
+            }
+            if (FireMode[OtherMode].bIsFiring || (FireMode[OtherMode].NextFireTime > Level.TimeSeconds))
+            {
+                if (FireMode[OtherMode].Load > 0)
+                {
+                    SetTightSpread(true);
+                }
+                if (bDebugging)
+                {
+                    log("No RL reg fire because other firing "$FireMode[OtherMode].bIsFiring
+                        $" next fire "$(FireMode[OtherMode].NextFireTime - Level.TimeSeconds));
+                }
+                return;
+            }
+        }
+        if (Role < ROLE_Authority)
+        {
+            if (StartFire(Mode))
+            {
+                /*if (NewNet_RocketMultiFire(FireMode[Mode]) != None)
+                {
+                    NewNet_RocketMultiFire(FireMode[Mode]).DoInstantFireEffect();
+                }
+                else */if (NewNet_RocketFire(FireMode[Mode]) != None)
+                {
+                    NewNet_RocketFire(FireMode[Mode]).DoInstantFireEffect();
+                }
+                R.Pitch = Pawn(Owner).Controller.Rotation.Pitch;
+                R.Yaw = Pawn(Owner).Controller.Rotation.Yaw;
+                Start = Pawn(Owner).Location + Pawn(Owner).EyePosition();
+                V.X = Start.X;
+                V.Y = Start.Y;
+                V.Z = Start.Z;
+                NewNet_ServerStartFire(mode, R, V);
+            }
+        }
+        else
+        {
+            StartFire(Mode);
+        }
     }
 }
 
@@ -88,63 +145,6 @@ simulated function PostBeginPlay()
             default.bConfigCleared = true;
         }
         class'HxNTWeapon'.static.ForceBaseClassConfig(Self, class'RocketLauncher');
-    }
-}
-
-simulated event NewNet_ClientStartFire(int Mode)
-{
-    local ReplicatedRotator R;
-    local ReplicatedVector V;
-    local vector Start;
-	local int OtherMode;
-
-    if (!class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
-    {
-        Super.ClientStartFire(Mode);
-        return;
-    }
-	if ( RocketMultiFire(FireMode[Mode]) != None )
-	{
-		SetTightSpread(false);
-	}
-    else
-    {
-		if ( Mode == 0 )
-			OtherMode = 1;
-		else
-			OtherMode = 0;
-
-		if ( FireMode[OtherMode].bIsFiring || (FireMode[OtherMode].NextFireTime > Level.TimeSeconds) )
-		{
-			if ( FireMode[OtherMode].Load > 0 )
-				SetTightSpread(true);
-			if ( bDebugging )
-				log("No RL reg fire because other firing "$FireMode[OtherMode].bIsFiring$" next fire "$(FireMode[OtherMode].NextFireTime - Level.TimeSeconds));
-			return;
-		}
-	}
-    if (Role < ROLE_Authority)
-    {
-        if (StartFire(Mode))
-        {
-         /*   if(NewNet_RocketMultiFire(FireMode[Mode])!=None)
-                NewNet_RocketMultiFire(FireMode[Mode]).DoInstantFireEffect();
-            else*/ if(NewNet_RocketFire(FireMode[Mode])!=None)
-                NewNet_RocketFire(FireMode[Mode]).DoInstantFireEffect();
-            R.Pitch = Pawn(Owner).Controller.Rotation.Pitch;
-            R.Yaw = Pawn(Owner).Controller.Rotation.Yaw;
-            STart=Pawn(Owner).Location + Pawn(Owner).EyePosition();
-
-            V.X = Start.X;
-            V.Y = Start.Y;
-            V.Z = Start.Z;
-
-            NewNet_ServerStartFire(mode, R, V);
-        }
-    }
-    else
-    {
-        StartFire(Mode);
     }
 }
 

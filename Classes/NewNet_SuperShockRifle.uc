@@ -44,16 +44,41 @@ simulated function bool IsEnhancedNetcodeEnabled()
 
 simulated event ClientStartFire(int Mode)
 {
+    local ReplicatedRotator R;
+    local ReplicatedVector V;
+    local vector Start;
+    local Actor A;
+    local vector HN;
+    local vector HL;
+
     if (Level.NetMode != NM_Client
-        || !IsEnhancedNetcodeEnabled()
+        || ShockBeamFire(FireMode[Mode]) == None
         || Pawn(Owner).Controller.IsInState('GameEnded')
-        || Pawn(Owner).Controller.IsInState('RoundEnded'))
+        || Pawn(Owner).Controller.IsInState('RoundEnded')
+        || !IsEnhancedNetcodeEnabled())
     {
         Super.ClientStartFire(Mode);
     }
+    else if (Role < ROLE_Authority)
+    {
+        if (ReadyToFire(Mode) && StartFire(Mode))
+        {
+            R.Pitch = Pawn(Owner).Controller.Rotation.Pitch;
+            R.Yaw = Pawn(Owner).Controller.Rotation.Yaw;
+            Start = Pawn(Owner).Location + Pawn(Owner).EyePosition();
+            V.X = Start.X;
+            V.Y = Start.Y;
+            V.Z = Start.Z;
+            DoInstantFireEffect(Mode);
+            A = Trace(
+                HN, HL, Start + Vector(Pawn(Owner).Controller.Rotation) * 40000.0, Start, true);
+            NewNet_ServerStartFire(
+                Mode, R, V, A != None && (A.IsA('xPawn') || A.IsA('Vehicle')), A);
+        }
+    }
     else
     {
-        NewNet_ClientStartFire(Mode);
+        StartFire(Mode);
     }
 }
 
@@ -72,46 +97,6 @@ function bool ServerShouldStartFire()
         return false;
     }
     return true;
-}
-
-simulated event NewNet_ClientStartFire(int Mode)
-{
-    local ReplicatedRotator R;
-    local ReplicatedVector V;
-    local vector Start;
-    local bool b;
-    local actor A;
-    local vector HN,HL;
-
-    if (ShockBeamFire(FireMode[Mode]) == None
-        || !class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
-    {
-        Super.ClientStartFire(Mode);
-    }
-    else if (Role < ROLE_Authority)
-    {
-        if (ReadyToFire(Mode) && StartFire(Mode))
-        {
-            R.Pitch = Pawn(Owner).Controller.Rotation.Pitch;
-            R.Yaw = Pawn(Owner).Controller.Rotation.Yaw;
-            STart = Pawn(Owner).Location + Pawn(Owner).EyePosition();
-            V.X = Start.X;
-            V.Y = Start.Y;
-            V.Z = Start.Z;
-            DoInstantFireEffect(Mode);
-            A = Trace(
-                HN, HL, Start + Vector(Pawn(Owner).Controller.Rotation) * 40000.0, Start, true);
-            if (A != None && (A.IsA('xPawn') || A.IsA('Vehicle')))
-            {
-                b = true;
-            }
-            NewNet_ServerStartFire(Mode, R, V, b, A);
-        }
-    }
-    else
-    {
-        StartFire(Mode);
-    }
 }
 
 simulated function WeaponTick(float DeltaTime)
