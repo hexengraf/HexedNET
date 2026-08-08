@@ -134,26 +134,6 @@ function vector Extrapolate(out rotator Dir, float dF, bool bTossZ)
         return vector(OldDir)*ProjectileClass.default.speed*dF + 0.5*Square(dF)*Weapon.Owner.PhysicsVolume.Gravity;
 }
 
-function CheckFireEffect()
-{
-    if (Level.NetMode == NM_Client && Instigator.IsLocallyControlled()
-        && class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
-    {
-        if (Client.AveragePing - SLACK > Client.ProjectileCompensationLimit)
-        {
-            OldInstigatorLocation = Instigator.Location;
-            OldInstigatorEyePosition = Instigator.EyePosition();
-            Weapon.GetViewAxes(OldXAxis,OldYAxis,OldZAxis);
-            OldAim=AdjustAim(OldInstigatorLocation+OldInstigatorEyePosition, AimError);
-            SetTimer(Client.AveragePing - SLACK - Client.ProjectileCompensationLimit, false);
-        }
-        else
-        {
-            DoClientFireEffect();
-        }
-    }
-}
-
 function Timer()
 {
    DoTimedClientFireEffect();
@@ -162,9 +142,21 @@ function Timer()
 function PlayFiring()
 {
     Super.PlayFiring();
-    if (Level.NetMode == NM_Client && IsEnhancedNetcodeEnabled())
+    if (Level.NetMode == NM_Client && IsEnhancedNetcodeEnabled()
+        && Instigator.IsLocallyControlled())
     {
-        CheckFireEffect();
+        if (Client.AveragePing - SLACK > Client.ProjectileCompensationLimit)
+        {
+            OldInstigatorLocation = Instigator.Location;
+            OldInstigatorEyePosition = Instigator.EyePosition();
+            Weapon.GetViewAxes(OldXAxis, OldYAxis, OldZAxis);
+            OldAim = AdjustAim(OldInstigatorLocation + OldInstigatorEyePosition, AimError);
+            SetTimer(Client.AveragePing - SLACK - Client.ProjectileCompensationLimit, false);
+        }
+        else
+        {
+            DoClientFireEffect();
+        }
     }
 }
 

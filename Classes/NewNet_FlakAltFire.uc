@@ -42,7 +42,7 @@ function PlayFiring()
             bSkipNextEffect = false;
             Weapon.ClientStopFire(0);
         }
-        else
+        else if (Instigator.IsLocallyControlled())
         {
             CheckFireEffect();
         }
@@ -51,21 +51,17 @@ function PlayFiring()
 
 function CheckFireEffect()
 {
-    if (Level.NetMode == NM_Client && Instigator.IsLocallyControlled()
-        && class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
+    if (Client.AveragePing - SLACK > Client.ProjectileCompensationLimit)
     {
-        if (Client.AveragePing - SLACK > Client.ProjectileCompensationLimit)
-        {
-            OldInstigatorLocation = Instigator.Location;
-            OldInstigatorEyePosition = Instigator.EyePosition();
-            Weapon.GetViewAxes(OldXAxis,OldYAxis,OldZAxis);
-            OldAim=AdjustAim(OldInstigatorLocation+OldInstigatorEyePosition, AimError);
-            SetTimer(Client.AveragePing - SLACK - Client.ProjectileCompensationLimit, false);
-        }
-        else
-        {
-            DoClientFireEffect();
-        }
+        OldInstigatorLocation = Instigator.Location;
+        OldInstigatorEyePosition = Instigator.EyePosition();
+        Weapon.GetViewAxes(OldXAxis, OldYAxis, OldZAxis);
+        OldAim = AdjustAim(OldInstigatorLocation + OldInstigatorEyePosition, AimError);
+        SetTimer(Client.AveragePing - SLACK - Client.ProjectileCompensationLimit, false);
+    }
+    else
+    {
+        DoClientFireEffect();
     }
 }
 
@@ -142,13 +138,12 @@ function DoClientFireEffect()
 
 function DoInstantFireEffect()
 {
-/*   if(Level.NetMode == NM_Client && Instigator.IsLocallyControlled())
-   {
-       DoClientFireEffect();
-       bSkipNextEffect=true;
-   }    */
-   CheckFireEffect();
-   bSkipNextEffect=true;
+    if (Level.NetMode == NM_Client && Instigator.IsLocallyControlled()
+        && class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
+    {
+        CheckFireEffect();
+        bSkipNextEffect = true;
+    }
 }
 
 function projectile SpawnProjectile(Vector Start, Rotator Dir)

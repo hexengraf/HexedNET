@@ -44,19 +44,11 @@ function PlayFiring()
             bSkipNextEffect = false;
             Weapon.ClientStopFire(bSkipNextEffectMode);
         }
-        else
+        else if (Instigator.IsLocallyControlled())
         {
-            CheckFireEffect();
+            DoFireEffect();
         }
     }
-}
-
-function CheckFireEffect()
-{
-   if (Level.NetMode == NM_Client && Instigator.IsLocallyControlled())
-   {
-       DoFireEffect();
-   }
 }
 
 function DoInstantFireEffect(int Mode)
@@ -71,37 +63,15 @@ function DoInstantFireEffect(int Mode)
 
 function DoFireEffect()
 {
-    local vector StartTrace;
-    local rotator R;
-    local rotator Aim;
-
-    if (!IsEnhancedNetcodeEnabled())
+    if (!bUseReplicatedInfo || !IsEnhancedNetcodeEnabled())
     {
         Super.DoFireEffect();
-        return;
-    }
-
-    Instigator.MakeNoise(1.0);
-    if (bUseReplicatedInfo)
-    {
-        StartTrace=SavedVec;
-        R=SavedRot;
-        bUseReplicatedInfo=false;
-	}
-    else
-    {
-        // the to-hit trace always starts right in front of the eye
-        StartTrace = Instigator.Location + Instigator.EyePosition();
-        Aim = AdjustAim(StartTrace, AimError);
-	    R = rotator(vector(Aim) + VRand() * FRand() * Spread);
-    }
-    if (Level.NetMode == NM_Client)
-    {
-        DoClientTrace(StartTrace, R);
     }
     else
     {
-        DoTrace(StartTrace, R);
+        Instigator.MakeNoise(1.0);
+        bUseReplicatedInfo = false;
+        DoTrace(SavedVec, SavedRot);
     }
 }
 
@@ -117,16 +87,21 @@ function SpawnBeamEffect(vector Start,
     {
         if (Weapon != None)
         {
-            Beam = NewNet_SpawnBeamEffect(Start, Dir);
-            if (Beam != None)
+            if (Instigator.PlayerReplicationInfo.Team != None
+                && Instigator.PlayerReplicationInfo.Team.TeamIndex == 1)
             {
-                if (ReflectNum != 0)
-                {
-                    // prevents client side repositioning of beam start
-                    Beam.Instigator = None;
-                }
-                Beam.AimAt(HitLocation, HitNormal);
+                Beam = Weapon.Spawn(class'NewNet_BlueSuperShockBeam', Weapon.Owner,, Start, Dir);
             }
+            else
+            {
+                Beam = Weapon.Spawn(class'NewNet_SuperShockBeamEffect', Weapon.Owner,, Start, Dir);
+            }
+            if (ReflectNum != 0)
+            {
+                // prevents client side repositioning of beam start
+                Beam.Instigator = None;
+            }
+            Beam.AimAt(HitLocation, HitNormal);
         }
     }
     else
@@ -140,36 +115,22 @@ function TracePart(Vector Start, Vector End, Vector X, Rotator Dir, Pawn Ignored
     if (Level.NetMode == NM_Client || !IsEnhancedNetcodeEnabled())
     {
         Super.TracePart(Start, End, X, Dir, Ignored);
-        return;
     }
-    class'HxNTWeapon'.static.SSRTrace(
-        HexedNET,
-        Self,
-        Start,
-        End,
-        X,
-        Dir,
-        Ignored,
-        Client.AveragePing,
-        FirstGo,
-        bBelievesHit,
-        BelievedHitActor);
-}
-
-function DoClientTrace(Vector Start, Rotator Dir)
-{
-    class'HxNTWeapon'.static.SSRTraceClient(
-        Self, Start, Start + vector(Dir) * TraceRange, Dir, Instigator);
-}
-
-function ShockBeamEffect NewNet_SpawnBeamEffect(Vector Start, Rotator Dir)
-{
-    if (Instigator.PlayerReplicationInfo.Team != None
-        && Instigator.PlayerReplicationInfo.Team.TeamIndex == 1)
+    else
     {
-        return Weapon.Spawn(class'NewNet_BlueSuperShockBeam', Weapon.Owner,, Start, Dir);
+        class'HxNTWeapon'.static.SSRTrace(
+            HexedNET,
+            Self,
+            Start,
+            End,
+            X,
+            Dir,
+            Ignored,
+            Client.AveragePing,
+            FirstGo,
+            bBelievesHit,
+            BelievedHitActor);
     }
-    return Weapon.Spawn(class'NewNet_SuperShockBeamEffect', Weapon.Owner,, Start, Dir);
 }
 
 function bool AllowMultiHit()

@@ -27,16 +27,11 @@ function bool IsEnhancedNetcodeEnabled()
 function PlayFiring()
 {
     Super.PlayFiring();
-    if (Level.NetMode == NM_Client && IsEnhancedNetcodeEnabled())
+    if (Level.NetMode == NM_Client && IsEnhancedNetcodeEnabled()
+        && Instigator.IsLocallyControlled())
     {
-        CheckFireEffect();
-    }
-}
-
-simulated function CheckFireEffect()
-{
-   if(Level.NetMode == NM_Client && Instigator.IsLocallyControlled())
         DoClientFireEffect();
+    }
 }
 
 simulated function DoClientFireEffect()
@@ -118,6 +113,6 @@ simulated function FindFPM()
 
 defaultproperties
 {
-     FakeProjectileClass=Class'NewNet_Fake_ShockProjectile'
-     ProjectileClass=Class'NewNet_ShockProjectile'
+    FakeProjectileClass=Class'NewNet_Fake_ShockProjectile'
+    ProjectileClass=Class'NewNet_ShockProjectile'
 }

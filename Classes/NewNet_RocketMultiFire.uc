@@ -34,21 +34,13 @@ function bool IsEnhancedNetcodeEnabled()
 
 function PlayFiring()
 {
+    local float Ping;
+
     Super.PlayFiring();
-    if (Level.NetMode == NM_Client && IsEnhancedNetcodeEnabled())
+    if (Level.NetMode == NM_Client && IsEnhancedNetcodeEnabled()
+        && Instigator.IsLocallyControlled())
     {
-        CheckFireEffect();
-    }
-}
-
-simulated function CheckFireEffect()
-{
-   local float Ping;
-
-   if(Level.NetMode == NM_Client && Instigator.IsLocallyControlled() && ValidateClient())
-   {
         Ping = Client.AveragePing - 0.5 * class'HxNTClock'.default.AverDT;
-
         if (Ping <= Client.ProjectileCompensationLimit)
         {
             DoClientFireEffect();
@@ -57,12 +49,12 @@ simulated function CheckFireEffect()
         {
             OldInstigatorLocation = Instigator.Location;
             OldInstigatorEyePosition = Instigator.EyePosition();
-            Weapon.GetViewAxes(OldXAxis,OldYAxis,OldZAxis);
-            OldAim=AdjustAim(OldInstigatorLocation+OldInstigatorEyePosition, AimError);
-            OldLoad=Load;
+            Weapon.GetViewAxes(OldXAxis, OldYAxis, OldZAxis);
+            OldAim = AdjustAim(OldInstigatorLocation + OldInstigatorEyePosition, AimError);
+            OldLoad = Load;
             SetAltTimer(Ping - Client.ProjectileCompensationLimit, false);
         }
-   }
+    }
 }
 
 simulated function FindFPM()

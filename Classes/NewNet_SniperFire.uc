@@ -35,9 +35,9 @@ function PlayFiring()
             bSkipNextEffect = false;
             Weapon.ClientStopFire(0);
         }
-        else
+        else if (Instigator.IsLocallyControlled())
         {
-            CheckFireEffect();
+            DoFireEffect();
         }
     }
 }
@@ -149,15 +149,6 @@ function DoClientTrace(Vector Start, Rotator Dir)
     }
 }
 
-
-function CheckFireEffect()
-{
-   if(Level.NetMode == NM_Client && Instigator.IsLocallyControlled())
-   {
-       DoFireEffect();
-   }
-}
-
 function DoInstantFireEffect()
 {
    if(Level.NetMode == NM_Client && Instigator.IsLocallyControlled())
@@ -166,7 +157,6 @@ function DoInstantFireEffect()
        bSkipNextEffect=true;
    }
 }
-
 
 function DoFireEffect()
 {

@@ -46,7 +46,7 @@ function PlayFiring()
             bSkipNextEffect = false;
             Weapon.ClientStopFire(0);
         }
-        else
+        else if (Instigator.IsLocallyControlled())
         {
             CheckFireEffect();
         }
@@ -55,19 +55,18 @@ function PlayFiring()
 
 function CheckFireEffect()
 {
-   if(Level.NetMode == NM_Client && Instigator.IsLocallyControlled() && ValidateClient())
-   {
-       if (Client.AveragePing - SLACK > Client.ProjectileCompensationLimit)
-       {
-           OldInstigatorLocation = Instigator.Location;
-           OldInstigatorEyePosition = Instigator.EyePosition();
-           Weapon.GetViewAxes(OldXAxis,OldYAxis,OldZAxis);
-           OldAim=AdjustAim(OldInstigatorLocation+OldInstigatorEyePosition, AimError);
-           SetTimer(Client.AveragePing - SLACK - Client.ProjectileCompensationLimit, false);
-       }
-       else
-           DoClientFireEffect();
-   }
+    if (Client.AveragePing - SLACK > Client.ProjectileCompensationLimit)
+    {
+        OldInstigatorLocation = Instigator.Location;
+        OldInstigatorEyePosition = Instigator.EyePosition();
+        Weapon.GetViewAxes(OldXAxis, OldYAxis, OldZAxis);
+        OldAim = AdjustAim(OldInstigatorLocation + OldInstigatorEyePosition, AimError);
+        SetTimer(Client.AveragePing - SLACK - Client.ProjectileCompensationLimit, false);
+    }
+    else
+    {
+        DoClientFireEffect();
+    }
 }
 
 function Timer()
@@ -77,8 +76,11 @@ function Timer()
 
 function DoInstantFireEffect()
 {
-   CheckFireEffect();
-   bSkipNextEffect=true;
+    if (Level.NetMode == NM_Client && Instigator.IsLocallyControlled() && ValidateClient())
+    {
+        CheckFireEffect();
+        bSkipNextEffect = true;
+    }
 }
 
 simulated function DoTimedClientFireEffect()

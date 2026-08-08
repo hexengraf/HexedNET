@@ -134,34 +134,43 @@ static function SSRTrace(MutHexedNET HexedNET,
     local Vector HitNormal;
     local vector PresentHitLocation;
 
-    HexedNET.TimeTravel(AveragePing);
-    if (FirstGo == 1)
+    if (HexedNET != None)
     {
-        Other = HexedNET.CompensatedTrace2(
-            AveragePing,
-            WF.Weapon,
-            PresentHitLocation,
-            HitLocation,
-            HitNormal,
-            End,
-            Start,
-            bBelievesHit,
-            BelievedHitActor);
-        FirstGo = 0;
+        HexedNET.TimeTravel(AveragePing);
+        if (FirstGo == 1)
+        {
+            Other = HexedNET.CompensatedTrace2(
+                AveragePing,
+                WF.Weapon,
+                PresentHitLocation,
+                HitLocation,
+                HitNormal,
+                End,
+                Start,
+                bBelievesHit,
+                BelievedHitActor);
+            FirstGo = 0;
+        }
+        else
+        {
+            Other = HexedNET.CompensatedTrace(
+                AveragePing, WF.Weapon, PresentHitLocation, HitLocation, HitNormal, End, Start);
+        }
+        HexedNET.UnTimeTravel();
     }
     else
     {
-        Other = HexedNET.CompensatedTrace(
-            AveragePing, WF.Weapon, PresentHitLocation, HitLocation, HitNormal, End, Start);
+        Other = Ignored.Trace(HitLocation, HitNormal, End, Start, true);
     }
-    HexedNET.UnTimeTravel();
-
     if (Other != None && Other != Ignored)
     {
         if (!Other.bWorldGeometry)
         {
-            Other.TakeDamage(
-                WF.DamageMax, WF.Instigator, PresentHitLocation, WF.Momentum * X, WF.DamageType);
+            if (Other.Level.NetMode != NM_Client)
+            {
+                Other.TakeDamage(
+                    WF.DamageMax, WF.Instigator, PresentHitLocation, WF.Momentum * X, WF.DamageType);
+            }
             HitNormal = vect(0,0,0);
             if (Pawn(Other) != None && HitLocation != Start && WF.AllowMultiHit())
             {
@@ -188,32 +197,6 @@ static function SSRTrace(MutHexedNET HexedNET,
     WF.SpawnBeamEffect(Start, Dir, HitLocation, HitNormal, 0);
 }
 
-static function SSRTraceClient(SuperShockBeamFire WF,
-                               Vector Start,
-                               Vector End,
-                               Rotator Dir,
-                               Pawn Ignored)
+defaultproperties
 {
-    local Vector HitLocation, HitNormal;
-    local Actor Other;
-
-    Other = Ignored.Trace(HitLocation, HitNormal, End, Start, true);
-
-    if (Other != None && Other != Ignored)
-    {
-        if (!Other.bWorldGeometry)
-        {
-            HitNormal = Vect(0,0,0);
-            if (Pawn(Other) != None && HitLocation != Start && WF.AllowMultiHit())
-            {
-                SSRTraceClient(WF, HitLocation, End, Dir, Pawn(Other));
-            }
-        }
-    }
-    else
-    {
-        HitLocation = End;
-        HitNormal = Vect(0,0,0);
-    }
-    WF.SpawnBeamEffect(Start, Dir, HitLocation, HitNormal, 0);
 }
