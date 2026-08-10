@@ -181,8 +181,7 @@ function Actor CompensatedTrace2(float Delta,
                                  out vector HitNormal,
                                  vector End,
                                  vector Start,
-                                 bool bBelievesHit,
-                                 Actor BelievedHitActor)
+                                 Actor Injured)
 {
     local Actor Other;
     local Actor AltOther;
@@ -193,33 +192,36 @@ function Actor CompensatedTrace2(float Delta,
 
     Other = CompensatedTrace(Delta, Weapon, PresentHitLocation, HitLocation, HitNormal, End, Start);
     f = 0.02;
-    if (bBelievesHit && Other != BelievedHitActor)
+    if (Injured != None)
     {
-        while (Abs(f) < 0.04 + (2.0 * NETClock.AverDT))
+        if (Other != Injured)
         {
-            TimeTravel(Delta - f);
-            AltOther = CompensatedTrace(
-                Delta - f, Weapon, AltPresentHitLocation, AltHitLocation, AltHitNormal, End, Start);
-            if (AltOther == BelievedHitACtor)
+            while (Abs(f) < 0.04 + (2.0 * NETClock.AverDT))
             {
-                // Log("Fixed At"@f@"with max"@(0.04 + 2.0*NETClock.AverDT));
-                Other = AltOther;
-                PresentHitLocation = AltPresentHitLocation;
-                HitLocation = AltHitLocation;
-                f = 10.0;
+                TimeTravel(Delta - f);
+                AltOther = CompensatedTrace(
+                    Delta - f, Weapon, AltPresentHitLocation, AltHitLocation, AltHitNormal, End, Start);
+                if (AltOther == Injured)
+                {
+                    // Log("Fixed At"@f@"with max"@(0.04 + 2.0*NETClock.AverDT));
+                    Other = AltOther;
+                    PresentHitLocation = AltPresentHitLocation;
+                    HitLocation = AltHitLocation;
+                    f = 10.0;
+                }
+                if (f > 0.00)
+                {
+                    f = -1.0 * f;
+                }
+                else
+                {
+                    f = -1.0 * f + 0.02;
+                }
             }
-            if (f > 0.00)
-            {
-                f = -1.0 * f;
-            }
-            else
-            {
-                f = -1.0 * f + 0.02;
-            }
+            // if (abs(f) < 9.0) log("Failed to fix");
         }
-        // if (abs(f) < 9.0) log("Failed to fix");
     }
-    else if (!bBelievesHit && Other != None && (Other.IsA('xPawn') || Other.IsA('Vehicle')))
+    else if (Other != None && (Other.IsA('xPawn') || Other.IsA('Vehicle')))
     {
         while (Abs(f) < 0.04 + (2.0 * NETClock.AverDT))
         {

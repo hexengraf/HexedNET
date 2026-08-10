@@ -6,8 +6,7 @@ var bool bUseReplicatedInfo;
 var rotator SavedRot;
 var vector SavedVec;
 
-var bool bBelievesHit;
-var Actor BelievedHitActor;
+var Actor Injured;
 var byte FirstGo;
 
 var private MutHexedNET HexedNET;
@@ -122,8 +121,7 @@ function TracePart(Vector Start, Vector End, Vector X, Rotator Dir, Pawn Ignored
             Ignored,
             Client.AveragePing,
             FirstGo,
-            bBelievesHit,
-            BelievedHitActor);
+            Injured);
     }
 }
 

@@ -4,8 +4,7 @@ var bool bUseReplicatedInfo;
 var rotator SavedRot;
 var vector SavedVec;
 
-var bool bBelievesHit;
-var Actor BelievedHitActor;
+var Actor Injured;
 var bool bFirstGo;
 
 var private MutHexedNET HexedNET;
@@ -128,8 +127,7 @@ function DoTrace(vector Start, rotator Dir)
                     HitNormal,
                     End,
                     Start,
-                    bBelievesHit,
-                    BelievedHitActor);
+                    Injured);
                 bFirstGo = false;
             }
             else

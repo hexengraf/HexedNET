@@ -63,7 +63,7 @@ simulated event ClientStartFire(int Mode)
     local ReplicatedRotator R;
     local ReplicatedVector V;
     local vector Start;
-    local Actor A;
+    local Actor Injured;
     local vector HN;
     local vector HL;
 
@@ -93,10 +93,13 @@ simulated event ClientStartFire(int Mode)
             SniperFire.SavedRot.Pitch = R.Pitch;
             SniperFire.bUseReplicatedInfo = true;
             SniperFire.EnqueueStopFire();
-            A = Trace(
+            Injured = Trace(
                 HN, HL, Start + Vector(Pawn(Owner).Controller.Rotation) * 40000.0, Start, true);
-            NewNet_ServerStartFire(
-                Mode, R, V, A != None && (A.IsA('xPawn') || A.IsA('Vehicle')), A);
+            if (Injured != None && !Injured.IsA('xPawn') && !Injured.IsA('Vehicle'))
+            {
+                Injured = None;
+            }
+            NewNet_ServerStartFire(Mode, R, V, Injured);
         }
     }
     else
@@ -115,7 +118,7 @@ simulated function SpawnLGEffect(class<Actor> tmpHitEmitClass, vector ArcEnd, ve
         Warn("Server should never spawn the client lightningbolt");
 }
 
-function NewNet_ServerStartFire(byte Mode, ReplicatedRotator R, ReplicatedVector V, bool bBelievesHit, optional Actor A)
+function NewNet_ServerStartFire(byte Mode, ReplicatedRotator R, ReplicatedVector V, Actor Injured)
 {
     local NewNet_SniperFire SniperFire;
 
@@ -132,11 +135,7 @@ function NewNet_ServerStartFire(byte Mode, ReplicatedRotator R, ReplicatedVector
         return;
     }
     SniperFire = NewNet_SniperFire(FireMode[Mode]);
-    if (bBelievesHit)
-    {
-        SniperFire.BelievedHitActor = A;
-    }
-    SniperFire.bBelievesHit = bBelievesHit;
+    SniperFire.Injured = Injured;
     SniperFire.bFirstGo = true;
     SniperFire.SavedVec.X = V.X;
     SniperFire.SavedVec.Y = V.Y;

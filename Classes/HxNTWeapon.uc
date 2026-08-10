@@ -126,8 +126,7 @@ static function SSRTrace(MutHexedNET HexedNET,
                          Pawn Ignored,
                          float AveragePing,
                          out byte FirstGo,
-                         bool bBelievesHit,
-                         Actor BelievedHitActor)
+                         Actor Injured)
 {
     local Actor Other;
     local Vector HitLocation;
@@ -147,8 +146,7 @@ static function SSRTrace(MutHexedNET HexedNET,
                 HitNormal,
                 End,
                 Start,
-                bBelievesHit,
-                BelievedHitActor);
+                Injured);
             FirstGo = 0;
         }
         else
@@ -184,8 +182,7 @@ static function SSRTrace(MutHexedNET HexedNET,
                     Pawn(Other),
                     AveragePing,
                     FirstGo,
-                    bBelievesHit,
-                    BelievedHitActor);
+                    Injured);
             }
         }
     }

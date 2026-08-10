@@ -61,7 +61,7 @@ simulated event ClientStartFire(int Mode)
     local ReplicatedRotator R;
     local ReplicatedVector V;
     local vector Start;
-    local Actor A;
+    local Actor Injured;
     local vector HN;
     local vector HL;
 
@@ -91,10 +91,13 @@ simulated event ClientStartFire(int Mode)
             ShockBeamFire.SavedRot.Pitch = R.Pitch;
             ShockBeamFire.bUseReplicatedInfo = true;
             ShockBeamFire.EnqueueStopFire(Mode);
-            A = Trace(
+            Injured = Trace(
                 HN, HL, Start + Vector(Pawn(Owner).Controller.Rotation) * 40000.0, Start, true);
-            NewNet_ServerStartFire(
-                Mode, R, V, A != None && (A.IsA('xPawn') || A.IsA('Vehicle')), A);
+            if (Injured != None && !Injured.IsA('xPawn') && !Injured.IsA('Vehicle'))
+            {
+                Injured = None;
+            }
+            NewNet_ServerStartFire(Mode, R, V, Injured);
         }
     }
     else
@@ -103,7 +106,7 @@ simulated event ClientStartFire(int Mode)
     }
 }
 
-function NewNet_ServerStartFire(byte Mode, ReplicatedRotator R, ReplicatedVector V, bool bBelievesHit, Actor A)
+function NewNet_ServerStartFire(byte Mode, ReplicatedRotator R, ReplicatedVector V, Actor Injured)
 {
     local NewNet_SuperShockBeamFire ShockBeamFire;
 
@@ -120,11 +123,7 @@ function NewNet_ServerStartFire(byte Mode, ReplicatedRotator R, ReplicatedVector
         return;
     }
     ShockBeamFire = NewNet_SuperShockBeamFire(FireMode[Mode]);
-    if (bBelievesHit)
-    {
-        ShockBeamFire.BelievedHitActor = A;
-    }
-    ShockBeamFire.bBelievesHit = bBelievesHit;
+    ShockBeamFire.Injured = Injured;
     ShockBeamFire.FirstGo = 1;
     ShockBeamFire.SavedVec.X = V.X;
     ShockBeamFire.SavedVec.Y = V.Y;
