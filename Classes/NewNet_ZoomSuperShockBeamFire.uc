@@ -6,14 +6,14 @@ var bool bUseReplicatedInfo;
 var rotator SavedRot;
 var vector SavedVec;
 
-var bool bSkipNextEffect;
-var int bSkipNextEffectMode;
 var bool bBelievesHit;
 var Actor BelievedHitActor;
 var byte FirstGo;
 
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
+var private bool bStopFire;
+var private int StopFireMode;
 
 function PreBeginPlay()
 {
@@ -37,28 +37,22 @@ function bool IsEnhancedNetcodeEnabled()
 function PlayFiring()
 {
     Super.PlayFiring();
-    if (Level.NetMode == NM_Client && IsEnhancedNetcodeEnabled())
+    if (Level.NetMode == NM_Client && IsEnhancedNetcodeEnabled()
+        && Instigator.IsLocallyControlled())
     {
-        if (bSkipNextEffect)
+        DoFireEffect();
+        if (bStopFire)
         {
-            bSkipNextEffect = false;
-            Weapon.ClientStopFire(bSkipNextEffectMode);
-        }
-        else if (Instigator.IsLocallyControlled())
-        {
-            DoFireEffect();
+            bStopFire = false;
+            Weapon.ClientStopFire(StopFireMode);
         }
     }
 }
 
-function DoInstantFireEffect(int Mode)
+function EnqueueStopFire(int Mode)
 {
-   if (Level.NetMode == NM_Client && Instigator.IsLocallyControlled())
-   {
-       DoFireEffect();
-       bSkipNextEffectMode = Mode;
-       bSkipNextEffect = true;
-   }
+    StopFireMode = Mode;
+    bStopFire = true;
 }
 
 function DoFireEffect()

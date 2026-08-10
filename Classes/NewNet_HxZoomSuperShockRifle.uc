@@ -4,7 +4,6 @@ class NewNet_HxZoomSuperShockRifle extends HxZoomSuperShockRifle
 
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
-var float LastDT;
 
 struct ReplicatedRotator
 {
@@ -25,23 +24,18 @@ replication
         NewNet_ServerStartFire;
 }
 
-simulated event PreBeginPlay()
+simulated event PostBeginPlay()
 {
-    Super.PreBeginPlay();
+    Super.PostBeginPlay();
     if (Level.NetMode != NM_Client)
     {
         foreach DynamicActors(class'MutHexedNET', HexedNET) break;
     }
-    class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
-}
-
-simulated event PostBeginPlay()
-{
-    Super.PostBeginPlay();
     if (Level.NetMode != NM_DedicatedServer)
     {
         RefreshConfiguration();
     }
+    class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
 }
 
 simulated function bool IsEnhancedNetcodeEnabled()
@@ -52,6 +46,7 @@ simulated function bool IsEnhancedNetcodeEnabled()
 
 simulated event ClientStartFire(int Mode)
 {
+    local NewNet_ZoomSuperShockBeamFire ShockBeamFire;
     local ReplicatedRotator R;
     local ReplicatedVector V;
     local vector Start;
@@ -69,7 +64,7 @@ simulated event ClientStartFire(int Mode)
     }
     else if (Role < ROLE_Authority)
     {
-        if (ReadyToFire(Mode) && StartFire(Mode))
+        if (StartFire(Mode))
         {
             R.Pitch = Pawn(Owner).Controller.Rotation.Pitch;
             R.Yaw = Pawn(Owner).Controller.Rotation.Yaw;
@@ -77,7 +72,14 @@ simulated event ClientStartFire(int Mode)
             V.X = Start.X;
             V.Y = Start.Y;
             V.Z = Start.Z;
-            DoInstantFireEffect(Mode);
+            ShockBeamFire = NewNet_ZoomSuperShockBeamFire(FireMode[Mode]);
+            ShockBeamFire.SavedVec.X = V.X;
+            ShockBeamFire.SavedVec.Y = V.Y;
+            ShockBeamFire.SavedVec.Z = V.Z;
+            ShockBeamFire.SavedRot.Yaw = R.Yaw;
+            ShockBeamFire.SavedRot.Pitch = R.Pitch;
+            ShockBeamFire.bUseReplicatedInfo = true;
+            ShockBeamFire.EnqueueStopFire(Mode);
             A = Trace(
                 HN, HL, Start + Vector(Pawn(Owner).Controller.Rotation) * 40000.0, Start, true);
             NewNet_ServerStartFire(
@@ -90,8 +92,10 @@ simulated event ClientStartFire(int Mode)
     }
 }
 
-function bool ServerShouldStartFire()
+function NewNet_ServerStartFire(byte Mode, ReplicatedRotator R, ReplicatedVector V, bool bBelievesHit, Actor A)
 {
+    local NewNet_ZoomSuperShockBeamFire ShockBeamFire;
+
     if (Instigator != None && Instigator.Weapon != Self)
     {
         if (Instigator.Weapon == None)
@@ -102,82 +106,26 @@ function bool ServerShouldStartFire()
         {
             Instigator.Weapon.SynchronizeWeapon(Self);
         }
-        return false;
-    }
-    return true;
-}
-
-simulated function WeaponTick(float DeltaTime)
-{
-   lastDT = DeltaTime;
-   Super.WeaponTick(DeltaTime);
-}
-
-//// client & server ////
-simulated function bool StartFire(int Mode)
-{
-    local int Alt;
-
-    if (bWaitForCombo && Bot(Instigator.Controller) != None)
-    {
-        if (ComboTarget != None && !ComboTarget.bDeleteMe)
-        {
-            return false;
-        }
-        bWaitForCombo = false;
-    }
-    if (!ReadyToFire(Mode))
-    {
-        return false;
-    }
-    Alt = 1 - Mode;
-    FireMode[Mode].bIsFiring = true;
-    FireMode[Mode].NextFireTime = Level.TimeSeconds-LastDT * 0.5 + FireMode[Mode].PreFireTime;
-    if (FireMode[Alt].bModeExclusive)
-    {
-        // prevents rapidly alternating fire modes
-        FireMode[Mode].NextFireTime = FMax(FireMode[Mode].NextFireTime, FireMode[Alt].NextFireTime);
-    }
-    if (Instigator.IsLocallyControlled())
-    {
-        if (FireMode[Mode].PreFireTime > 0.0 || FireMode[Mode].bFireOnRelease)
-        {
-            FireMode[Mode].PlayPreFire();
-        }
-        FireMode[Mode].FireCount = 0;
-    }
-    return true;
-}
-
-simulated function DoInstantFireEffect(int Mode)
-{
-    NewNet_ZoomSuperShockBeamFire(FireMode[Mode]).DoInstantFireEffect(Mode);
-}
-
-function NewNet_ServerStartFire(byte Mode, ReplicatedRotator R, ReplicatedVector V, bool bBelievesHit, actor A)
-{
-    if (!ServerShouldStartFire())
-    {
         return;
     }
+    ShockBeamFire = NewNet_ZoomSuperShockBeamFire(FireMode[Mode]);
     if (bBelievesHit)
     {
-        NewNet_ZoomSuperShockBeamFire(FireMode[Mode]).BelievedHitActor = A;
+        ShockBeamFire.BelievedHitActor = A;
     }
-    NewNet_ZoomSuperShockBeamFire(FireMode[Mode]).bBelievesHit = bBelievesHit;
-    NewNet_ZoomSuperShockBeamFire(FireMode[Mode]).FirstGo = 1;
+    ShockBeamFire.bBelievesHit = bBelievesHit;
+    ShockBeamFire.FirstGo = 1;
+    ShockBeamFire.SavedVec.X = V.X;
+    ShockBeamFire.SavedVec.Y = V.Y;
+    ShockBeamFire.SavedVec.Z = V.Z;
+    ShockBeamFire.SavedRot.Yaw = R.Yaw;
+    ShockBeamFire.SavedRot.Pitch = R.Pitch;
+    ShockBeamFire.bUseReplicatedInfo = HexedNET.IsReasonable(Self, ShockBeamFire.SavedVec);
     if (FireMode[Mode].NextFireTime <= Level.TimeSeconds + FireMode[Mode].PreFireTime
         && StartFire(Mode))
     {
         FireMode[Mode].ServerStartFireTime = Level.TimeSeconds;
         FireMode[Mode].bServerDelayStartFire = false;
-        NewNet_ZoomSuperShockBeamFire(FireMode[Mode]).SavedVec.X = V.X;
-        NewNet_ZoomSuperShockBeamFire(FireMode[Mode]).SavedVec.Y = V.Y;
-        NewNet_ZoomSuperShockBeamFire(FireMode[Mode]).SavedVec.Z = V.Z;
-        NewNet_ZoomSuperShockBeamFire(FireMode[Mode]).SavedRot.Yaw = R.Yaw;
-        NewNet_ZoomSuperShockBeamFire(FireMode[Mode]).SavedRot.Pitch = R.Pitch;
-        NewNet_ZoomSuperShockBeamFire(FireMode[Mode]).bUseReplicatedInfo =
-            HexedNET.IsReasonable(Self, NewNet_ZoomSuperShockBeamFire(FireMode[Mode]).SavedVec);
     }
     else if (FireMode[Mode].AllowFire())
     {

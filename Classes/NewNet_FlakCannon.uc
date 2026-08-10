@@ -34,6 +34,20 @@ replication
 simulated event PreBeginPlay()
 {
     Super.PreBeginPlay();
+    if (Level.NetMode != NM_DedicatedServer)
+    {
+        if (!default.bConfigCleared)
+        {
+            ClearConfig();
+            default.bConfigCleared = true;
+        }
+        class'HxNTWeapon'.static.ForceBaseClassConfig(Self, class'FlakCannon');
+    }
+}
+
+simulated function PostBeginPlay()
+{
+    Super.PostBeginPlay();
     if (Level.NetMode != NM_Client)
     {
         foreach DynamicActors(class'MutHexedNET', HexedNET) break;
@@ -49,6 +63,8 @@ simulated function bool IsEnhancedNetcodeEnabled()
 
 simulated event ClientStartFire(int Mode)
 {
+    local NewNet_FlakFire FlakFire;
+    local NewNet_FlakAltFire FlakAltFire;
     local ReplicatedRotator R;
     local ReplicatedVector V;
     local vector Start;
@@ -62,27 +78,34 @@ simulated event ClientStartFire(int Mode)
     }
     else if (Role < ROLE_Authority)
     {
-        if (AltReadyToFire(Mode) && StartFire(Mode))
+        if (StartFire(Mode))
         {
-            if (!ReadyToFire(Mode))
-            {
-                Super.ClientStartFire(Mode);
-                return;
-            }
-            if (NewNet_FlakAltFire(FireMode[Mode]) != None)
-            {
-                NewNet_FlakAltFire(FireMode[Mode]).DoInstantFireEffect();
-            }
-            else if (NewNet_FlakFire(FireMode[Mode]) != None)
-            {
-                NewNet_FlakFire(FireMode[Mode]).DoInstantFireEffect();
-            }
             R.Pitch = Pawn(Owner).Controller.Rotation.Pitch;
             R.Yaw = Pawn(Owner).Controller.Rotation.Yaw;
             Start = Pawn(Owner).Location + Pawn(Owner).EyePosition();
             V.X = Start.X;
             V.Y = Start.Y;
             V.Z = Start.Z;
+            FlakFire = NewNet_FlakFire(FireMode[Mode]);
+            FlakAltFire = NewNet_FlakAltFire(FireMode[Mode]);
+            if (FlakFire != None)
+            {
+                FlakFire.SavedVec.X = V.X;
+                FlakFire.SavedVec.Y = V.Y;
+                FlakFire.SavedVec.Z = V.Z;
+                FlakFire.SavedRot.Yaw = R.Yaw;
+                FlakFire.SavedRot.Pitch = R.Pitch;
+                FlakFire.EnqueueStopFire();
+            }
+            else if (FlakAltFire != None)
+            {
+                FlakAltFire.SavedVec.X = V.X;
+                FlakAltFire.SavedVec.Y = V.Y;
+                FlakAltFire.SavedVec.Z = V.Z;
+                FlakAltFire.SavedRot.Yaw = R.Yaw;
+                FlakAltFire.SavedRot.Pitch = R.Pitch;
+                FlakAltFire.EnqueueStopFire();
+            }
             NewNet_ServerStartFire(mode, R, V);
         }
     }
@@ -92,8 +115,11 @@ simulated event ClientStartFire(int Mode)
     }
 }
 
-function bool ServerShouldStartFire()
+function NewNet_ServerStartFire(byte Mode, ReplicatedRotator R, ReplicatedVector V)
 {
+    local NewNet_FlakFire FlakFire;
+    local NewNet_FlakAltFire FlakAltFire;
+
     if (Instigator != None && Instigator.Weapon != Self)
     {
         if (Instigator.Weapon == None)
@@ -104,93 +130,42 @@ function bool ServerShouldStartFire()
         {
             Instigator.Weapon.SynchronizeWeapon(Self);
         }
-        return false;
-    }
-    return true;
-}
-
-simulated function PostBeginPlay()
-{
-    Super.PostBeginPlay();
-    if (Level.NetMode != NM_DedicatedServer)
-    {
-        if (!default.bConfigCleared)
-        {
-            ClearConfig();
-            default.bConfigCleared = true;
-        }
-        class'HxNTWeapon'.static.ForceBaseClassConfig(Self, class'FlakCannon');
-    }
-}
-
-simulated function bool AltReadyToFire(int Mode)
-{
-    local int alt;
-    local float f;
-
-    //There is a very slight descynchronization error on the server
-    // with weapons due to differing deltatimes which accrues to a pretty big
-    // error if people just hold down the button...
-    // This will never cause the weapon to actually fire slower
-    f = 0.015;
-
-    if(!ReadyToFire(Mode))
-        return false;
-
-    if ( Mode == 0 )
-        alt = 1;
-    else
-        alt = 0;
-
-    if ( ((FireMode[alt] != FireMode[Mode]) && FireMode[alt].bModeExclusive && FireMode[alt].bIsFiring)
-		|| !FireMode[Mode].AllowFire()
-		|| (FireMode[Mode].NextFireTime > Level.TimeSeconds + FireMode[Mode].PreFireTime - f) )
-    {
-        return false;
-    }
-
-	return true;
-}
-
-function NewNet_ServerStartFire(byte Mode, ReplicatedRotator R, ReplicatedVector V)
-{
-    if (!ServerShouldStartFire())
-    {
         return;
     }
-    if ( (FireMode[Mode].NextFireTime <= Level.TimeSeconds + FireMode[Mode].PreFireTime)
-		&& StartFire(Mode) )
+    FlakFire = NewNet_FlakFire(FireMode[Mode]);
+    FlakAltFire = NewNet_FlakAltFire(FireMode[Mode]);
+    if (FlakFire != None)
+    {
+        FlakFire.SavedVec.X = V.X;
+        FlakFire.SavedVec.Y = V.Y;
+        FlakFire.SavedVec.Z = V.Z;
+        FlakFire.SavedRot.Yaw = R.Yaw;
+        FlakFire.SavedRot.Pitch = R.Pitch;
+        FlakFire.bUseReplicatedInfo = HexedNET.IsReasonable(Self, FlakFire.SavedVec);
+    }
+    else if (FlakAltFire != None)
+    {
+        FlakAltFire.SavedVec.X = V.X;
+        FlakAltFire.SavedVec.Y = V.Y;
+        FlakAltFire.SavedVec.Z = V.Z;
+        FlakAltFire.SavedRot.Yaw = R.Yaw;
+        FlakAltFire.SavedRot.Pitch = R.Pitch;
+        FlakAltFire.bUseReplicatedInfo = HexedNET.IsReasonable(Self, FlakAltFire.SavedVec);
+    }
+    if (FireMode[Mode].NextFireTime <= Level.TimeSeconds + FireMode[Mode].PreFireTime
+        && StartFire(Mode))
     {
         FireMode[Mode].ServerStartFireTime = Level.TimeSeconds;
         FireMode[Mode].bServerDelayStartFire = false;
-
-        if(NewNet_FlakFire(FireMode[Mode])!=None)
-        {
-            NewNet_FlakFire(FireMode[Mode]).SavedVec.X = V.X;
-            NewNet_FlakFire(FireMode[Mode]).SavedVec.Y = V.Y;
-            NewNet_FlakFire(FireMode[Mode]).SavedVec.Z = V.Z;
-            NewNet_FlakFire(FireMode[Mode]).SavedRot.Yaw = R.Yaw;
-            NewNet_FlakFire(FireMode[Mode]).SavedRot.Pitch = R.Pitch;
-            NewNet_FlakFire(FireMode[Mode]).bUseReplicatedInfo =
-                HexedNET.IsReasonable(Self, NewNet_FlakFire(FireMode[Mode]).SavedVec);
-        }
-        else if(NewNet_FlakAltFire(FireMode[Mode])!=None)
-        {
-            NewNet_FlakAltFire(FireMode[Mode]).SavedVec.X = V.X;
-            NewNet_FlakAltFire(FireMode[Mode]).SavedVec.Y = V.Y;
-            NewNet_FlakAltFire(FireMode[Mode]).SavedVec.Z = V.Z;
-            NewNet_FlakAltFire(FireMode[Mode]).SavedRot.Yaw = R.Yaw;
-            NewNet_FlakAltFire(FireMode[Mode]).SavedRot.Pitch = R.Pitch;
-            NewNet_FlakAltFire(FireMode[Mode]).bUseReplicatedInfo =
-                HexedNET.IsReasonable(Self, NewNet_FlakAltFire(FireMode[Mode]).SavedVec);
-        }
     }
-    else if ( FireMode[Mode].AllowFire() )
+    else if (FireMode[Mode].AllowFire())
     {
         FireMode[Mode].bServerDelayStartFire = true;
-	}
-	else
-		ClientForceAmmoUpdate(Mode, AmmoAmount(Mode));
+    }
+    else
+    {
+        ClientForceAmmoUpdate(Mode, AmmoAmount(Mode));
+    }
 }
 
 function SendNewRandSeed()

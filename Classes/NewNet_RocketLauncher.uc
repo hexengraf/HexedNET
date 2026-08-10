@@ -21,8 +21,6 @@ var MutHexedNET HexedNET;
 var private HxNTClient Client;
 var private bool bConfigCleared;
 
-var float lastDT;
-
 replication
 {
     reliable if(Role < Role_Authority)
@@ -32,6 +30,20 @@ replication
 simulated event PreBeginPlay()
 {
     Super.PreBeginPlay();
+    if (Level.NetMode != NM_DedicatedServer)
+    {
+        if (!default.bConfigCleared)
+        {
+            ClearConfig();
+            default.bConfigCleared = true;
+        }
+        class'HxNTWeapon'.static.ForceBaseClassConfig(Self, class'RocketLauncher');
+    }
+}
+
+simulated function PostBeginPlay()
+{
+    Super.PostBeginPlay();
     if (Level.NetMode != NM_Client)
     {
         foreach DynamicActors(class'MutHexedNET', HexedNET) break;
@@ -47,6 +59,7 @@ simulated function bool IsEnhancedNetcodeEnabled()
 
 simulated event ClientStartFire(int Mode)
 {
+    local NewNet_RocketFire RocketFire;
     local ReplicatedRotator R;
     local ReplicatedVector V;
     local vector Start;
@@ -61,7 +74,7 @@ simulated event ClientStartFire(int Mode)
     }
     else
     {
-        if ( RocketMultiFire(FireMode[Mode]) != None )
+        if (RocketMultiFire(FireMode[Mode]) != None)
         {
             SetTightSpread(false);
         }
@@ -93,20 +106,22 @@ simulated event ClientStartFire(int Mode)
         {
             if (StartFire(Mode))
             {
-                /*if (NewNet_RocketMultiFire(FireMode[Mode]) != None)
-                {
-                    NewNet_RocketMultiFire(FireMode[Mode]).DoInstantFireEffect();
-                }
-                else */if (NewNet_RocketFire(FireMode[Mode]) != None)
-                {
-                    NewNet_RocketFire(FireMode[Mode]).DoInstantFireEffect();
-                }
                 R.Pitch = Pawn(Owner).Controller.Rotation.Pitch;
                 R.Yaw = Pawn(Owner).Controller.Rotation.Yaw;
                 Start = Pawn(Owner).Location + Pawn(Owner).EyePosition();
                 V.X = Start.X;
                 V.Y = Start.Y;
                 V.Z = Start.Z;
+                RocketFire = NewNet_RocketFire(FireMode[Mode]);
+                if (RocketFire != None)
+                {
+                    RocketFire.SavedVec.X = V.X;
+                    RocketFire.SavedVec.Y = V.Y;
+                    RocketFire.SavedVec.Z = V.Z;
+                    RocketFire.SavedRot.Yaw = R.Yaw;
+                    RocketFire.SavedRot.Pitch = R.Pitch;
+                    RocketFire.EnqueueStopFire();
+                }
                 NewNet_ServerStartFire(mode, R, V);
             }
         }
@@ -117,8 +132,10 @@ simulated event ClientStartFire(int Mode)
     }
 }
 
-function bool ServerShouldStartFire()
+function NewNet_ServerStartFire(byte Mode, ReplicatedRotator R, ReplicatedVector V)
 {
+    local NewNet_RocketFire RocketFire;
+
     if (Instigator != None && Instigator.Weapon != Self)
     {
         if (Instigator.Weapon == None)
@@ -129,110 +146,32 @@ function bool ServerShouldStartFire()
         {
             Instigator.Weapon.SynchronizeWeapon(Self);
         }
-        return false;
-    }
-    return true;
-}
-
-simulated function PostBeginPlay()
-{
-    Super.PostBeginPlay();
-    if (Level.NetMode != NM_DedicatedServer)
-    {
-        if (!default.bConfigCleared)
-        {
-            ClearConfig();
-            default.bConfigCleared = true;
-        }
-        class'HxNTWeapon'.static.ForceBaseClassConfig(Self, class'RocketLauncher');
-    }
-}
-
-function NewNet_ServerStartFire(byte Mode, ReplicatedRotator R, ReplicatedVector V)
-{
-    if (!ServerShouldStartFire())
-    {
         return;
     }
-    // if(NewNet_RocketFire(FireMode[Mode])!=None)
-    // {
-    //    NewNet_RocketFire(FireMode[Mode]).PingDT = FMin(Ping + 1.75*NETClock.AverDT, Client.ProjectileCompensationLimit);
-    // }
-    // else if(NewNet_RocketMultiFire(FireMode[Mode])!=None)
-    // {
-    //    NewNet_RocketMultiFire(FireMode[Mode]).PingDT = FMin(Ping + 1.75*NETClock.AverDT, Client.ProjectileCompensationLimit);
-    // }
-
-    if ( (FireMode[Mode].NextFireTime <= Level.TimeSeconds + FireMode[Mode].PreFireTime)
-		&& StartFire(Mode) )
+    RocketFire = NewNet_RocketFire(FireMode[Mode]);
+    if (RocketFire != None)
+    {
+        RocketFire.SavedVec.X = V.X;
+        RocketFire.SavedVec.Y = V.Y;
+        RocketFire.SavedVec.Z = V.Z;
+        RocketFire.SavedRot.Yaw = R.Yaw;
+        RocketFire.SavedRot.Pitch = R.Pitch;
+        RocketFire.bUseReplicatedInfo = HexedNET.IsReasonable(Self, RocketFire.SavedVec);
+    }
+    if (FireMode[Mode].NextFireTime <= Level.TimeSeconds + FireMode[Mode].PreFireTime
+        && StartFire(Mode))
     {
         FireMode[Mode].ServerStartFireTime = Level.TimeSeconds;
         FireMode[Mode].bServerDelayStartFire = false;
-
-        if(NewNet_RocketFire(FireMode[Mode])!=None)
-        {
-            NewNet_RocketFire(FireMode[Mode]).SavedVec.X = V.X;
-            NewNet_RocketFire(FireMode[Mode]).SavedVec.Y = V.Y;
-            NewNet_RocketFire(FireMode[Mode]).SavedVec.Z = V.Z;
-            NewNet_RocketFire(FireMode[Mode]).SavedRot.Yaw = R.Yaw;
-            NewNet_RocketFire(FireMode[Mode]).SavedRot.Pitch = R.Pitch;
-            NewNet_RocketFire(FireMode[Mode]).bUseReplicatedInfo =
-                HexedNET.IsReasonable(Self, NewNet_RocketFire(FireMode[Mode]).SavedVec);
-
-        }
     }
-    else if ( FireMode[Mode].AllowFire() )
+    else if (FireMode[Mode].AllowFire())
     {
         FireMode[Mode].bServerDelayStartFire = true;
-	}
-	else
-		ClientForceAmmoUpdate(Mode, AmmoAmount(Mode));
-}
-
-
-simulated function Weapontick(float deltatime)
-{
-   lastDT = deltatime;
-}
-//// client & server ////
-simulated function bool StartFire(int Mode)
-{
-    local int alt;
-    local int OtherMode;
-
-	if ( Mode == 0 )
-		OtherMode = 1;
-	else
-		OtherMode = 0;
-	if ( FireMode[OtherMode].bIsFiring || (FireMode[OtherMode].NextFireTime > Level.TimeSeconds) )
-		return false;
-
-    if (!ReadyToFire(Mode))
-        return false;
-
-    if (Mode == 0)
-        alt = 1;
+    }
     else
-        alt = 0;
-
-    FireMode[Mode].bIsFiring = true;
-
-    FireMode[Mode].NextFireTime = Level.TimeSeconds-LastDT*0.5 + FireMode[Mode].PreFireTime;
-
-    if (FireMode[alt].bModeExclusive)
     {
-        // prevents rapidly alternating fire modes
-        FireMode[Mode].NextFireTime = FMax(FireMode[Mode].NextFireTime, FireMode[alt].NextFireTime);
+        ClientForceAmmoUpdate(Mode, AmmoAmount(Mode));
     }
-    if (Instigator.IsLocallyControlled())
-    {
-        if (FireMode[Mode].PreFireTime > 0.0 || FireMode[Mode].bFireOnRelease)
-        {
-            FireMode[Mode].PlayPreFire();
-        }
-        FireMode[Mode].FireCount = 0;
-    }
-    return true;
 }
 
 function Projectile SpawnProjectile(Vector Start, Rotator Dir)

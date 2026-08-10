@@ -12,8 +12,9 @@ var rotator OldAim;
 
 var class<Projectile> FakeProjectileClass;
 var FakeProjectileManager FPM;
-var bool bSkipNextEffect;
+
 var private HxNTClient Client;
+var private bool bStopFire;
 
 const PROJ_TIMESTEP = 0.0201;
 const SLACK = 0.035;
@@ -39,17 +40,10 @@ function bool IsEnhancedNetcodeEnabled()
 function PlayFiring()
 {
     Super.PlayFiring();
-    if (Level.NetMode == NM_Client && IsEnhancedNetcodeEnabled())
+    if (Level.NetMode == NM_Client && IsEnhancedNetcodeEnabled()
+        && Instigator.IsLocallyControlled())
     {
-        if (bSkipNextEffect)
-        {
-            bSkipNextEffect = false;
-            Weapon.ClientStopFire(0);
-        }
-        else if (Instigator.IsLocallyControlled())
-        {
-            CheckFireEffect();
-        }
+        CheckFireEffect();
     }
 }
 
@@ -66,21 +60,27 @@ function CheckFireEffect()
     else
     {
         DoClientFireEffect();
+        if (bStopFire)
+        {
+            bStopFire = false;
+            Weapon.ClientStopFire(1);
+        }
     }
 }
 
 function Timer()
 {
-   DoTimedClientFireEffect();
+    DoTimedClientFireEffect();
+    if (bStopFire)
+    {
+        bStopFire = false;
+        Weapon.ClientStopFire(1);
+    }
 }
 
-function DoInstantFireEffect()
+function EnqueueStopFire()
 {
-    if (Level.NetMode == NM_Client && Instigator.IsLocallyControlled() && ValidateClient())
-    {
-        CheckFireEffect();
-        bSkipNextEffect = true;
-    }
+    bStopFire = true;
 }
 
 simulated function DoTimedClientFireEffect()

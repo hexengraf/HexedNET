@@ -1,6 +1,5 @@
 class NewNet_FlakAltFire extends FlakAltFire;
 
-var bool bSkipNextEffect;
 var bool bUseReplicatedInfo;
 var rotator savedRot;
 var vector savedVec;
@@ -18,6 +17,7 @@ var rotator OldAim;
 
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
+var private bool bStopFire;
 
 function PreBeginPlay()
 {
@@ -35,17 +35,10 @@ function bool IsEnhancedNetcodeEnabled()
 function PlayFiring()
 {
     Super.PlayFiring();
-    if (Level.NetMode == NM_Client && IsEnhancedNetcodeEnabled())
+    if (Level.NetMode == NM_Client && IsEnhancedNetcodeEnabled()
+        && Instigator.IsLocallyControlled())
     {
-        if (bSkipNextEffect)
-        {
-            bSkipNextEffect = false;
-            Weapon.ClientStopFire(0);
-        }
-        else if (Instigator.IsLocallyControlled())
-        {
-            CheckFireEffect();
-        }
+        CheckFireEffect();
     }
 }
 
@@ -62,12 +55,27 @@ function CheckFireEffect()
     else
     {
         DoClientFireEffect();
+        if (bStopFire)
+        {
+            bStopFire = false;
+            Weapon.ClientStopFire(1);
+        }
     }
 }
 
 function Timer()
 {
-   DoTimedClientFireEffect();
+    DoTimedClientFireEffect();
+    if (bStopFire)
+    {
+        bStopFire = false;
+        Weapon.ClientStopFire(1);
+    }
+}
+
+function EnqueueStopFire()
+{
+    bStopFire = true;
 }
 
 simulated function DoTimedClientFireEffect()
@@ -134,16 +142,6 @@ simulated function DoTimedClientFireEffect()
 function DoClientFireEffect()
 {
    super.DoFireEffect();
-}
-
-function DoInstantFireEffect()
-{
-    if (Level.NetMode == NM_Client && Instigator.IsLocallyControlled()
-        && class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
-    {
-        CheckFireEffect();
-        bSkipNextEffect = true;
-    }
 }
 
 function projectile SpawnProjectile(Vector Start, Rotator Dir)
