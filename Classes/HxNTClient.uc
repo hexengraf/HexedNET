@@ -12,7 +12,7 @@ var private bool bEnhancedNetcode;
 var private float PingInterval;
 var private float PingSmoothing;
 var private bool bClientUpdated;
-var private array<float> ServerUpdateRequested;
+var private float ServerUpdateRequested[3];
 
 replication
 {
@@ -32,32 +32,23 @@ replication
         ServerSetPingSmoothingFactor;
 }
 
-simulated event PostBeginPlay()
+function SetupServer(HxMutator Mutator)
 {
-    Super.PostBeginPlay();
-    if (Level.NetMode != NM_DedicatedServer)
-    {
-        NetConfig = HxNetcodeConfig(Configs[0]);
-        ServerUpdateRequested.Length = NetConfig.Properties.Length;
-        bEnhancedNetcode = NetConfig.bEnhancedNetcode && Level.NetMode != NM_ListenServer;
-    }
+    Super.SetupServer(Mutator);
+    SetProjectileCompensationLimit(GetServerProperty("ProjectileCompensationLimit"));
 }
 
-simulated event PostNetBeginPlay()
+simulated function SetupClient(HxClientManager Manager)
 {
-    Super.PostNetBeginPlay();
+    Super.SetupClient(Manager);
+    NetConfig = HxNetcodeConfig(Configs[0]);
+    bEnhancedNetcode = NetConfig.bEnhancedNetcode && Level.NetMode != NM_ListenServer;
     if (Level.NetMode == NM_Client)
     {
         ServerSetPingSmoothingFactor(NetConfig.PingSmoothing);
         ServerSetPingFrequency(NetConfig.PingFrequency);
         ServerSetEnhancedNetcode(bEnhancedNetcode);
     }
-}
-
-function SetupServer(HxMutator Mutator)
-{
-    Super.SetupServer(Mutator);
-    SetProjectileCompensationLimit(GetServerProperty("ProjectileCompensationLimit"));
 }
 
 simulated function ClientRequestPing(float Timestamp)
