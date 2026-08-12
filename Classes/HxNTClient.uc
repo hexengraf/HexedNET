@@ -54,6 +54,12 @@ simulated event PostNetBeginPlay()
     }
 }
 
+function SetupServer(HxMutator Mutator)
+{
+    Super.SetupServer(Mutator);
+    SetProjectileCompensationLimit(GetServerProperty("ProjectileCompensationLimit"));
+}
+
 simulated function ClientRequestPing(float Timestamp)
 {
     ServerPing(Timestamp);
@@ -125,8 +131,13 @@ function SetServerProperty(int Index, string Value)
     Super.SetServerProperty(Index, Value);
     if (MutatorClass.default.Properties[Index].Name == "ProjectileCompensationLimit")
     {
-        ProjectileCompensationLimit = float(Value)  / 1000;
+        SetProjectileCompensationLimit(Value);
     }
+}
+
+simulated function SetProjectileCompensationLimit(coerce float Value)
+{
+    ProjectileCompensationLimit = Value / 1000;
 }
 
 function ServerSetEnhancedNetcode(bool bEnable)
@@ -165,15 +176,14 @@ function ServerSetPingSmoothingFactor(float Factor)
 simulated function NotifyServerPropertiesReady()
 {
     FPM = FakeProjectileManager(SpawnUnique(Class'FakeProjectileManager', Self));
-    ProjectileCompensationLimit = float(GetServerProperty("ProjectileCompensationLimit")) / 1000;
+    SetProjectileCompensationLimit(GetServerProperty("ProjectileCompensationLimit"));
 }
 
 simulated function NotifyServerPropertyChanged(int Index, string OldValue)
 {
     if (MutatorClass.default.Properties[Index].Name == "ProjectileCompensationLimit")
     {
-        ProjectileCompensationLimit =
-            float(GetServerProperty("ProjectileCompensationLimit")) / 1000;
+        SetProjectileCompensationLimit(GetServerProperty("ProjectileCompensationLimit"));
     }
 }
 
