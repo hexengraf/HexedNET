@@ -1,13 +1,15 @@
 class HxNTClient extends HxClientReplicationInfo;
 
-const PING_WARMUP_COUNT = 10;
+const WARMUP_COUNT = 10;
 
 var float AveragePing;
+var float AverageDeltaTime;
 var float ProjectileCompensationLimit;
 
 var private HxNetcodeConfig NetConfig;
 var private FakeProjectileManager FPM;
 var private int PingCount;
+var private int TickCount;
 var private bool bEnhancedNetcode;
 var private float PingInterval;
 var private float PingSmoothing;
@@ -88,6 +90,15 @@ simulated function Tick(float DeltaTime)
             ServerSetPingSmoothingFactor(NetConfig.PingSmoothing);
             ServerUpdateRequested[2] = 0;
         }
+        if (TickCount < WARMUP_COUNT)
+        {
+            TickCount++;
+            AverageDeltaTime += (DeltaTime - AverageDeltaTime) / TickCount;
+        }
+        else
+        {
+            AverageDeltaTime += (DeltaTime - AverageDeltaTime) * 0.5;
+        }
     }
     else if (Level.NetMode == NM_DedicatedServer && !bClientUpdated)
     {
@@ -104,10 +115,10 @@ function ServerPing(float Timestamp)
 {
     local float NewPing;
 
-    PingCount++;
     NewPing = Level.TimeSeconds - Timestamp;
-    if (PingCount < PING_WARMUP_COUNT)
+    if (PingCount < WARMUP_COUNT)
     {
+        PingCount++;
         AveragePing += (NewPing - AveragePing) / PingCount;
     }
     else
@@ -194,7 +205,7 @@ simulated function NotifyUserPropertyChanged(HxConfig Config, int Index, string 
 
 simulated function ClientSetAllowMultiHit(bool bEnable)
 {
-    class'NewNet_ZoomSuperShockBeamFire'.default.bServerAllowMultiHit = bEnable;
+    class'HxNet_ZoomSuperShockBeamFire'.default.bServerAllowMultiHit = bEnable;
 }
 
 simulated function float GetProjectilePing()
@@ -202,9 +213,19 @@ simulated function float GetProjectilePing()
     return FMin(AveragePing, ProjectileCompensationLimit);
 }
 
+simulated function float GetProjectileDelay()
+{
+    return AveragePing - ProjectileCompensationLimit;
+}
+
 simulated function bool IsEnhancedNetcodeEnabled()
 {
-    return bEnhancedNetcode;
+    return bEnhancedNetcode && AveragePing > 0;
+}
+
+simulated function bool ShouldSpawnDummyProjectile()
+{
+    return AveragePing > (AverageDeltaTime * 1.5);
 }
 
 // TODO: do we really need this?

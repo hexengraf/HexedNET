@@ -1,18 +1,15 @@
-class NewNet_ZoomSuperShockBeamFire extends ZoomSuperShockBeamFire;
+class HxNet_ZoomSuperShockBeamFire extends ZoomSuperShockBeamFire
+    DependsOn(HxNTWeapon);
 
 var bool bServerAllowMultiHit;
 
-var bool bUseReplicatedInfo;
-var rotator SavedRot;
-var vector SavedVec;
-
-var Actor Injured;
-var byte FirstGo;
-
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
-var private bool bStopFire;
-var private int StopFireMode;
+var private vector BASStart;
+var private rotator BASAim;
+var private Actor Injured;
+var private bool bBoostedAimSynchronization;
+var private byte EvaluateInjured;
 
 function PreBeginPlay()
 {
@@ -40,31 +37,28 @@ function PlayFiring()
         && Instigator.IsLocallyControlled())
     {
         DoFireEffect();
-        if (bStopFire)
-        {
-            bStopFire = false;
-            Weapon.ClientStopFire(StopFireMode);
-        }
     }
 }
 
-function EnqueueStopFire(int Mode)
+function ApplyBAS(HxNTWeapon.HxBAS BAS, optional Actor InjuredActor)
 {
-    StopFireMode = Mode;
-    bStopFire = true;
+    class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
+    bBoostedAimSynchronization = HexedNET == None || HexedNET.IsReasonable(Weapon, BASStart);
+    Injured = InjuredActor;
+    EvaluateInjured = 1;
 }
 
 function DoFireEffect()
 {
-    if (!bUseReplicatedInfo || !IsEnhancedNetcodeEnabled())
+    if (bBoostedAimSynchronization)
     {
-        Super.DoFireEffect();
+        Instigator.MakeNoise(1.0);
+        DoTrace(BASStart, BASAim);
+        bBoostedAimSynchronization = false;
     }
     else
     {
-        Instigator.MakeNoise(1.0);
-        bUseReplicatedInfo = false;
-        DoTrace(SavedVec, SavedRot);
+        Super.DoFireEffect();
     }
 }
 
@@ -83,15 +77,14 @@ function SpawnBeamEffect(vector Start,
             if (Instigator.PlayerReplicationInfo.Team != None
                 && Instigator.PlayerReplicationInfo.Team.TeamIndex == 1)
             {
-                Beam = Weapon.Spawn(class'NewNet_BlueSuperShockBeam', Weapon.Owner,, Start, Dir);
+                Beam = Weapon.Spawn(class'HxNet_BlueSuperShockBeam', Weapon.Owner,, Start, Dir);
             }
             else
             {
-                Beam = Weapon.Spawn(class'NewNet_SuperShockBeamEffect', Weapon.Owner,, Start, Dir);
+                Beam = Weapon.Spawn(class'HxNet_SuperShockBeamEffect', Weapon.Owner,, Start, Dir);
             }
             if (ReflectNum != 0)
             {
-                // prevents client side repositioning of beam start
                 Beam.Instigator = None;
             }
             Beam.AimAt(HitLocation, HitNormal);
@@ -111,7 +104,7 @@ function TracePart(Vector Start, Vector End, Vector X, Rotator Dir, Pawn Ignored
     }
     else
     {
-        class'HxNTWeapon'.static.SSRTrace(
+        class'HxNet_SuperShockBeamFire'.static.StaticTracePart(
             HexedNET,
             Self,
             Start,
@@ -120,7 +113,7 @@ function TracePart(Vector Start, Vector End, Vector X, Rotator Dir, Pawn Ignored
             Dir,
             Ignored,
             Client.AveragePing,
-            FirstGo,
+            EvaluateInjured,
             Injured);
     }
 }

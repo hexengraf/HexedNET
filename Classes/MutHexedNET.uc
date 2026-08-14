@@ -12,6 +12,7 @@ var const private class<Weapon> NewNetWeaponClasses[13];
 var const private class<WeaponFire> WeaponFireClasses[5];
 var const private class<WeaponFire> NewNetWeaponFireClasses[5];
 var private PawnCollisionCopy PCC;
+var private array<HxNet_ShockProjectile> ShockProjectiles;
 var private HxNTClock NETClock;
 
 event PostBeginPlay()
@@ -93,12 +94,13 @@ function ModifyPlayer(Pawn Other)
     Super.ModifyPlayer(Other);
 }
 
-function TimeTravel(float delta)
+function TimeTravel(float DeltaTime)
 {
     if (PCC != None)
     {
-        PCC.TimeTravel(Delta);
+        PCC.TimeTravel(DeltaTime);
     }
+    RewindShockProjectiles(DeltaTime);
 }
 
 function UnTimeTravel()
@@ -107,6 +109,7 @@ function UnTimeTravel()
     {
         PCC.UnTimeTravel();
     }
+    RestoreShockProjectiles();
 }
 
 // We need to do 2 traces. First, one that ignores the things which have already been copied
@@ -127,7 +130,7 @@ function Actor TimeTravelTrace(Weapon Weapon,
     foreach TraceActors(class'Actor', Other, HitLocation, HitNormal, End, Start)
     {
         if ((Other.bBlockActors || Other.bProjTarget || Other.bWorldGeometry)
-            && !class'MutHexedNET'.static.IsPredicted(Other))
+            && !IsPredicted(Other))
         {
             End = HitLocation;
             break;
@@ -312,12 +315,6 @@ function ListPawns()
     }
 }
 
-static function bool IsPredicted(Actor A)
-{
-    // Fix up vehicle a bit, we still wanna predict if its in the list w/o a driver
-    return A == None || A.IsA('xPawn') || (A.IsA('Vehicle') && Vehicle(A).Driver != None);
-}
-
 function bool CheckReplacement(Actor Other, out byte bSuperRelevant)
 {
     local WeaponLocker L;
@@ -390,6 +387,74 @@ function string GetInventoryClassOverride(string InventoryClassName)
     return InventoryClassName;
 }
 
+function RewindShockProjectiles(float DeltaTime)
+{
+    local int i;
+
+    DeltaTime = FMin(DeltaTime, GetDeltaTimeLimit());
+    for (i = ShockProjectiles.Length - 1; i >= 0; --i)
+    {
+        if (ShockProjectiles[i] == None)
+        {
+            ShockProjectiles.Remove(i, 1);
+        }
+        else
+        {
+            ShockProjectiles[i].RewindLocation(DeltaTime);
+        }
+    }
+}
+
+function RestoreShockProjectiles()
+{
+    local int i;
+
+    for (i = ShockProjectiles.Length - 1; i >= 0; --i)
+    {
+        if (ShockProjectiles[i] == None)
+        {
+            ShockProjectiles.Remove(i, 1);
+        }
+        else
+        {
+            ShockProjectiles[i].RestoreLocation();
+        }
+    }
+}
+
+function RegisterShockProjectile(HxNet_ShockProjectile P)
+{
+    if (P != None)
+    {
+        ShockProjectiles[ShockProjectiles.Length] = P;
+        P.Register(Self);
+    }
+}
+
+function RemoveShockProjectile(HxNet_ShockProjectile P)
+{
+    local int i;
+
+    for (i = 0; i < ShockProjectiles.Length; ++i)
+    {
+        if (ShockProjectiles[i] == P)
+        {
+            ShockProjectiles.Remove(i, 1);
+            break;
+        }
+    }
+}
+
+function float GetDeltaTimeLimit()
+{
+    return PingCompensationLimit / 1000.0;
+}
+
+static function bool IsPredicted(Actor A)
+{
+    return A.IsA('xPawn') || (A.IsA('Vehicle') && Vehicle(A).Driver != None);
+}
+
 defaultproperties
 {
     FriendlyName="HexedNET %TAG%"
@@ -426,16 +491,16 @@ defaultproperties
     WeaponClasses(8)=class'HxSuperShockRifle'
     WeaponClasses(9)=class'HxZoomSuperShockRifle'
     // replaced NewNet classes
-    NewNetWeaponClasses(0)=class'NewNet_ShockRifle'
+    NewNetWeaponClasses(0)=class'HxNet_ShockRifle'
     NewNetWeaponClasses(1)=class'NewNet_LinkGun'
     NewNetWeaponClasses(2)=class'NewNet_FlakCannon'
     NewNetWeaponClasses(3)=class'NewNet_RocketLauncher'
     NewNetWeaponClasses(4)=class'NewNet_SniperRifle'
     NewNetWeaponClasses(5)=class'NewNet_BioRifle'
-    NewNetWeaponClasses(6)=class'NewNet_SuperShockRifle'
-    NewNetWeaponClasses(7)=class'NewNet_ZoomSuperShockRifle'
-    NewNetWeaponClasses(8)=class'NewNet_HxSuperShockRifle'
-    NewNetWeaponClasses(9)=class'NewNet_HxZoomSuperShockRifle'
+    NewNetWeaponClasses(6)=class'HxNet_SuperShockRifle'
+    NewNetWeaponClasses(7)=class'HxNet_ZoomSuperShockRifle'
+    NewNetWeaponClasses(8)=class'HxNet_HxSuperShockRifle'
+    NewNetWeaponClasses(9)=class'HxNet_HxZoomSuperShockRifle'
     WeaponFireClasses(0)=class'AssaultFire'
     WeaponFireClasses(1)=class'AssaultGrenade'
     WeaponFireClasses(2)=class'MiniGunFire'

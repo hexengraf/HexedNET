@@ -1,5 +1,14 @@
-class HxNTWeapon extends Actor
+class HxNTWeapon extends Weapon
     abstract;
+
+struct HxBAS
+{
+    var float X;
+    var float Y;
+    var float Z;
+    var int Yaw;
+    var int Pitch;
+};
 
 static function ForceBaseClassConfig(Weapon W, class<Weapon> BaseClass)
 {
@@ -35,6 +44,41 @@ static function bool ValidateClient(LevelInfo Level,
         Client = HxNTClient(HexedNET.GetClientReplicationInfo(Instigator.Controller));
     }
     return Client != None;
+}
+
+static final function CheckStopFire(Weapon W, float StopFireTime, float AltStopFireTime)
+{
+    if (StopFireTime > 0 && W.Level.TimeSeconds >= StopFireTime
+        && W.Instigator.Controller.bFire > 0 && W.FireMode[0].bIsFiring)
+    {
+        W.ClientStopFire(0);
+    }
+    if (AltStopFireTime > 0 && W.Level.TimeSeconds >= AltStopFireTime
+        && W.Instigator.Controller.bAltFire > 0 && W.FireMode[1].bIsFiring)
+    {
+        W.ClientStopFire(1);
+    }
+}
+
+static final function HxBAS EncodeBAS(vector Start, rotator Dir)
+{
+    local HxBAS BAS;
+
+    BAS.X = Start.X;
+    BAS.Y = Start.Y;
+    BAS.Z = Start.Z;
+    BAS.Yaw = Dir.Yaw;
+    BAS.Pitch = Dir.Pitch;
+    return BAS;
+}
+
+static final function DecodeBAS(HxBAS BAS, out vector Start, out rotator Dir)
+{
+    Start.X = BAS.X;
+    Start.Y = BAS.Y;
+    Start.Z = BAS.Z;
+    Dir.Yaw = BAS.Yaw;
+    Dir.Pitch = BAS.Pitch;
 }
 
 static function InstantFireTrace(MutHexedNET HexedNET,
@@ -115,83 +159,6 @@ static function InstantFireTrace(MutHexedNET HexedNET,
         }
     }
     HexedNET.UnTimeTravel();
-}
-
-static function SSRTrace(MutHexedNET HexedNET,
-                         SuperShockBeamFire WF,
-                         Vector Start,
-                         Vector End,
-                         Vector X,
-                         Rotator Dir,
-                         Pawn Ignored,
-                         float AveragePing,
-                         out byte FirstGo,
-                         Actor Injured)
-{
-    local Actor Other;
-    local Vector HitLocation;
-    local Vector HitNormal;
-    local vector PresentHitLocation;
-
-    if (HexedNET != None)
-    {
-        HexedNET.TimeTravel(AveragePing);
-        if (FirstGo == 1)
-        {
-            Other = HexedNET.CompensatedTrace2(
-                AveragePing,
-                WF.Weapon,
-                PresentHitLocation,
-                HitLocation,
-                HitNormal,
-                End,
-                Start,
-                Injured);
-            FirstGo = 0;
-        }
-        else
-        {
-            Other = HexedNET.CompensatedTrace(
-                AveragePing, WF.Weapon, PresentHitLocation, HitLocation, HitNormal, End, Start);
-        }
-        HexedNET.UnTimeTravel();
-    }
-    else
-    {
-        Other = Ignored.Trace(HitLocation, HitNormal, End, Start, true);
-    }
-    if (Other != None && Other != Ignored)
-    {
-        if (!Other.bWorldGeometry)
-        {
-            if (Other.Level.NetMode != NM_Client)
-            {
-                Other.TakeDamage(
-                    WF.DamageMax, WF.Instigator, PresentHitLocation, WF.Momentum * X, WF.DamageType);
-            }
-            HitNormal = vect(0,0,0);
-            if (Pawn(Other) != None && HitLocation != Start && WF.AllowMultiHit())
-            {
-                SSRTrace(
-                    HexedNET,
-                    WF,
-                    HitLocation,
-                    End,
-                    X,
-                    Dir,
-                    Pawn(Other),
-                    AveragePing,
-                    FirstGo,
-                    Injured);
-            }
-        }
-    }
-    else
-    {
-        HitLocation = End;
-        HitNormal = vect(0,0,0);
-    }
-    WF.SpawnBeamEffect(Start, Dir, HitLocation, HitNormal, 0);
 }
 
 defaultproperties

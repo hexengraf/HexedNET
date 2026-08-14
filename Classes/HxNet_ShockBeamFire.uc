@@ -1,16 +1,13 @@
-class NewNet_ShockBeamFire extends ShockBeamFire;
-
-var bool bUseReplicatedInfo;
-var rotator SavedRot;
-var vector SavedVec;
-
-var Actor Injured;
-var bool bFirstGo;
+class HxNet_ShockBeamFire extends ShockBeamFire
+    DependsOn(HxNTWeapon);
 
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
-var private bool bStopFire;
-var private int StopFireMode;
+var private vector BASStart;
+var private rotator BASAim;
+var private Actor Injured;
+var private bool bBoostedAimSynchronization;
+var private bool bEvaluateInjured;
 
 function PreBeginPlay()
 {
@@ -32,31 +29,45 @@ function PlayFiring()
         && Instigator.IsLocallyControlled())
     {
         DoFireEffect();
-        if (bStopFire)
-        {
-            bStopFire = false;
-            Weapon.ClientStopFire(StopFireMode);
-        }
     }
 }
 
-function EnqueueStopFire(int Mode)
+function ApplyBAS(HxNTWeapon.HxBAS BAS, optional Actor InjuredActor)
 {
-    StopFireMode = Mode;
-    bStopFire = true;
+    local vector X;
+    local vector Y;
+    local vector Z;
+
+    class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
+    if (HexedNET == None || HexedNET.IsReasonable(Weapon, BASStart))
+    {
+        if (PlayerController(Instigator.Controller) != None)
+        {
+            GetAxes(BASAim, X, Y, Z);
+            BASStart += X * class'ShockProjFire'.Default.ProjSpawnOffset.X;
+            if (!Weapon.WeaponCentered())
+            {
+                BASStart += Weapon.Hand * Y * class'ShockProjFire'.Default.ProjSpawnOffset.Y
+                    + Z * class'ShockProjFire'.Default.ProjSpawnOffset.Z;
+            }
+        }
+        bBoostedAimSynchronization = true;
+    }
+    Injured = InjuredActor;
+    bEvaluateInjured = true;
 }
 
 function DoFireEffect()
 {
-    if (!bUseReplicatedInfo || !IsEnhancedNetcodeEnabled())
+    if (bBoostedAimSynchronization)
     {
-        Super.DoFireEffect();
+        Instigator.MakeNoise(1.0);
+        DoTrace(BASStart, BASAim);
+        bBoostedAimSynchronization = false;
     }
     else
     {
-        Instigator.MakeNoise(1.0);
-        bUseReplicatedInfo = false;
-        DoTrace(SavedVec, SavedRot);
+        Super.DoFireEffect();
     }
 }
 
@@ -68,27 +79,24 @@ function SpawnBeamEffect(vector Start,
 {
     local ShockBeamEffect Beam;
 
-    if (Level.NetMode != NM_Client && IsEnhancedNetcodeEnabled())
-    {
-        if (Weapon != None)
-        {
-            Beam = Weapon.Spawn(Class'NewNet_ShockBeamEffect', Weapon.Owner,, Start, Dir);
-            if (ReflectNum != 0)
-            {
-                // prevents client side repositioning of beam start
-                Beam.Instigator = None;
-            }
-            Beam.AimAt(HitLocation, HitNormal);
-        }
-    }
-    else
+    if (!IsEnhancedNetcodeEnabled())
     {
         Super.SpawnBeamEffect(Start, Dir, HitLocation, HitNormal, ReflectNum);
+    }
+    else if (Weapon != None)
+    {
+        Beam = Weapon.Spawn(Class'HxNet_ShockBeamEffect', Weapon,, Start, Dir);
+        if (ReflectNum != 0)
+        {
+            Beam.Instigator = None;
+        }
+        Beam.AimAt(HitLocation, HitNormal);
     }
 }
 
 function DoTrace(vector Start, rotator Dir)
 {
+    local WeaponAttachment Attachment;
     local Actor Other;
     local vector X;
     local vector End;
@@ -109,6 +117,7 @@ function DoTrace(vector Start, rotator Dir)
     PingDT = Client.AveragePing;
     MaxRange();
     ReflectNum = 0;
+    Attachment = WeaponAttachment(Weapon.ThirdPersonActor);
     while (true)
     {
         bDoReflect = false;
@@ -117,7 +126,7 @@ function DoTrace(vector Start, rotator Dir)
         if (HexedNET != None)
         {
             HexedNET.TimeTravel(pingDT);
-            if (bFirstGo)
+            if (bEvaluateInjured)
             {
                 Other = HexedNET.CompensatedTrace2(
                     PingDT,
@@ -128,14 +137,13 @@ function DoTrace(vector Start, rotator Dir)
                     End,
                     Start,
                     Injured);
-                bFirstGo = false;
+                bEvaluateInjured = false;
             }
             else
             {
                 Other = HexedNET.CompensatedTrace(
                     PingDT, Weapon, PresentHitLocation, HitLocation, HitNormal, End, Start);
             }
-            HexedNET.UnTimeTravel();
         }
         else
         {
@@ -147,7 +155,7 @@ function DoTrace(vector Start, rotator Dir)
                 && xPawn(Other).CheckReflect(PresentHitLocation, RefNormal, DamageMin * 0.25))
             {
                 bDoReflect = true;
-                HitNormal = Vect(0,0,0);
+                HitNormal = Vect(0, 0, 0);
             }
             else if (!Other.bWorldGeometry)
             {
@@ -157,43 +165,42 @@ function DoTrace(vector Start, rotator Dir)
                     Damage += Rand(1 + DamageMax - DamageMin);
                 }
                 Damage = Damage * DamageAtten;
-                // Update hit effect except for pawns (blood) other than vehicles.
                 if (Other.IsA('Vehicle')
                     || (!Other.IsA('Pawn') && !Other.IsA('HitScanBlockingVolume')))
                 {
-                    WeaponAttachment(Weapon.ThirdPersonActor).UpdateHit(
-                        Other, PresentHitLocation, HitNormal);
+                    Attachment.UpdateHit(Other, PresentHitLocation, HitNormal);
                 }
                 if (Level.NetMode != NM_Client)
                 {
                     Other.TakeDamage(Damage, Instigator, PresentHitLocation, Momentum * X, DamageType);
                 }
-                HitNormal = Vect(0,0,0);
+                HitNormal = Vect(0, 0, 0);
             }
-            else if (WeaponAttachment(Weapon.ThirdPersonActor) != None)
+            else if (Attachment != None)
             {
-                WeaponAttachment(Weapon.ThirdPersonActor).UpdateHit(
-                    Other, PresentHitLocation, HitNormal);
+                Attachment.UpdateHit(Other, PresentHitLocation, HitNormal);
             }
         }
         else
         {
             HitLocation = End;
-            HitNormal = Vect(0,0,0);
-            WeaponAttachment(Weapon.ThirdPersonActor).UpdateHit(Other, PresentHitLocation, HitNormal);
+            HitNormal = Vect(0, 0, 0);
+            Attachment.UpdateHit(Other, PresentHitLocation, HitNormal);
         }
         SpawnBeamEffect(Start, Dir, HitLocation, HitNormal, ReflectNum);
-
         if (bDoReflect && ++ReflectNum < 4)
         {
-            //Log("reflecting off"@Other@Start@HitLocation);
             Start = HitLocation;
-            Dir = rotator(RefNormal); //rotator( X - 2.0*RefNormal*(X dot RefNormal) );
+            Dir = rotator(RefNormal);
         }
         else
         {
             break;
         }
+    }
+    if (HexedNET != None)
+    {
+        HexedNET.UnTimeTravel();
     }
 }
 

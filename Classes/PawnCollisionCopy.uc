@@ -50,7 +50,7 @@ function PostBeginPlay()
 {
     Super.PostBeginPlay();
     HexedNET = MutHexedNET(Owner);
-    MaxDeltaTime = HexedNET.PingCompensationLimit / 1000.0;
+    MaxDeltaTime = HexedNET.GetDeltaTimeLimit();
 }
 
 // Set up the collision properties of our copy
@@ -341,6 +341,11 @@ final function int FindLowerBound(float Timestamp)
         }
     }
     return Result;
+}
+
+final function vector GetLocationDelta()
+{
+    return CopiedPawn.Location - Location;
 }
 
 final function float GetAlpha(float Value, float A, float B)
