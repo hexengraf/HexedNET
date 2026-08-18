@@ -144,6 +144,10 @@ function DoTrace(vector Start, rotator Dir)
                 Other = HexedNET.CompensatedTrace(
                     Weapon, HitLocation, HitNormal, End, Start, PastHitLocation);
             }
+            if (Other != None && Other.IsA('ShockProjectile'))
+            {
+                HexedNET.UnTimeTravel();
+            }
         }
         else
         {
