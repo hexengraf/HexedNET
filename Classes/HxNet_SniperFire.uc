@@ -200,8 +200,7 @@ function DoTrace(vector Start, Rotator Dir)
         {
             ArcsRemaining--;
             Start = MainArcHit;
-            // TODO: this VRand is not synced between client and server!
-            Dir = Rotator(VRand());
+            Dir = Rotator(Client.GetRandomVector());
             TmpHitEmitClass = class'HxNet_ChildLightningBolt';
             TmpTraceRange = SecTraceDist;
             ArcStart = MainArcHit;

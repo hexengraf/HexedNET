@@ -15,9 +15,15 @@ var private float PingInterval;
 var private float PingSmoothing;
 var private bool bClientUpdated;
 var private float ServerUpdateRequested[3];
+// TODO: maybe change to native vector to preserve bandwidth?
+var private HxTypes.HxVector RandomVectors[16];
+var private int LGRandomVectorIndex;
 
 replication
 {
+    reliable if (Role == ROLE_Authority)
+        RandomVectors;
+
     unreliable if (Role == ROLE_Authority)
         ClientRequestPing,
         ClientUpdatePing;
@@ -32,6 +38,12 @@ replication
         ServerSetEnhancedNetcode,
         ServerSetPingFrequency,
         ServerSetPingSmoothingFactor;
+}
+
+simulated event PostBeginPlay()
+{
+    Super.PostBeginPlay();
+    PopulateRandomVectors();
 }
 
 function SetupServer(HxMutator Mutator)
@@ -228,6 +240,44 @@ simulated function bool ShouldSpawnDummyProjectile()
     return AveragePing > (AverageDeltaTime * 1.5);
 }
 
+function PopulateRandomVectors()
+{
+    local vector RandomVector;
+    local int i;
+
+    for (i = 0; i < ArrayCount(RandomVectors); ++i)
+    {
+        RandomVector = VRand();
+        RandomVectors[i].X = RandomVector.X;
+        RandomVectors[i].Y = RandomVector.Y;
+        RandomVectors[i].Z = RandomVector.Z;
+    }
+}
+
+function ReplaceRandomVector()
+{
+    local vector RandomVector;
+    local HxTypes.HxVector Replacement;
+
+    RandomVector = VRand();
+    Replacement.X = RandomVector.X;
+    Replacement.Y = RandomVector.Y;
+    Replacement.Z = RandomVector.Z;
+    RandomVectors[LGRandomVectorIndex] = Replacement;
+}
+
+simulated function vector GetRandomVector()
+{
+    local vector Result;
+
+    Result.X = RandomVectors[LGRandomVectorIndex].X;
+    Result.Y = RandomVectors[LGRandomVectorIndex].Y;
+    Result.Z = RandomVectors[LGRandomVectorIndex].Z;
+    ReplaceRandomVector();
+    LGRandomVectorIndex = (LGRandomVectorIndex + 1) % ArrayCount(RandomVectors);
+    return Result;
+}
+
 // TODO: do we really need this?
 static function FixWeaponInstigator(PlayerController PC)
 {
@@ -241,7 +291,7 @@ static function FixWeaponInstigator(PlayerController PC)
 
 defaultproperties
 {
-    NetUpdateFrequency=10
+    NetUpdateFrequency=100
     NetPriority=3
 
     MutatorClass=class'MutHexedNET'
