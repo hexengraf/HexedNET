@@ -101,9 +101,9 @@ function DoTrace(vector Start, rotator Dir)
     local vector X;
     local vector End;
     local vector HitLocation;
+    local vector PastHitLocation;
     local vector HitNormal;
     local vector RefNormal;
-    local vector PresentHitLocation;
     local int Damage;
     local bool bDoReflect;
     local int ReflectNum;
@@ -131,28 +131,29 @@ function DoTrace(vector Start, rotator Dir)
                 Other = HexedNET.CompensatedTrace2(
                     PingDT,
                     Weapon,
-                    PresentHitLocation,
                     HitLocation,
                     HitNormal,
                     End,
                     Start,
-                    Injured);
+                    Injured,
+                    PastHitLocation);
                 bEvaluateInjured = false;
             }
             else
             {
                 Other = HexedNET.CompensatedTrace(
-                    PingDT, Weapon, PresentHitLocation, HitLocation, HitNormal, End, Start);
+                    Weapon, HitLocation, HitNormal, End, Start, PastHitLocation);
             }
         }
         else
         {
             Other = Weapon.Trace(HitLocation, HitNormal, End, Start, true);
+            PastHitLocation = HitLocation;
         }
         if (Other != None && (Other != Instigator || ReflectNum > 0))
         {
             if (bReflective && Other.IsA('xPawn')
-                && xPawn(Other).CheckReflect(PresentHitLocation, RefNormal, DamageMin * 0.25))
+                && xPawn(Other).CheckReflect(HitLocation, RefNormal, DamageMin * 0.25))
             {
                 bDoReflect = true;
                 HitNormal = Vect(0, 0, 0);
@@ -168,29 +169,30 @@ function DoTrace(vector Start, rotator Dir)
                 if (Other.IsA('Vehicle')
                     || (!Other.IsA('Pawn') && !Other.IsA('HitScanBlockingVolume')))
                 {
-                    Attachment.UpdateHit(Other, PresentHitLocation, HitNormal);
+                    Attachment.UpdateHit(Other, HitLocation, HitNormal);
                 }
                 if (Level.NetMode != NM_Client)
                 {
-                    Other.TakeDamage(Damage, Instigator, PresentHitLocation, Momentum * X, DamageType);
+                    Other.TakeDamage(Damage, Instigator, HitLocation, Momentum * X, DamageType);
                 }
                 HitNormal = Vect(0, 0, 0);
             }
             else if (Attachment != None)
             {
-                Attachment.UpdateHit(Other, PresentHitLocation, HitNormal);
+                Attachment.UpdateHit(Other, HitLocation, HitNormal);
             }
         }
         else
         {
             HitLocation = End;
             HitNormal = Vect(0, 0, 0);
-            Attachment.UpdateHit(Other, PresentHitLocation, HitNormal);
+            Attachment.UpdateHit(Other, HitLocation, HitNormal);
         }
         SpawnBeamEffect(Start, Dir, HitLocation, HitNormal, ReflectNum);
         if (bDoReflect && ++ReflectNum < 4)
         {
-            Start = HitLocation;
+            // TODO: reflections in past or present?
+            Start = PastHitLocation;
             Dir = rotator(RefNormal);
         }
         else

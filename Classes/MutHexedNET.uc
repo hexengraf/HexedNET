@@ -7,10 +7,10 @@ var config int ProjectileCompensationLimit;
 var config bool bRubberbandingFix;
 var config bool bLinkMeshes;
 
-var const private class<Weapon> WeaponClasses[13];
-var const private class<Weapon> NewNetWeaponClasses[13];
-var const private class<WeaponFire> WeaponFireClasses[5];
-var const private class<WeaponFire> NewNetWeaponFireClasses[5];
+var const private class<Weapon> WeaponClasses[11];
+var const private class<Weapon> NewNetWeaponClasses[11];
+var const private class<WeaponFire> WeaponFireClasses[4];
+var const private class<WeaponFire> NewNetWeaponFireClasses[4];
 var private PawnCollisionCopy PCC;
 var private array<HxNet_ShockProjectile> ShockProjectiles;
 var private HxNTClock NETClock;
@@ -150,50 +150,42 @@ function Actor TimeTravelTrace(Weapon Weapon,
     return Other;
 }
 
-function Actor CompensatedTrace(float Delta,
-                                Weapon Weapon,
-                                out vector PresentHitLocation,
+function Actor CompensatedTrace(Weapon Weapon,
                                 out vector HitLocation,
                                 out vector HitNormal,
                                 vector End,
-                                vector Start)
+                                vector Start,
+                                optional out vector PastHitLocation)
 {
     local Actor Other;
 
-    if (Delta <= 0.0)
-    {
-        Other = Weapon.Trace(HitLocation, HitNormal, End, Start, true);
-    }
-    else
-    {
-        Other = TimeTravelTrace(Weapon, HitLocation, HitNormal, End, Start);
-    }
+    Other = TimeTravelTrace(Weapon, PastHitLocation, HitNormal, End, Start);
     if (Other != None && Other.IsA('PawnCollisionCopy'))
     {
-        PresentHitLocation = PawnCollisionCopy(Other).GetPresentHitLocation(HitLocation);
+        HitLocation = PawnCollisionCopy(Other).GetPresentHitLocation(PastHitLocation);
         return PawnCollisionCopy(Other).CopiedPawn;
     }
-    PresentHitLocation = HitLocation;
+    HitLocation = PastHitLocation;
     return Other;
 }
 
 function Actor CompensatedTrace2(float Delta,
                                  Weapon Weapon,
-                                 out vector PresentHitLocation,
                                  out vector HitLocation,
                                  out vector HitNormal,
                                  vector End,
                                  vector Start,
-                                 Actor Injured)
+                                 Actor Injured,
+                                 optional out vector PastHitLocation)
 {
     local Actor Other;
     local Actor AltOther;
-    local vector AltPresentHitLocation;
     local vector AltHitLocation;
+    local vector AltPastHitLocation;
     local vector altHitNormal;
     local float f;
 
-    Other = CompensatedTrace(Delta, Weapon, PresentHitLocation, HitLocation, HitNormal, End, Start);
+    Other = CompensatedTrace(Weapon, HitLocation, HitNormal, End, Start, PastHitLocation);
     f = 0.02;
     if (Injured != None)
     {
@@ -203,13 +195,13 @@ function Actor CompensatedTrace2(float Delta,
             {
                 TimeTravel(Delta - f);
                 AltOther = CompensatedTrace(
-                    Delta - f, Weapon, AltPresentHitLocation, AltHitLocation, AltHitNormal, End, Start);
+                    Weapon, AltHitLocation, AltHitNormal, End, Start, AltPastHitLocation);
                 if (AltOther == Injured)
                 {
                     // Log("Fixed At"@f@"with max"@(0.04 + 2.0*NETClock.AverDT));
                     Other = AltOther;
-                    PresentHitLocation = AltPresentHitLocation;
                     HitLocation = AltHitLocation;
+                    PastHitLocation = AltPastHitLocation;
                     f = 10.0;
                 }
                 if (f > 0.00)
@@ -231,13 +223,13 @@ function Actor CompensatedTrace2(float Delta,
             AltOther = None;
             TimeTravel(Delta - f);
             AltOther = CompensatedTrace(
-                Delta - f, Weapon, AltPresentHitLocation, AltHitLocation, AltHitNormal, End, Start);
+                Weapon, AltHitLocation, AltHitNormal, End, Start, AltPastHitLocation);
             if (AltOther == None || !(AltOther.IsA('xPawn') || AltOther.IsA('Vehicle')))
             {
                 // Log("Reverse Fixed At"@f);
                 Other = AltOther;
-                PresentHitLocation = AltPresentHitLocation;
                 HitLocation = AltHitLocation;
+                PastHitLocation = AltPastHitLocation;
                 f=10.0;
             }
             if (f > 0.00)
@@ -485,30 +477,30 @@ defaultproperties
     WeaponClasses(2)=class'FlakCannon'
     WeaponClasses(3)=class'RocketLauncher'
     WeaponClasses(4)=class'SniperRifle'
-    WeaponClasses(5)=class'BioRifle'
-    WeaponClasses(6)=class'SuperShockRifle'
-    WeaponClasses(7)=class'ZoomSuperShockRifle'
-    WeaponClasses(8)=class'HxSuperShockRifle'
-    WeaponClasses(9)=class'HxZoomSuperShockRifle'
+    WeaponClasses(5)=class'ClassicSniperRifle'
+    WeaponClasses(6)=class'BioRifle'
+    WeaponClasses(7)=class'SuperShockRifle'
+    WeaponClasses(8)=class'ZoomSuperShockRifle'
+    WeaponClasses(9)=class'HxSuperShockRifle'
+    WeaponClasses(10)=class'HxZoomSuperShockRifle'
     // replaced NewNet classes
     NewNetWeaponClasses(0)=class'HxNet_ShockRifle'
     NewNetWeaponClasses(1)=class'NewNet_LinkGun'
     NewNetWeaponClasses(2)=class'NewNet_FlakCannon'
     NewNetWeaponClasses(3)=class'NewNet_RocketLauncher'
-    NewNetWeaponClasses(4)=class'NewNet_SniperRifle'
-    NewNetWeaponClasses(5)=class'NewNet_BioRifle'
-    NewNetWeaponClasses(6)=class'HxNet_SuperShockRifle'
-    NewNetWeaponClasses(7)=class'HxNet_ZoomSuperShockRifle'
-    NewNetWeaponClasses(8)=class'HxNet_HxSuperShockRifle'
-    NewNetWeaponClasses(9)=class'HxNet_HxZoomSuperShockRifle'
+    NewNetWeaponClasses(4)=class'HxNet_SniperRifle'
+    NewNetWeaponClasses(5)=class'HxNet_ClassicSniperRifle'
+    NewNetWeaponClasses(6)=class'NewNet_BioRifle'
+    NewNetWeaponClasses(7)=class'HxNet_SuperShockRifle'
+    NewNetWeaponClasses(8)=class'HxNet_ZoomSuperShockRifle'
+    NewNetWeaponClasses(9)=class'HxNet_HxSuperShockRifle'
+    NewNetWeaponClasses(10)=class'HxNet_HxZoomSuperShockRifle'
     WeaponFireClasses(0)=class'AssaultFire'
     WeaponFireClasses(1)=class'AssaultGrenade'
     WeaponFireClasses(2)=class'MiniGunFire'
     WeaponFireClasses(3)=class'MiniGunAltFire'
-    WeaponFireClasses(4)=class'ClassicSniperFire'
     NewNetWeaponFireClasses(0)=class'NewNet_AssaultFire'
     NewNetWeaponFireClasses(1)=class'NewNet_AssaultGrenade'
     NewNetWeaponFireClasses(2)=class'NewNet_MiniGunFire'
     NewNetWeaponFireClasses(3)=class'NewNet_MiniGunAltFire'
-    NewNetWeaponFireClasses(4)=class'NewNet_ClassicSniperFire'
 }

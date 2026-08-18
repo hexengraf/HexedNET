@@ -120,8 +120,8 @@ static function StaticTracePart(MutHexedNET HexedNET,
 {
     local Actor Other;
     local Vector HitLocation;
+    local vector PastHitLocation;
     local Vector HitNormal;
-    local vector PresentHitLocation;
 
     if (HexedNET != None)
     {
@@ -131,24 +131,25 @@ static function StaticTracePart(MutHexedNET HexedNET,
             Other = HexedNET.CompensatedTrace2(
                 AveragePing,
                 WF.Weapon,
-                PresentHitLocation,
                 HitLocation,
                 HitNormal,
                 End,
                 Start,
-                Injured);
+                Injured,
+                PastHitLocation);
             FirstGo = 0;
         }
         else
         {
             Other = HexedNET.CompensatedTrace(
-                AveragePing, WF.Weapon, PresentHitLocation, HitLocation, HitNormal, End, Start);
+                WF.Weapon, HitLocation, HitNormal, End, Start, PastHitLocation);
         }
         HexedNET.UnTimeTravel();
     }
     else
     {
         Other = Ignored.Trace(HitLocation, HitNormal, End, Start, true);
+        PastHitLocation = HitLocation;
     }
     if (Other != None && Other != Ignored)
     {
@@ -157,15 +158,16 @@ static function StaticTracePart(MutHexedNET HexedNET,
             if (Other.Level.NetMode != NM_Client)
             {
                 Other.TakeDamage(
-                    WF.DamageMax, WF.Instigator, PresentHitLocation, WF.Momentum * X, WF.DamageType);
+                    WF.DamageMax, WF.Instigator, HitLocation, WF.Momentum * X, WF.DamageType);
             }
             HitNormal = Vect(0, 0, 0);
             if (Pawn(Other) != None && HitLocation != Start && WF.AllowMultiHit())
             {
+                // TODO: multi-hit in past or present?
                 StaticTracePart(
                     HexedNET,
                     WF,
-                    HitLocation,
+                    PastHitLocation,
                     End,
                     X,
                     Dir,

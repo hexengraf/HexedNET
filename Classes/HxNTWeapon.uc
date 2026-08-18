@@ -91,9 +91,9 @@ static function InstantFireTrace(MutHexedNET HexedNET,
     local vector X;
     local vector End;
     local vector HitLocation;
+    local vector PastHitLocation;
     local vector HitNormal;
     local vector RefNormal;
-    local vector PresentHitLocation;
     local int Damage;
     local bool bDoReflect;
     local int ReflectNum;
@@ -107,11 +107,11 @@ static function InstantFireTrace(MutHexedNET HexedNET,
         X = vector(Dir);
         End = Start + WF.TraceRange * X;
         Other = HexedNET.CompensatedTrace(
-            AveragePing, WF.Weapon, PresentHitLocation, HitLocation, HitNormal, End, Start);
+            WF.Weapon, HitLocation, HitNormal, End, Start, PastHitLocation);
         if (Other != None && (Other != WF.Instigator || ReflectNum > 0))
         {
             if (WF.bReflective && Other.IsA('xPawn')
-                && xPawn(Other).CheckReflect(PresentHitLocation, RefNormal, WF.DamageMin * 0.25))
+                && xPawn(Other).CheckReflect(HitLocation, RefNormal, WF.DamageMin * 0.25))
             {
                 bDoReflect = true;
                 HitNormal = Vect(0,0,0);
@@ -128,16 +128,16 @@ static function InstantFireTrace(MutHexedNET HexedNET,
                     || (!Other.IsA('Pawn') && !Other.IsA('HitScanBlockingVolume')))
                 {
                     WeaponAttachment(WF.Weapon.ThirdPersonActor).UpdateHit(
-                        Other, PresentHitLocation, HitNormal);
+                        Other, HitLocation, HitNormal);
                 }
                 Other.TakeDamage(
-                    Damage, WF.Instigator, PresentHitLocation, WF.Momentum * X, WF.DamageType);
+                    Damage, WF.Instigator, HitLocation, WF.Momentum * X, WF.DamageType);
                 HitNormal = Vect(0,0,0);
             }
             else if (WeaponAttachment(WF.Weapon.ThirdPersonActor) != None)
             {
                 WeaponAttachment(WF.Weapon.ThirdPersonActor).UpdateHit(
-                    Other, PresentHitLocation, HitNormal);
+                    Other, HitLocation, HitNormal);
             }
         }
         else
@@ -145,12 +145,13 @@ static function InstantFireTrace(MutHexedNET HexedNET,
             HitLocation = End;
             HitNormal = Vect(0,0,0);
             WeaponAttachment(WF.Weapon.ThirdPersonActor).UpdateHit(
-                Other, PresentHitLocation, HitNormal);
+                Other, HitLocation, HitNormal);
         }
         WF.SpawnBeamEffect(Start, Dir, HitLocation, HitNormal, ReflectNum);
         if (bDoReflect && ++ReflectNum < 4)
         {
-            Start = HitLocation;
+            // TODO: reflections in past or present?
+            Start = PastHitLocation;
             Dir = rotator(RefNormal);
         }
         else

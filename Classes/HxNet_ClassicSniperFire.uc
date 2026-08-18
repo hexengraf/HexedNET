@@ -1,7 +1,10 @@
-class NewNet_ClassicSniperFire extends ClassicSniperFire;
+class HxNet_ClassicSniperFire extends ClassicSniperFire;
 
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
+var private vector BASStart;
+var private rotator BASAim;
+var private bool bBoostedAimSynchronization;
 
 function PreBeginPlay()
 {
@@ -16,6 +19,26 @@ function bool IsEnhancedNetcodeEnabled()
         && Client.IsEnhancedNetcodeEnabled();
 }
 
+function ApplyBAS(HxNTWeapon.HxBAS BAS)
+{
+    class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
+    bBoostedAimSynchronization = HexedNET == None || HexedNET.IsReasonable(Weapon, BASStart);
+}
+
+function DoFireEffect()
+{
+    if (bBoostedAimSynchronization)
+    {
+        Instigator.MakeNoise(1.0);
+        DoTrace(BASStart, BASAim);
+        bBoostedAimSynchronization = false;
+    }
+    else
+    {
+        Super.DoFireEffect();
+    }
+}
+
 function DoTrace(vector Start, Rotator Dir)
 {
     local Actor Other;
@@ -25,24 +48,20 @@ function DoTrace(vector Start, Rotator Dir)
     local vector End;
     local vector HitLocation;
     local vector HitNormal;
-    local vector PresentHitLocation;
-    local float PingDT;
 
     if (Level.NetMode == NM_Client || !IsEnhancedNetcodeEnabled())
     {
         super.DoTrace(Start,Dir);
         return;
     }
-    pingDT = Client.AveragePing;
     X = vector(Dir);
     End = Start + TraceRange * X;
-    HexedNET.TimeTravel(PingDT);
-    Other = HexedNET.CompensatedTrace(
-            pingDT, Weapon, PresentHitLocation, HitLocation, HitNormal, End, Start);
+    HexedNET.TimeTravel(Client.AveragePing);
+    Other = HexedNET.CompensatedTrace(Weapon, HitLocation, HitNormal, End, Start);
     HexedNET.UnTimeTravel();
     if (Level.NetMode != NM_Standalone || PlayerController(Instigator.Controller) == None)
     {
-		Weapon.Spawn(class'TracerProjectile', Instigator.Controller,, Start, Dir);
+        Weapon.Spawn(class'TracerProjectile', Instigator.Controller,, Start, Dir);
     }
     if (Other != None && Other != Instigator)
     {
@@ -50,30 +69,30 @@ function DoTrace(vector Start, Rotator Dir)
         {
             if (Vehicle(Other) != None)
             {
-                HeadShotPawn = Vehicle(Other).CheckForHeadShot(PresentHitLocation, X, 1.0);
+                HeadShotPawn = Vehicle(Other).CheckForHeadShot(HitLocation, X, 1.0);
             }
             if (HeadShotPawn != None)
             {
                 HeadShotPawn.TakeDamage(
                     DamageMax * HeadShotDamageMult,
                     Instigator,
-                    PresentHitLocation,
+                    HitLocation,
                     Momentum * X,
                     DamageTypeHeadShot);
             }
- 			else if (Pawn(Other) != None && Pawn(Other).IsHeadShot(HitLocation, X, 1.0))
+            else if (Pawn(Other) != None && Pawn(Other).IsHeadShot(HitLocation, X, 1.0))
             {
                 Other.TakeDamage(
                     DamageMax * HeadShotDamageMult,
                     Instigator,
-                    PresentHitLocation,
+                    HitLocation,
                     Momentum * X,
                     DamageTypeHeadShot);
             }
             else
             {
                 Other.TakeDamage(
-                    DamageMax, Instigator, PresentHitLocation, Momentum * X, DamageType);
+                    DamageMax, Instigator, HitLocation, Momentum * X, DamageType);
             }
         }
         else
@@ -86,14 +105,14 @@ function DoTrace(vector Start, Rotator Dir)
         HitLocation = End;
         HitNormal = Normal(Start - End);
     }
-    if (HitNormal != Vect(0,0,0) && HitScanBlockingVolume(Other) == None)
+    if (HitNormal != Vect(0, 0, 0) && HitScanBlockingVolume(Other) == None)
     {
-		S = Weapon.Spawn(class'SniperWallHitEffect',,, HitLocation, rotator(-1 * HitNormal));
-		if (S != None)
+        S = Weapon.Spawn(class'SniperWallHitEffect',,, HitLocation, rotator(-1 * HitNormal));
+        if (S != None)
         {
-			S.FireStart = Start;
+            S.FireStart = Start;
         }
-	}
+    }
 }
 
 DefaultProperties
