@@ -29,39 +29,53 @@ simulated function PostNetBeginPlay()
             if (Client.IsEnhancedNetcodeEnabled()
                 && PC != None && PC.Pawn != None && PC.Pawn == Instigator)
             {
-                SearchPredictedProjectile();
+                SearchPredictedProjectile(Client);
             }
             break;
         }
     }
 }
 
-simulated function SearchPredictedProjectile()
+simulated function SearchPredictedProjectile(HxNTClient Client)
 {
-    local FakeProjectileManager FPM;
-    local HxNet_ShockProjectileDummy Dummy;
+    local array<Projectile> Dummies;
+    local float Distance;
+    local int i;
 
-    foreach DynamicActors(class'FakeProjectileManager', FPM)
+    Dummies = Client.GetDummies(class'ShockRifle');
+    if (Dummies.Length > 0)
     {
-        Dummy = HxNet_ShockProjectileDummy(FPM.GetFP(class'HxNet_ShockProjectileDummy'));
-        if (Dummy != None)
+        Distance = VSize(Location - Dummies[0].Location);
+        for (i = 1; i < Dummies.Length; ++i)
         {
-            bInterpolateDummy = true;
-            DummyOffset = Location - Dummy.Location;
-            DoSetLocation(Dummy.Location);
-            if (ShockBallEffect != None)
+            if (VSize(Location - Dummies[i].Location) > Distance)
             {
-                ShockBallEffect.Destroy();
-                ShockBallEffect = Dummy.ShockBallEffect;
-                ShockBallEffect.SetBase(None);
-                ShockBallEffect.SetOwner(Self);
-                ShockBallEffect.SetLocation(Location);
-                ShockBallEffect.SetBase(Self);
-                Dummy.ShockBallEffect = None;
+                break;
             }
-            FPM.RemoveProjectile(Dummy);
         }
-        break;
+        --i;
+        InterpolateDummy(ShockProjectile(Dummies[i]));
+        Client.UntrackDummyProjectile(class'ShockRifle', i);
+    }
+}
+
+simulated function InterpolateDummy(ShockProjectile Dummy)
+{
+    if (Dummy != None)
+    {
+        bInterpolateDummy = true;
+        DummyOffset = Location - Dummy.Location;
+        DoSetLocation(Dummy.Location);
+        if (ShockBallEffect != None)
+        {
+            ShockBallEffect.Destroy();
+            ShockBallEffect = Dummy.ShockBallEffect;
+            ShockBallEffect.SetBase(None);
+            ShockBallEffect.SetOwner(Self);
+            ShockBallEffect.SetLocation(Location);
+            ShockBallEffect.SetBase(Self);
+            Dummy.ShockBallEffect = None;
+        }
     }
 }
 

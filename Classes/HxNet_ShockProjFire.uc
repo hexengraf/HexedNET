@@ -6,7 +6,6 @@ const PROJ_TIMESTEP = 0.0201;
 
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
-var private FakeProjectileManager FPM;
 var private vector BASStart;
 var private rotator BASAim;
 var private bool bBoostedAimSynchronization;
@@ -109,7 +108,7 @@ function Projectile SpawnProjectile(Vector Start, Rotator Dir)
 
     if (Level.NetMode == NM_Client)
     {
-        return SpawnPredictedProjectile(Start, Dir);
+        return SpawnDummyProjectile(Start, Dir);
     }
     if (!IsEnhancedNetcodeEnabled() || Weapon.Owner == None)
     {
@@ -126,6 +125,9 @@ function Projectile SpawnProjectile(Vector Start, Rotator Dir)
         {
             if (Hit.IsA('PawnCollisionCopy'))
             {
+                // TODO: what about self-inflicted splash damage if target is close?
+                // By updating to collide in the current target location (instead of past location),
+                // players might wrongfully avoid self-inflicted splash damage.
                 Start = HitLocation + PawnCollisionCopy(Hit).GetLocationDelta() - Vector(Dir) * 20;
             }
             else
@@ -152,21 +154,14 @@ function Projectile SpawnProjectile(Vector Start, Rotator Dir)
     return RegisterProjectile(Super.SpawnProjectile(Start, Dir));
 }
 
-function Projectile SpawnPredictedProjectile(Vector Start, Rotator Dir)
+function Projectile SpawnDummyProjectile(Vector Start, Rotator Dir)
 {
     local Projectile P;
 
-    if (FPM == None)
-    {
-        foreach Weapon.DynamicActors(class'FakeProjectileManager', FPM) break;
-    }
-    if (FPM.AllowFakeProjectile(class'HxNet_ShockProjectileDummy'))
-    {
-        P = Weapon.Spawn(class'HxNet_ShockProjectileDummy',,, Start, Dir);
-    }
+    P = Weapon.Spawn(class'HxNet_ShockProjectileDummy',,, Start, Dir);
     if (P != None)
     {
-        FPM.RegisterFakeProjectile(P);
+        Client.TrackDummyProjectile(P, class'ShockRifle');
     }
     return P;
 }

@@ -1,5 +1,18 @@
 class HxNTClient extends HxClientReplicationInfo;
 
+struct HxWeaponDummies
+{
+    var class<Weapon> WeaponClass;
+    var array<Projectile> Dummies;
+};
+
+struct HxDummyGroup
+{
+    var array<HxWeaponDummies> Weapons;
+};
+
+// BallLauncher's InventoryGroup is 15
+const WEAPON_GROUP_COUNT = 16;
 const WARMUP_COUNT = 10;
 
 var float AveragePing;
@@ -18,6 +31,7 @@ var private float ServerUpdateRequested[3];
 // TODO: maybe change to native vector to preserve bandwidth?
 var private HxTypes.HxVector RandomVectors[16];
 var private int LGRandomVectorIndex;
+var private HxDummyGroup DummyGroups[WEAPON_GROUP_COUNT];
 
 replication
 {
@@ -238,6 +252,50 @@ simulated function bool IsEnhancedNetcodeEnabled()
 simulated function bool ShouldSpawnDummyProjectile()
 {
     return AveragePing > (AverageDeltaTime * 1.5);
+}
+
+simulated function TrackDummyProjectile(Projectile Dummy, class<Weapon> WeaponClass)
+{
+    local int Weapon;
+    local int Index;
+
+    Weapon = FindWeaponIndex(WeaponClass);
+    Index = DummyGroups[WeaponClass.default.InventoryGroup].Weapons[Weapon].Dummies.Length;
+    DummyGroups[WeaponClass.default.InventoryGroup].Weapons[Weapon].Dummies.Insert(Index, 1);
+    DummyGroups[WeaponClass.default.InventoryGroup].Weapons[Weapon].Dummies[Index] = Dummy;
+}
+
+simulated function UntrackDummyProjectile(class<Weapon> WeaponClass, int Index)
+{
+    local int WeaponIndex;
+
+    WeaponIndex = FindWeaponIndex(WeaponClass);
+    DummyGroups[WeaponClass.default.InventoryGroup].Weapons[WeaponIndex].Dummies[Index].Destroy();
+    DummyGroups[WeaponClass.default.InventoryGroup].Weapons[WeaponIndex].Dummies.Remove(Index, 1);
+}
+
+simulated function array<Projectile> GetDummies(class<Weapon> WeaponClass)
+{
+    local int WeaponIndex;
+
+    WeaponIndex = FindWeaponIndex(WeaponClass);
+    return DummyGroups[WeaponClass.default.InventoryGroup].Weapons[WeaponIndex].Dummies;
+}
+
+simulated function int FindWeaponIndex(class<Weapon> WeaponClass)
+{
+    local int i;
+
+    for (i = 0; i < DummyGroups[WeaponClass.default.InventoryGroup].Weapons.Length; ++i)
+    {
+        if (DummyGroups[WeaponClass.default.InventoryGroup].Weapons[i].WeaponClass == WeaponClass)
+        {
+            return i;
+        }
+    }
+    DummyGroups[WeaponClass.default.InventoryGroup].Weapons.Insert(i, 1);
+    DummyGroups[WeaponClass.default.InventoryGroup].Weapons[i].WeaponClass = WeaponClass;
+    return i;
 }
 
 function PopulateRandomVectors()
