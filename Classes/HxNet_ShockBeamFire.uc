@@ -5,9 +5,7 @@ var private MutHexedNET HexedNET;
 var private HxNTClient Client;
 var private vector BASStart;
 var private rotator BASAim;
-var private Actor Injured;
 var private bool bBoostedAimSynchronization;
-var private bool bEvaluateInjured;
 
 function PreBeginPlay()
 {
@@ -32,7 +30,7 @@ function PlayFiring()
     }
 }
 
-function ApplyBAS(HxNTWeapon.HxBAS BAS, optional Actor InjuredActor)
+function ApplyBAS(HxNTWeapon.HxBAS BAS)
 {
     local vector X;
     local vector Y;
@@ -53,8 +51,6 @@ function ApplyBAS(HxNTWeapon.HxBAS BAS, optional Actor InjuredActor)
         }
         bBoostedAimSynchronization = true;
     }
-    Injured = InjuredActor;
-    bEvaluateInjured = true;
 }
 
 function DoFireEffect()
@@ -107,14 +103,12 @@ function DoTrace(vector Start, rotator Dir)
     local int Damage;
     local bool bDoReflect;
     local int ReflectNum;
-    local float PingDT;
 
     if (!IsEnhancedNetcodeEnabled())
     {
         Super.DoTrace(Start, Dir);
         return;
     }
-    PingDT = Client.AveragePing;
     MaxRange();
     ReflectNum = 0;
     Attachment = WeaponAttachment(Weapon.ThirdPersonActor);
@@ -125,25 +119,9 @@ function DoTrace(vector Start, rotator Dir)
         End = Start + TraceRange * X;
         if (HexedNET != None)
         {
-            HexedNET.TimeTravel(pingDT);
-            if (bEvaluateInjured)
-            {
-                Other = HexedNET.CompensatedTrace2(
-                    PingDT,
-                    Weapon,
-                    HitLocation,
-                    HitNormal,
-                    End,
-                    Start,
-                    Injured,
-                    PastHitLocation);
-                bEvaluateInjured = false;
-            }
-            else
-            {
-                Other = HexedNET.CompensatedTrace(
-                    Weapon, HitLocation, HitNormal, End, Start, PastHitLocation);
-            }
+            HexedNET.TimeTravel(Client.AveragePing);
+            Other = HexedNET.CompensatedTrace(
+                Weapon, HitLocation, HitNormal, End, Start, PastHitLocation);
             if (Other != None && Other.IsA('ShockProjectile'))
             {
                 HexedNET.UnTimeTravel();

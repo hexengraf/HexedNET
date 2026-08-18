@@ -56,7 +56,6 @@ simulated event ClientStopFire(int Mode)
 simulated event ClientStartFire(int Mode)
 {
     local HxNTWeapon.HxBAS BAS;
-    local Actor Injured;
 
     if (Role == ROLE_Authority || Pawn(Owner).Controller.IsInState('GameEnded')
         || Pawn(Owner).Controller.IsInState('RoundEnded')
@@ -67,53 +66,32 @@ simulated event ClientStartFire(int Mode)
     }
     else if (StartFire(Mode))
     {
-        BAS = GetBAS(Self, Mode, Injured);
         if (HxNet_ShockBeamFire(FireMode[Mode]) != None)
         {
+            BAS = class'HxNTWeapon'.static.EncodeBAS(Self, Mode, true);
             HxNet_ShockBeamFire(FireMode[Mode]).ApplyBAS(BAS);
         }
         else if (HxNet_ShockProjFire(FireMode[Mode]) != None)
         {
+            BAS = class'HxNTWeapon'.static.EncodeBAS(Self, Mode);
             HxNet_ShockProjFire(FireMode[Mode]).ApplyBAS(BAS);
         }
-        ServerStartFireBAS(Mode, BAS, Injured);
+        ServerStartFireBAS(Mode, BAS);
         StopFireTime[Mode] = Level.TimeSeconds + (FireMode[Mode].FireRate / 2);
     }
 }
 
-function ServerStartFireBAS(byte Mode, HxNTWeapon.HxBAS BAS, Actor Injured)
+function ServerStartFireBAS(byte Mode, HxNTWeapon.HxBAS BAS)
 {
     if (HxNet_ShockBeamFire(FireMode[Mode]) != None)
     {
-        HxNet_ShockBeamFire(FireMode[Mode]).ApplyBAS(BAS, Injured);
+        HxNet_ShockBeamFire(FireMode[Mode]).ApplyBAS(BAS);
     }
     else if (HxNet_ShockProjFire(FireMode[Mode]) != None)
     {
         HxNet_ShockProjFire(FireMode[Mode]).ApplyBAS(BAS);
     }
     ServerStartFire(Mode);
-}
-
-static final function HxNTWeapon.HxBAS GetBAS(Weapon W, int Mode, out Actor Injured)
-{
-    local vector HitLocation;
-    local vector HitNormal;
-    local vector Start;
-    local rotator Aim;
-
-    Start = W.Instigator.Location + W.Instigator.EyePosition();
-    Aim = W.FireMode[Mode].AdjustAim(Start, W.FireMode[Mode].AimError);
-    if (ShockBeamFire(W.FireMode[Mode]) != None)
-    {
-        Aim = rotator(vector(Aim) + VRand() * FRand() * W.FireMode[Mode].Spread);
-        Injured = W.Trace(HitLocation, HitNormal, Start + vector(Aim) * 40000.0, Start, true);
-        if (Injured != None && !Injured.IsA('xPawn') && !Injured.IsA('Vehicle')
-            && !Injured.IsA('ShockProjectile'))
-        {
-            Injured = None;
-        }
-    }
-    return class'HxNTWeapon'.static.EncodeBAS(Start, Aim);
 }
 
 DefaultProperties

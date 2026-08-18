@@ -56,7 +56,6 @@ simulated event ClientStopFire(int Mode)
 simulated event ClientStartFire(int Mode)
 {
     local HxNTWeapon.HxBAS BAS;
-    local Actor Injured;
 
     if (Role == ROLE_Authority || Pawn(Owner).Controller.IsInState('GameEnded')
         || Pawn(Owner).Controller.IsInState('RoundEnded') || ShockBeamFire(FireMode[Mode]) == None
@@ -67,16 +66,16 @@ simulated event ClientStartFire(int Mode)
     }
     else if (StartFire(Mode))
     {
-        BAS = class'HxNet_ShockRifle'.static.GetBAS(Self, Mode, Injured);
+        BAS = class'HxNTWeapon'.static.EncodeBAS(Self, Mode, true);
         HxNet_ZoomSuperShockBeamFire(FireMode[Mode]).ApplyBAS(BAS);
-        ServerStartFireBAS(Mode, BAS, Injured);
+        ServerStartFireBAS(Mode, BAS);
         StopFireTime[Mode] = Level.TimeSeconds + (FireMode[Mode].FireRate / 2);
     }
 }
 
-function ServerStartFireBAS(byte Mode, HxNTWeapon.HxBAS BAS, Actor Injured)
+function ServerStartFireBAS(byte Mode, HxNTWeapon.HxBAS BAS)
 {
-    HxNet_ZoomSuperShockBeamFire(FireMode[Mode]).ApplyBAS(BAS, Injured);
+    HxNet_ZoomSuperShockBeamFire(FireMode[Mode]).ApplyBAS(BAS);
     ServerStartFire(Mode);
 }
 

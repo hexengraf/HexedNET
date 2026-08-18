@@ -4,9 +4,7 @@ var private MutHexedNET HexedNET;
 var private HxNTClient Client;
 var private vector BASStart;
 var private rotator BASAim;
-var private Actor Injured;
 var private bool bBoostedAimSynchronization;
-var private bool bEvaluateInjured;
 
 function PreBeginPlay()
 {
@@ -31,12 +29,10 @@ function PlayFiring()
     }
 }
 
-function ApplyBAS(HxNTWeapon.HxBAS BAS, optional Actor InjuredActor)
+function ApplyBAS(HxNTWeapon.HxBAS BAS)
 {
     class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
     bBoostedAimSynchronization = HexedNET == None || HexedNET.IsReasonable(Weapon, BASStart);
-    Injured = InjuredActor;
-    bEvaluateInjured = true;
 }
 
 function DoFireEffect()
@@ -69,7 +65,6 @@ function DoTrace(vector Start, Rotator Dir)
     local xEmitter HitEmitter;
     local class<Actor> TmpHitEmitClass;
     local float TmpTraceRange;
-    local float PingDT;
     local bool bDoReflect;
     local int Damage;
     local int ReflectNum;
@@ -94,8 +89,7 @@ function DoTrace(vector Start, Rotator Dir)
     ReflectNum = 0;
     if (HexedNET != None)
     {
-        pingDT = Client.AveragePing;
-        HexedNET.TimeTravel(pingDT);
+        HexedNET.TimeTravel(Client.AveragePing);
     }
     while (true)
     {
@@ -104,24 +98,8 @@ function DoTrace(vector Start, Rotator Dir)
         End = Start + TmpTraceRange * X;
         if (HexedNET != None)
         {
-            if (bEvaluateInjured && ArcsRemaining == NumArcs)
-            {
-                Other = HexedNET.CompensatedTrace2(
-                    PingDT,
-                    Weapon,
-                    HitLocation,
-                    HitNormal,
-                    End,
-                    Start,
-                    Injured,
-                    PastHitLocation);
-            }
-            else
-            {
-                Other = HexedNET.CompensatedTrace(
-                    Weapon, HitLocation, HitNormal, End, Start, PastHitLocation);
-            }
-            bEvaluateInjured = false;
+            Other = HexedNET.CompensatedTrace(
+                Weapon, HitLocation, HitNormal, End, Start, PastHitLocation);
         }
         else
         {

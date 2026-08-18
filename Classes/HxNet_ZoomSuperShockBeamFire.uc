@@ -7,9 +7,7 @@ var private MutHexedNET HexedNET;
 var private HxNTClient Client;
 var private vector BASStart;
 var private rotator BASAim;
-var private Actor Injured;
 var private bool bBoostedAimSynchronization;
-var private byte EvaluateInjured;
 
 function PreBeginPlay()
 {
@@ -40,12 +38,10 @@ function PlayFiring()
     }
 }
 
-function ApplyBAS(HxNTWeapon.HxBAS BAS, optional Actor InjuredActor)
+function ApplyBAS(HxNTWeapon.HxBAS BAS)
 {
     class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
     bBoostedAimSynchronization = HexedNET == None || HexedNET.IsReasonable(Weapon, BASStart);
-    Injured = InjuredActor;
-    EvaluateInjured = 1;
 }
 
 function DoFireEffect()
@@ -98,23 +94,21 @@ function SpawnBeamEffect(vector Start,
 
 function TracePart(Vector Start, Vector End, Vector X, Rotator Dir, Pawn Ignored)
 {
-    if (Level.NetMode == NM_Client || !IsEnhancedNetcodeEnabled())
+    if (!IsEnhancedNetcodeEnabled())
     {
         Super.TracePart(Start, End, X, Dir, Ignored);
+    }
+    else if (HexedNET != None)
+    {
+        HexedNET.TimeTravel(Client.AveragePing);
+        class'HxNet_SuperShockBeamFire'.static.StaticTracePart(
+            HexedNET, Self, Start, End, X, Dir, Ignored);
+        HexedNET.UnTimeTravel();
     }
     else
     {
         class'HxNet_SuperShockBeamFire'.static.StaticTracePart(
-            HexedNET,
-            Self,
-            Start,
-            End,
-            X,
-            Dir,
-            Ignored,
-            Client.AveragePing,
-            EvaluateInjured,
-            Injured);
+            HexedNET, Self, Start, End, X, Dir, Ignored);
     }
 }
 

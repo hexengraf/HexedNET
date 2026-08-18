@@ -66,7 +66,7 @@ simulated event ClientStartFire(int Mode)
     }
     else if (StartFire(Mode))
     {
-        BAS = GetBAS(Self, Mode);
+        BAS = class'HxNTWeapon'.static.EncodeBAS(Self, Mode, true);
         HxNet_ClassicSniperFire(FireMode[Mode]).ApplyBAS(BAS);
         ServerStartFireBAS(Mode, BAS);
         StopFireTime[Mode] = Level.TimeSeconds + (FireMode[Mode].FireRate / 2);
@@ -77,16 +77,6 @@ function ServerStartFireBAS(byte Mode, HxNTWeapon.HxBAS BAS)
 {
     HxNet_ClassicSniperFire(FireMode[Mode]).ApplyBAS(BAS);
     ServerStartFire(Mode);
-}
-
-static final function HxNTWeapon.HxBAS GetBAS(Weapon W, int Mode)
-{
-    local vector Start;
-
-    Start = W.Instigator.Location + W.Instigator.EyePosition();
-    return class'HxNTWeapon'.static.EncodeBAS(
-        Start, rotator(vector(W.FireMode[Mode].AdjustAim(Start, W.FireMode[Mode].AimError))
-            + VRand() * FRand() * W.FireMode[Mode].Spread));
 }
 
 defaultproperties

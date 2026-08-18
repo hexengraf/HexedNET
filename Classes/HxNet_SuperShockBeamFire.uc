@@ -5,9 +5,7 @@ var private MutHexedNET HexedNET;
 var private HxNTClient Client;
 var private vector BASStart;
 var private rotator BASAim;
-var private Actor Injured;
 var private bool bBoostedAimSynchronization;
-var private byte EvaluateInjured;
 
 function PreBeginPlay()
 {
@@ -32,12 +30,10 @@ function PlayFiring()
     }
 }
 
-function ApplyBAS(HxNTWeapon.HxBAS BAS, optional Actor InjuredActor)
+function ApplyBAS(HxNTWeapon.HxBAS BAS)
 {
     class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
     bBoostedAimSynchronization = HexedNET == None || HexedNET.IsReasonable(Weapon, BASStart);
-    Injured = InjuredActor;
-    EvaluateInjured = 1;
 }
 
 function DoFireEffect()
@@ -91,19 +87,15 @@ function TracePart(Vector Start, Vector End, Vector X, Rotator Dir, Pawn Ignored
     {
         Super.TracePart(Start, End, X, Dir, Ignored);
     }
+    else if (HexedNET != None)
+    {
+        HexedNET.TimeTravel(Client.AveragePing);
+        StaticTracePart(HexedNET, Self, Start, End, X, Dir, Ignored);
+        HexedNET.UnTimeTravel();
+    }
     else
     {
-        StaticTracePart(
-            HexedNET,
-            Self,
-            Start,
-            End,
-            X,
-            Dir,
-            Ignored,
-            Client.AveragePing,
-            EvaluateInjured,
-            Injured);
+        StaticTracePart(HexedNET, Self, Start, End, X, Dir, Ignored);
     }
 }
 
@@ -113,10 +105,7 @@ static function StaticTracePart(MutHexedNET HexedNET,
                                 Vector End,
                                 Vector X,
                                 Rotator Dir,
-                                Pawn Ignored,
-                                float AveragePing,
-                                out byte FirstGo,
-                                Actor Injured)
+                                Pawn Ignored)
 {
     local Actor Other;
     local Vector HitLocation;
@@ -125,26 +114,8 @@ static function StaticTracePart(MutHexedNET HexedNET,
 
     if (HexedNET != None)
     {
-        HexedNET.TimeTravel(AveragePing);
-        if (FirstGo == 1)
-        {
-            Other = HexedNET.CompensatedTrace2(
-                AveragePing,
-                WF.Weapon,
-                HitLocation,
-                HitNormal,
-                End,
-                Start,
-                Injured,
-                PastHitLocation);
-            FirstGo = 0;
-        }
-        else
-        {
-            Other = HexedNET.CompensatedTrace(
-                WF.Weapon, HitLocation, HitNormal, End, Start, PastHitLocation);
-        }
-        HexedNET.UnTimeTravel();
+        Other = HexedNET.CompensatedTrace(
+            WF.Weapon, HitLocation, HitNormal, End, Start, PastHitLocation);
     }
     else
     {
@@ -155,7 +126,7 @@ static function StaticTracePart(MutHexedNET HexedNET,
     {
         if (!Other.bWorldGeometry)
         {
-            if (Other.Level.NetMode != NM_Client)
+            if (WF.Level.NetMode != NM_Client)
             {
                 Other.TakeDamage(
                     WF.DamageMax, WF.Instigator, HitLocation, WF.Momentum * X, WF.DamageType);
@@ -164,17 +135,7 @@ static function StaticTracePart(MutHexedNET HexedNET,
             if (Pawn(Other) != None && HitLocation != Start && WF.AllowMultiHit())
             {
                 // TODO: multi-hit in past or present?
-                StaticTracePart(
-                    HexedNET,
-                    WF,
-                    PastHitLocation,
-                    End,
-                    X,
-                    Dir,
-                    Pawn(Other),
-                    AveragePing,
-                    FirstGo,
-                    Injured);
+                StaticTracePart(HexedNET, WF, PastHitLocation, End, X, Dir, Pawn(Other));
             }
         }
     }

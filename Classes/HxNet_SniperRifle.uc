@@ -56,7 +56,6 @@ simulated event ClientStopFire(int Mode)
 simulated event ClientStartFire(int Mode)
 {
     local HxNTWeapon.HxBAS BAS;
-    local Actor Injured;
 
     if (Role == ROLE_Authority || Pawn(Owner).Controller.IsInState('GameEnded')
         || Pawn(Owner).Controller.IsInState('RoundEnded') || SniperFire(FireMode[Mode]) == None
@@ -67,35 +66,17 @@ simulated event ClientStartFire(int Mode)
     }
     else if (StartFire(Mode))
     {
-        BAS = GetBAS(Self, Mode, Injured);
+        BAS = class'HxNTWeapon'.static.EncodeBAS(Self, Mode, true);
         HxNet_SniperFire(FireMode[Mode]).ApplyBAS(BAS);
-        ServerStartFireBAS(Mode, BAS, Injured);
+        ServerStartFireBAS(Mode, BAS);
         StopFireTime[Mode] = Level.TimeSeconds + (FireMode[Mode].FireRate / 2);
     }
 }
 
-function ServerStartFireBAS(byte Mode, HxNTWeapon.HxBAS BAS, Actor Injured)
+function ServerStartFireBAS(byte Mode, HxNTWeapon.HxBAS BAS)
 {
-    HxNet_SniperFire(FireMode[Mode]).ApplyBAS(BAS, Injured);
+    HxNet_SniperFire(FireMode[Mode]).ApplyBAS(BAS);
     ServerStartFire(Mode);
-}
-
-static final function HxNTWeapon.HxBAS GetBAS(Weapon W, int Mode, out Actor Injured)
-{
-    local vector HitLocation;
-    local vector HitNormal;
-    local vector Start;
-    local rotator Aim;
-
-    Start = W.Instigator.Location + W.Instigator.EyePosition();
-    Aim = W.FireMode[Mode].AdjustAim(Start, W.FireMode[Mode].AimError);
-    Aim = rotator(vector(Aim) + VRand() * FRand() * W.FireMode[Mode].Spread);
-    Injured = W.Trace(HitLocation, HitNormal, Start + vector(Aim) * 40000.0, Start, true);
-    if (Injured != None && !Injured.IsA('xPawn') && !Injured.IsA('Vehicle'))
-    {
-        Injured = None;
-    }
-    return class'HxNTWeapon'.static.EncodeBAS(Start, Aim);
 }
 
 defaultproperties
