@@ -283,12 +283,21 @@ simulated function DestroyDummyProjectile(class<Weapon> WeaponClass, int Index)
 {
     local int GroupIndex;
     local int WeaponIndex;
-    local int i;
 
     GroupIndex = WeaponClass.default.InventoryGroup;
     WeaponIndex = FindWeaponIndex(WeaponClass, GroupIndex);
     DummyGroups[GroupIndex].Weapons[WeaponIndex].Dummies[Index].Destroy();
     DummyGroups[GroupIndex].Weapons[WeaponIndex].Dummies.Remove(Index, 1);
+}
+
+simulated function array<Projectile> GetDummies(class<Weapon> WeaponClass)
+{
+    local int GroupIndex;
+    local int WeaponIndex;
+    local int i;
+
+    GroupIndex = WeaponClass.default.InventoryGroup;
+    WeaponIndex = FindWeaponIndex(WeaponClass, GroupIndex);
     for (i = DummyGroups[GroupIndex].Weapons[WeaponIndex].Dummies.Length - 1; i >= 0; --i)
     {
         if (DummyGroups[GroupIndex].Weapons[WeaponIndex].Dummies[i] == None)
@@ -296,15 +305,6 @@ simulated function DestroyDummyProjectile(class<Weapon> WeaponClass, int Index)
             DummyGroups[GroupIndex].Weapons[WeaponIndex].Dummies.Remove(i, 1);
         }
     }
-}
-
-simulated function array<Projectile> GetDummies(class<Weapon> WeaponClass)
-{
-    local int GroupIndex;
-    local int WeaponIndex;
-
-    GroupIndex = WeaponClass.default.InventoryGroup;
-    WeaponIndex = FindWeaponIndex(WeaponClass, GroupIndex);
     return DummyGroups[GroupIndex].Weapons[WeaponIndex].Dummies;
 }
 
