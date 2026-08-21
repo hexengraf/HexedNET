@@ -6,7 +6,6 @@ var private MutHexedNET MutatorOwner;
 var private Vector DummyOffset;
 var private float ElapsedInterpolationTime;
 var private bool bInterpolateDummy;
-var private bool bServerBounced;
 var private int Index;
 
 replication
@@ -15,7 +14,7 @@ replication
         DoMove, DoSetLocation;
 
     reliable if (Role == ROLE_Authority && bNetInitial)
-        Index, bServerBounced;
+        Index;
 }
 
 simulated function PostNetBeginPlay()
@@ -36,15 +35,6 @@ simulated function PostNetBeginPlay()
             }
             break;
         }
-        if (bServerBounced && Bounces == 0)
-        {
-            bBounce = false;
-            if (Trail != None)
-            {
-                Trail.mRegen = false;
-                Trail.SetPhysics(PHYS_None);
-            }
-        }
     }
 }
 
@@ -52,8 +42,7 @@ function Randomize(Rotator NewRotation, int NewIndex, int NewBounces, bool bBoun
 {
     Index = NewIndex;
     Bounces = NewBounces;
-    bServerBounced = bBounced;
-    if (bServerBounced)
+    if (bBounced)
     {
         SetPhysics(PHYS_Falling);
         bBounce = Bounces > 0;
@@ -105,6 +94,17 @@ simulated function InterpolateDummy(FlakChunk Dummy)
     {
         bInterpolateDummy = true;
         DummyOffset = Location - Dummy.Location;
+        if (Trail != None)
+        {
+            Trail.mRegen = false;
+            Trail.SetPhysics(PHYS_None);
+        }
+        if (Dummy.Trail != None)
+        {
+            Trail = Dummy.Trail;
+            Trail.SetOwner(Self);
+            Dummy.Trail = None;
+        }
         DoSetLocation(Dummy.Location);
     }
 }
