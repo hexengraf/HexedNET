@@ -409,7 +409,7 @@ defaultproperties
     // replaced NewNet classes
     NewNetWeaponClasses(0)=class'HxNet_ShockRifle'
     NewNetWeaponClasses(1)=class'NewNet_LinkGun'
-    NewNetWeaponClasses(2)=class'NewNet_FlakCannon'
+    NewNetWeaponClasses(2)=class'HxNet_FlakCannon'
     NewNetWeaponClasses(3)=class'NewNet_RocketLauncher'
     NewNetWeaponClasses(4)=class'HxNet_SniperRifle'
     NewNetWeaponClasses(5)=class'HxNet_ClassicSniperRifle'

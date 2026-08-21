@@ -170,6 +170,33 @@ static function InstantFireTrace(MutHexedNET HexedNET,
     HexedNET.UnTimeTravel();
 }
 
+static final function vector ExtrapolateFalling(PhysicsVolume Volume,
+                                                Vector Start,
+                                                float TimeStep,
+                                                out Vector Velocity)
+{
+    local Vector PreviousVelocity;
+    local Vector End;
+
+    PreviousVelocity = Velocity;
+    if (Volume.bWaterVolume)
+    {
+        Velocity *= 1.0 - Volume.FluidFriction * TimeStep;
+    }
+    Velocity += Volume.Gravity * TimeStep * 0.5;
+    End = Start + (Velocity + Volume.ZoneVelocity) * TimeStep;
+    Velocity = (End - Start) / TimeStep - Volume.ZoneVelocity;
+    if (Velocity.Z < PreviousVelocity.Z || PreviousVelocity.Z >= 0)
+    {
+        Velocity = 2 * Velocity - PreviousVelocity;
+    }
+    if (VSize(Velocity) > Volume.TerminalVelocity)
+    {
+        Velocity = Normal(Velocity) * Volume.TerminalVelocity;
+    }
+    return End;
+}
+
 defaultproperties
 {
 }

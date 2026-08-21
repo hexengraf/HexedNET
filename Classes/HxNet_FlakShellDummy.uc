@@ -1,5 +1,4 @@
-
-class NewNet_Fake_FlakShell extends FlakShell;
+class HxNet_FlakShellDummy extends FlakShell;
 
 simulated function Explode(vector HitLocation, vector HitNormal)
 {
@@ -8,5 +7,5 @@ simulated function Explode(vector HitLocation, vector HitNormal)
 
 defaultproperties
 {
-     bNetTemporary=False
+    bNetTemporary=false
 }

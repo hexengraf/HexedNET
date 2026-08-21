@@ -55,7 +55,7 @@ simulated function SearchPredictedProjectile(HxNTClient Client)
         }
         --i;
         InterpolateDummy(ShockProjectile(Dummies[i]));
-        Client.UntrackDummyProjectile(class'ShockRifle', i);
+        Client.DestroyDummyProjectile(class'ShockRifle', i);
     }
 }
 
