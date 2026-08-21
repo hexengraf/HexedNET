@@ -46,17 +46,23 @@ static function bool ValidateClient(LevelInfo Level,
     return Client != None;
 }
 
-static final function CheckStopFire(Weapon W, float StopFireTime, float AltStopFireTime)
+static final function CheckStopFire(Weapon W, out int StopFireTime, out int AltStopFireTime)
 {
-    if (StopFireTime > 0 && W.Level.TimeSeconds >= StopFireTime
-        && W.Instigator.Controller.bFire > 0 && W.FireMode[0].bIsFiring)
+    if (StopFireTime > 0)
     {
-        W.ClientStopFire(0);
+        --StopFireTime;
+        if (StopFireTime == 0 && W.Instigator.Controller.bFire > 0 && W.FireMode[0].bIsFiring)
+        {
+            W.ClientStopFire(0);
+        }
     }
-    if (AltStopFireTime > 0 && W.Level.TimeSeconds >= AltStopFireTime
-        && W.Instigator.Controller.bAltFire > 0 && W.FireMode[1].bIsFiring)
+    if (AltStopFireTime > 0)
     {
-        W.ClientStopFire(1);
+        --AltStopFireTime;
+        if (AltStopFireTime == 0 && W.Instigator.Controller.bAltFire > 0 && W.FireMode[1].bIsFiring)
+        {
+            W.ClientStopFire(1);
+        }
     }
 }
 

@@ -1,5 +1,7 @@
-class HxNet_ClassicSniperFire extends ClassicSniperFire;
+class HxNet_ClassicSniperFire extends ClassicSniperFire
+    DependsOn(HxNTWeapon);
 
+var float ServerDelay;
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
 var private vector BASStart;
@@ -37,6 +39,7 @@ function DoFireEffect()
     {
         Super.DoFireEffect();
     }
+    ServerDelay = 0;
 }
 
 function DoTrace(vector Start, Rotator Dir)
@@ -56,7 +59,7 @@ function DoTrace(vector Start, Rotator Dir)
     }
     X = vector(Dir);
     End = Start + TraceRange * X;
-    HexedNET.TimeTravel(Client.AveragePing);
+    HexedNET.TimeTravel(Client.AveragePing + ServerDelay);
     Other = HexedNET.CompensatedTrace(Weapon, HitLocation, HitNormal, End, Start);
     HexedNET.UnTimeTravel();
     if (Level.NetMode != NM_Standalone || PlayerController(Instigator.Controller) == None)

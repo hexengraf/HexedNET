@@ -5,7 +5,7 @@ class HxNet_FlakCannon extends FlakCannon
 
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
-var private float StopFireTime[2];
+var private int StopFireTime[2];
 var private bool bConfigCleared;
 
 replication
@@ -76,7 +76,7 @@ simulated event ClientStartFire(int Mode)
             HxNet_FlakAltFire(FireMode[Mode]).ApplyBAS(BAS);
         }
         ServerStartFireBAS(Mode, BAS);
-        StopFireTime[Mode] = Level.TimeSeconds + (FireMode[Mode].FireRate / 6);
+        StopFireTime[Mode] = 3;
     }
 }
 

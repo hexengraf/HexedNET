@@ -1,6 +1,7 @@
 class HxNet_SuperShockBeamFire extends SuperShockBeamFire
     DependsOn(HxNTWeapon);
 
+var float ServerDelay;
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
 var private vector BASStart;
@@ -48,6 +49,7 @@ function DoFireEffect()
     {
         Super.DoFireEffect();
     }
+    ServerDelay = 0;
 }
 
 function SpawnBeamEffect(vector Start,
@@ -89,7 +91,7 @@ function TracePart(Vector Start, Vector End, Vector X, Rotator Dir, Pawn Ignored
     }
     else if (HexedNET != None)
     {
-        HexedNET.TimeTravel(Client.AveragePing);
+        HexedNET.TimeTravel(Client.AveragePing + ServerDelay);
         StaticTracePart(HexedNET, Self, Start, End, X, Dir, Ignored);
         HexedNET.UnTimeTravel();
     }

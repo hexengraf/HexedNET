@@ -1,4 +1,5 @@
-class HxNet_FlakAltFire extends FlakAltFire;
+class HxNet_FlakAltFire extends FlakAltFire
+    DependsOn(HxNTWeapon);
 
 // TODO: Revisit this later, different values result in different amounts of error.
 // Maybe it should be the average DeltaTime from the client? But then players with super high FPS
@@ -101,6 +102,7 @@ function DoFireEffect()
     if (!class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
     {
         Super.DoFireEffect();
+        ServerDelay = 0;
         return;
     }
     Instigator.MakeNoise(1.0);

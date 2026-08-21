@@ -1,5 +1,9 @@
-class HxNet_FlakFire extends FlakFire;
+class HxNet_FlakFire extends FlakFire
+    DependsOn(HxNTWeapon);
 
+// TODO: Revisit this later, different values result in different amounts of error.
+// Maybe it should be the average DeltaTime from the client? But then players with super high FPS
+// and super high ping will cause an abusive amount of iterations.
 const BASE_TIMESTEP = 0.02;
 
 var float ServerDelay;
@@ -98,6 +102,7 @@ function DoFireEffect()
     if (!class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
     {
         Super.DoFireEffect();
+        ServerDelay = 0;
         return;
     }
     Instigator.MakeNoise(1.0);

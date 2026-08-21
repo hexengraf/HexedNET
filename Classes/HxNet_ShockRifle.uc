@@ -5,7 +5,7 @@ class HxNet_ShockRifle extends ShockRifle
 
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
-var private float StopFireTime[2];
+var private int StopFireTime[2];
 var private bool bConfigCleared;
 
 replication
@@ -77,7 +77,7 @@ simulated event ClientStartFire(int Mode)
             HxNet_ShockProjFire(FireMode[Mode]).ApplyBAS(BAS);
         }
         ServerStartFireBAS(Mode, BAS);
-        StopFireTime[Mode] = Level.TimeSeconds + (FireMode[Mode].FireRate / 2);
+        StopFireTime[Mode] = 3;
     }
 }
 
@@ -92,6 +92,30 @@ function ServerStartFireBAS(byte Mode, HxNTWeapon.HxBAS BAS)
         HxNet_ShockProjFire(FireMode[Mode]).ApplyBAS(BAS);
     }
     ServerStartFire(Mode);
+}
+
+simulated function bool StartFire(int Mode)
+{
+    local float ServerDelay;
+
+    ServerDelay = Level.TimeSeconds - FireMode[Mode].NextFireTime;
+    if (Super.StartFire(Mode))
+    {
+        if (FireMode[Mode].bServerDelayStartFire)
+        {
+            FireMode[Mode].NextFireTime -= ServerDelay + 0.001;
+            if (HxNet_ShockBeamFire(FireMode[Mode]) != None)
+            {
+                HxNet_ShockBeamFire(FireMode[Mode]).ServerDelay = ServerDelay;
+            }
+            else if (HxNet_ShockProjFire(FireMode[Mode]) != None)
+            {
+                HxNet_ShockProjFire(FireMode[Mode]).ServerDelay = ServerDelay;
+            }
+        }
+        return true;
+    }
+    return false;
 }
 
 DefaultProperties

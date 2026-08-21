@@ -1,5 +1,7 @@
-class HxNet_SniperFire extends SniperFire;
+class HxNet_SniperFire extends SniperFire
+    DependsOn(HxNTWeapon);
 
+var float ServerDelay;
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
 var private vector BASStart;
@@ -47,6 +49,7 @@ function DoFireEffect()
     {
         Super.DoFireEffect();
     }
+    ServerDelay = 0;
 }
 
 function DoTrace(vector Start, Rotator Dir)
@@ -89,7 +92,7 @@ function DoTrace(vector Start, Rotator Dir)
     ReflectNum = 0;
     if (HexedNET != None)
     {
-        HexedNET.TimeTravel(Client.AveragePing);
+        HexedNET.TimeTravel(Client.AveragePing + ServerDelay);
     }
     while (true)
     {

@@ -1,9 +1,12 @@
 class HxNet_ShockProjFire extends ShockProjFire
     DependsOn(HxNTWeapon);
 
-// TODO: calibrate this?
-const PROJ_TIMESTEP = 0.0201;
+// TODO: Revisit this later, different values result in different amounts of error.
+// Maybe it should be the average DeltaTime from the client? But then players with super high FPS
+// and super high ping will cause an abusive amount of iterations.
+const BASE_TIMESTEP = 0.02;
 
+var float ServerDelay;
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
 var private vector BASStart;
@@ -94,6 +97,7 @@ function DoFireEffect()
     {
         Super.DoFireEffect();
     }
+    ServerDelay = 0;
 }
 
 function Projectile SpawnProjectile(Vector Start, Rotator Dir)
@@ -114,11 +118,11 @@ function Projectile SpawnProjectile(Vector Start, Rotator Dir)
     {
         return RegisterProjectile(Super.SpawnProjectile(Start, Dir));
     }
-    DeltaTime = Client.GetProjectilePing();
+    DeltaTime = Client.GetProjectilePing() + ServerDelay;
     Origin = Start;
-    for (ForwardTime = 0.00; ForwardTime <= DeltaTime; ForwardTime += PROJ_TIMESTEP)
+    for (ForwardTime = 0.00; ForwardTime <= DeltaTime; ForwardTime += BASE_TIMESTEP)
     {
-        End = Start + Extrapolate(Dir, PROJ_TIMESTEP);
+        End = Start + Extrapolate(Dir, BASE_TIMESTEP);
         HexedNET.TimeTravel(DeltaTime - ForwardTime);
         Hit = HexedNET.TimeTravelTrace(Weapon, HitLocation, HitNormal, End, Start);
         if (Hit != None)
@@ -141,7 +145,7 @@ function Projectile SpawnProjectile(Vector Start, Rotator Dir)
     HexedNET.UnTimeTravel();
     if (Hit == None && ForwardTime > DeltaTime)
     {
-        End = Start + Extrapolate(Dir, DeltaTime - ForwardTime + PROJ_TIMESTEP);
+        End = Start + Extrapolate(Dir, DeltaTime - ForwardTime + BASE_TIMESTEP);
         if (Weapon.Trace(HitLocation, HitNormal, End, Start, false) != None)
         {
             Start = GetStartOnHit(Origin, HitLocation, Dir);

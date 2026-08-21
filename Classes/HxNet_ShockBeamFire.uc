@@ -1,6 +1,7 @@
 class HxNet_ShockBeamFire extends ShockBeamFire
     DependsOn(HxNTWeapon);
 
+var float ServerDelay;
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
 var private vector BASStart;
@@ -65,6 +66,7 @@ function DoFireEffect()
     {
         Super.DoFireEffect();
     }
+    ServerDelay = 0;
 }
 
 function SpawnBeamEffect(vector Start,
@@ -119,7 +121,7 @@ function DoTrace(vector Start, rotator Dir)
         End = Start + TraceRange * X;
         if (HexedNET != None)
         {
-            HexedNET.TimeTravel(Client.AveragePing);
+            HexedNET.TimeTravel(Client.AveragePing + ServerDelay);
             Other = HexedNET.CompensatedTrace(
                 Weapon, HitLocation, HitNormal, End, Start, PastHitLocation);
             if (Other != None && Other.IsA('ShockProjectile'))
