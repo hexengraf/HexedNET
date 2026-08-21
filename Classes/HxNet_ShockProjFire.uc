@@ -9,8 +9,8 @@ const BASE_TIMESTEP = 0.02;
 var float ServerDelay;
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
-var private vector BASStart;
-var private rotator BASAim;
+var private Vector BASStart;
+var private Rotator BASAim;
 var private bool bBoostedAimSynchronization;
 
 function PreBeginPlay()
@@ -102,28 +102,51 @@ function DoFireEffect()
 
 function Projectile SpawnProjectile(Vector Start, Rotator Dir)
 {
-    local Vector Origin;
-    local Vector HitLocation;
-    local Vector HitNormal;
-    local vector End;
-    local Actor Hit;
-    local float DeltaTime;
-    local float ForwardTime;
+    local Projectile P;
 
     if (Level.NetMode == NM_Client)
     {
-        return SpawnDummyProjectile(Start, Dir);
+        P = Weapon.Spawn(class'HxNet_ShockProjectileDummy',,, Start, Dir);
+        if (P != None)
+        {
+            Client.TrackDummyProjectile(P, class'ShockRifle');
+        }
+        return P;
     }
-    if (!IsEnhancedNetcodeEnabled() || Weapon.Owner == None)
+    if (IsEnhancedNetcodeEnabled())
     {
-        return RegisterProjectile(Super.SpawnProjectile(Start, Dir));
+        Extrapolate(Start, Dir);
     }
+    P = Super.SpawnProjectile(Start, Dir);
+    if (HexedNET != None)
+    {
+        HexedNET.RegisterShockProjectile(HxNet_ShockProjectile(P));
+    }
+    return P;
+}
+
+function Extrapolate(out Vector Start, out Rotator Dir)
+{
+    local Vector Velocity;
+    local Vector HitLocation;
+    local Vector HitNormal;
+    local Vector Origin;
+    local Vector End;
+    local Actor Hit;
+    local float DeltaTime;
+    local float RemainingTime;
+    local float TimeStep;
+
+    Velocity = Vector(Dir) * class'ShockProjectile'.default.Speed;
     DeltaTime = Client.GetProjectilePing() + ServerDelay;
+    RemainingTime = DeltaTime;
     Origin = Start;
-    for (ForwardTime = 0.00; ForwardTime <= DeltaTime; ForwardTime += BASE_TIMESTEP)
+    while (RemainingTime > 0)
     {
-        End = Start + Extrapolate(Dir, BASE_TIMESTEP);
-        HexedNET.TimeTravel(DeltaTime - ForwardTime);
+        TimeStep = FMin(BASE_TIMESTEP, RemainingTime);
+        RemainingTime -= TimeStep;
+        End = Start + Velocity * TimeStep;
+        HexedNET.TimeTravel(DeltaTime - RemainingTime);
         Hit = HexedNET.TimeTravelTrace(Weapon, HitLocation, HitNormal, End, Start);
         if (Hit != None)
         {
@@ -132,68 +155,24 @@ function Projectile SpawnProjectile(Vector Start, Rotator Dir)
                 // TODO: what about self-inflicted splash damage if target is close?
                 // By updating to collide in the current target location (instead of past location),
                 // players might wrongfully avoid self-inflicted splash damage.
-                Start = HitLocation + PawnCollisionCopy(Hit).GetLocationDelta() - Vector(Dir) * 20;
+                HitLocation += PawnCollisionCopy(Hit).GetLocationDelta();
+            }
+            if (VSize(HitLocation - Origin) <= class'ShockProjectile'.default.DamageRadius)
+            {
+                // TODO: doing this to properly register self-inflicted damage when shooting against
+                // surfaces up close. Is there a better solution?
+                Start = Origin;
             }
             else
             {
-                Start = GetStartOnHit(Origin, HitLocation, Dir);
+                // TODO: Why subtract? Does spawn/hit fail if inside the target?
+                Start = HitLocation - Vector(Dir) * 20;
             }
             break;
         }
         Start = End;
     }
     HexedNET.UnTimeTravel();
-    if (Hit == None && ForwardTime > DeltaTime)
-    {
-        End = Start + Extrapolate(Dir, DeltaTime - ForwardTime + BASE_TIMESTEP);
-        if (Weapon.Trace(HitLocation, HitNormal, End, Start, false) != None)
-        {
-            Start = GetStartOnHit(Origin, HitLocation, Dir);
-        }
-        else
-        {
-            Start = End;
-        }
-    }
-    return RegisterProjectile(Super.SpawnProjectile(Start, Dir));
-}
-
-function Projectile SpawnDummyProjectile(Vector Start, Rotator Dir)
-{
-    local Projectile P;
-
-    P = Weapon.Spawn(class'HxNet_ShockProjectileDummy',,, Start, Dir);
-    if (P != None)
-    {
-        Client.TrackDummyProjectile(P, class'ShockRifle');
-    }
-    return P;
-}
-
-function Projectile RegisterProjectile(Projectile P)
-{
-    if (HexedNET != None)
-    {
-        HexedNET.RegisterShockProjectile(HxNet_ShockProjectile(P));
-    }
-    return P;
-}
-
-static final function vector GetStartOnHit(vector Origin, vector HitLocation, rotator Dir)
-{
-    // TODO: only doing this to properly register self-inflicted damage when shooting against walls.
-    // Is there a better way to handle this? Also, why subtract Vector(Dir) * 20? This is used in
-    // other projectiles as well. Does hit not register if spawned almost inside the target?
-    if (VSize(HitLocation - Origin) > class'HxNet_ShockProjectile'.default.DamageRadius)
-    {
-        return HitLocation - Vector(Dir) * 20;
-    }
-    return Origin;
-}
-
-static final function vector Extrapolate(rotator Dir, float DeltaTime)
-{
-    return vector(Dir) * class'HxNet_ShockProjectile'.default.Speed * DeltaTime;
 }
 
 defaultproperties
