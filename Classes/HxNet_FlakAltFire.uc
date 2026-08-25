@@ -158,61 +158,57 @@ function DoFireEffect()
 
 function Projectile SpawnProjectile(Vector Start, Rotator Dir)
 {
-    local Projectile P;
-    local Vector Velocity;
-
     if (Level.NetMode == NM_Client)
     {
-        P = Weapon.Spawn(class'HxNet_FlakShellDummy',,, Start, Dir);
-        if (P != None)
-        {
-            Client.TrackDummyProjectile(P, class'FlakCannon');
-        }
-        return P;
+        return Client.TrackDummyProjectile(
+            Weapon.Spawn(class'HxNet_FlakShellDummy',,, Start, Dir), class'FlakCannon');
     }
     if (IsEnhancedNetcodeEnabled())
     {
-        Extrapolate(Start, Dir, Velocity);
-        P = Super.SpawnProjectile(Start, Dir);
-        P.Velocity = Velocity;
-        return P;
+        return ExtrapolateProjectile(Start, Dir);
     }
     return Super.SpawnProjectile(Start, Dir);
 }
 
-function Extrapolate(out Vector Start, out Rotator Dir, out Vector Velocity)
+function Projectile ExtrapolateProjectile(Vector Start, Rotator Dir)
 {
+    local Projectile P;
     local PhysicsVolume Volume;
+    local Vector Velocity;
+    local Vector Extent;
     local Vector HitLocation;
     local Vector HitNormal;
+    local Vector Origin;
     local Vector End;
     local Actor Hit;
     local float DeltaTime;
-    local float RemainingTime;
     local float TimeStep;
     local bool bSpawnedOnWater;
 
+    Volume = Level.GetPhysicsVolume(Start);
     Velocity = Vector(Dir) * class'FlakShell'.default.Speed;
     Velocity.Z += class'FlakShell'.default.TossZ;
-    Volume = Level.GetPhysicsVolume(Start);
+    Extent = Vect(2, 2, 2);
     bSpawnedOnWater = Volume.bWaterVolume;
     DeltaTime = Client.GetProjectilePing() + ServerDelay;
-    RemainingTime = DeltaTime;
-    while (RemainingTime > 0)
+    Origin = Start;
+    while (DeltaTime > 0)
     {
-        TimeStep = FMin(BASE_TIMESTEP, RemainingTime);
-        RemainingTime -= TimeStep;
+        TimeStep = FMin(BASE_TIMESTEP, DeltaTime);
+        DeltaTime -= TimeStep;
         End = class'HxNTWeapon'.static.ExtrapolateFalling(Volume, Start, TimeStep, Velocity);
-        HexedNET.TimeTravel(DeltaTime - RemainingTime);
-        Hit = HexedNET.TimeTravelTrace(Weapon, HitLocation, HitNormal, End, Start);
+        HexedNET.TimeTravel(DeltaTime);
+        Hit = HexedNET.TimeTravelTrace(Weapon, HitLocation, HitNormal, End, Start, Extent);
         if (Hit != None)
         {
-            // TODO: Is - Vector(Dir) * 20 really needed?
-            Start = HitLocation - Vector(Dir) * 20;
             if (Hit.IsA('PawnCollisionCopy'))
             {
-                Start += PawnCollisionCopy(Hit).GetLocationDelta();
+                // TODO: what about self-inflicted splash damage if target is close?
+                // By updating to collide in the current target location (instead of past location),
+                // players might wrongfully avoid self-inflicted splash damage.
+                HitLocation += PawnCollisionCopy(Hit).GetLocationDelta();
             }
+            Start = HitLocation;
             break;
         }
         Start = End;
@@ -223,6 +219,12 @@ function Extrapolate(out Vector Start, out Rotator Dir, out Vector Velocity)
     {
         Dir = Rotator(Velocity);
     }
+    P = Super.SpawnProjectile(Start, Dir);
+    if (P != None)
+    {
+        P.Velocity = Velocity;
+    }
+    return P;
 }
 
 defaultproperties

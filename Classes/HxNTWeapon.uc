@@ -176,22 +176,40 @@ static function InstantFireTrace(MutHexedNET HexedNET,
     HexedNET.UnTimeTravel();
 }
 
-static final function vector ExtrapolateFalling(PhysicsVolume Volume,
+static final function Vector ExtrapolateFalling(PhysicsVolume Volume,
                                                 Vector Start,
-                                                float TimeStep,
+                                                float DeltaTime,
                                                 out Vector Velocity)
 {
     local Vector PreviousVelocity;
-    local Vector End;
+    local Vector Delta;
 
     PreviousVelocity = Velocity;
+    Delta = AdvanceFalling(Volume, Velocity, DeltaTime);
+    Velocity = AdjustFallingVelocity(Volume, PreviousVelocity, Delta, DeltaTime);
+    return Start + Delta;
+}
+
+static final function Vector AdvanceFalling(PhysicsVolume Volume,
+                                            out Vector Velocity,
+                                            float DeltaTime)
+{
     if (Volume.bWaterVolume)
     {
-        Velocity *= 1.0 - Volume.FluidFriction * TimeStep;
+        Velocity *= 1.0 - Volume.FluidFriction * DeltaTime;
     }
-    Velocity += Volume.Gravity * TimeStep * 0.5;
-    End = Start + (Velocity + Volume.ZoneVelocity) * TimeStep;
-    Velocity = (End - Start) / TimeStep - Volume.ZoneVelocity;
+    Velocity += Volume.Gravity * DeltaTime * 0.5;
+    return (Velocity + Volume.ZoneVelocity) * DeltaTime;
+}
+
+static final function Vector AdjustFallingVelocity(PhysicsVolume Volume,
+                                                   Vector PreviousVelocity,
+                                                   Vector Delta,
+                                                   float DeltaTime)
+{
+    local Vector Velocity;
+
+    Velocity = Delta / DeltaTime - Volume.ZoneVelocity;
     if (Velocity.Z < PreviousVelocity.Z || PreviousVelocity.Z >= 0)
     {
         Velocity = 2 * Velocity - PreviousVelocity;
@@ -200,7 +218,7 @@ static final function vector ExtrapolateFalling(PhysicsVolume Volume,
     {
         Velocity = Normal(Velocity) * Volume.TerminalVelocity;
     }
-    return End;
+    return Velocity;
 }
 
 defaultproperties

@@ -1,11 +1,5 @@
 class HxNTClient extends HxClientReplicationInfo;
 
-struct HxRandomRotator
-{
-    var int Pitch;
-    var int Yaw;
-};
-
 struct HxWeaponDummies
 {
     var class<Weapon> WeaponClass;
@@ -34,8 +28,6 @@ var private float PingInterval;
 var private float PingSmoothing;
 var private bool bClientUpdated;
 var private float ServerUpdateRequested[3];
-var private HxRandomRotator RandomRotators[32];
-var private int NextRandomRotator;
 var private Vector RandomVectors[16];
 var private int NextRandomVector;
 var private float RandomFloats[128];
@@ -45,7 +37,7 @@ var private HxDummyGroup DummyGroups[WEAPON_GROUP_COUNT];
 replication
 {
     reliable if (Role == ROLE_Authority)
-        RandomRotators, RandomVectors, RandomFloats;
+        RandomVectors, RandomFloats;
 
     unreliable if (Role == ROLE_Authority)
         ClientRequestPing,
@@ -66,7 +58,6 @@ replication
 simulated event PostBeginPlay()
 {
     Super.PostBeginPlay();
-    PopulateRandomRotators();
     PopulateRandomVectors();
     PopulateRandomFloats();
 }
@@ -266,17 +257,21 @@ simulated function bool ShouldSpawnDummyProjectile()
     return AveragePing > (AverageDeltaTime * 1.5);
 }
 
-simulated function TrackDummyProjectile(Projectile Dummy, class<Weapon> WeaponClass)
+simulated function Projectile TrackDummyProjectile(Projectile Dummy, class<Weapon> WeaponClass)
 {
     local int GroupIndex;
     local int WeaponIndex;
     local int Index;
 
-    GroupIndex = WeaponClass.default.InventoryGroup;
-    WeaponIndex = FindWeaponIndex(WeaponClass, GroupIndex);
-    Index = DummyGroups[GroupIndex].Weapons[WeaponIndex].Dummies.Length;
-    DummyGroups[GroupIndex].Weapons[WeaponIndex].Dummies.Insert(Index, 1);
-    DummyGroups[GroupIndex].Weapons[WeaponIndex].Dummies[Index] = Dummy;
+    if (Dummy != None)
+    {
+        GroupIndex = WeaponClass.default.InventoryGroup;
+        WeaponIndex = FindWeaponIndex(WeaponClass, GroupIndex);
+        Index = DummyGroups[GroupIndex].Weapons[WeaponIndex].Dummies.Length;
+        DummyGroups[GroupIndex].Weapons[WeaponIndex].Dummies.Insert(Index, 1);
+        DummyGroups[GroupIndex].Weapons[WeaponIndex].Dummies[Index] = Dummy;
+    }
+    return Dummy;
 }
 
 simulated function DestroyDummyProjectile(class<Weapon> WeaponClass, int Index)
@@ -322,43 +317,6 @@ simulated function int FindWeaponIndex(class<Weapon> WeaponClass, int GroupIndex
     DummyGroups[GroupIndex].Weapons.Insert(i, 1);
     DummyGroups[GroupIndex].Weapons[i].WeaponClass = WeaponClass;
     return i;
-}
-
-function PopulateRandomRotators()
-{
-    local Rotator RandomRotator;
-    local HxRandomRotator NewRotator;
-    local int i;
-
-    for (i = 0; i < ArrayCount(RandomRotators); ++i)
-    {
-        RandomRotator = RotRand();
-        NewRotator.Pitch = RandomRotator.Pitch;
-        NewRotator.Yaw = RandomRotator.Yaw;
-        RandomRotators[i] = NewRotator;
-    }
-}
-
-function ReplaceRandomRotator()
-{
-    local Rotator RandomRotator;
-    local HxRandomRotator Replacement;
-
-    RandomRotator = RotRand();
-    Replacement.Pitch = RandomRotator.Pitch;
-    Replacement.Yaw = RandomRotator.Yaw;
-    RandomRotators[NextRandomRotator] = Replacement;
-}
-
-simulated function Rotator GetRandomRotator()
-{
-    local Rotator Result;
-
-    Result.Pitch = RandomRotators[NextRandomRotator].Pitch;
-    Result.Yaw = RandomRotators[NextRandomRotator].Yaw;
-    ReplaceRandomRotator();
-    NextRandomRotator = (NextRandomRotator + 1) % ArrayCount(RandomRotators);
-    return Result;
 }
 
 function PopulateRandomVectors()

@@ -9,7 +9,7 @@ const BASE_TIMESTEP = 0.02;
 var float ServerDelay;
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
-var private vector BASStart;
+var private Vector BASStart;
 var private rotator BASAim;
 var private bool bBoostedAimSynchronization;
 
@@ -68,14 +68,14 @@ function ApplyBAS(HxNTWeapon.HxBAS BAS)
     bBoostedAimSynchronization = HexedNET == None || HexedNET.IsReasonable(Weapon, BASStart);
 }
 
-function vector GetProjectileStart(vector StartTrace, rotator Dir)
+function Vector GetProjectileStart(Vector StartTrace, rotator Dir)
 {
-    local vector HitLocation;
-    local vector HitNormal;
-    local vector Start;
-    local vector X;
-    local vector Y;
-    local vector Z;
+    local Vector HitLocation;
+    local Vector HitNormal;
+    local Vector Start;
+    local Vector X;
+    local Vector Y;
+    local Vector Z;
 
     GetAxes(Dir, X, Y, Z);
     Start = StartTrace + X * ProjSpawnOffset.X;
@@ -92,8 +92,8 @@ function vector GetProjectileStart(vector StartTrace, rotator Dir)
 
 function DoFireEffect()
 {
-    local vector Start;
-    local vector X;
+    local Vector Start;
+    local Vector X;
     local rotator Aim;
     local float Theta;
     local int SpawnCount;
@@ -130,7 +130,7 @@ function DoFireEffect()
     switch (SpreadStyle)
     {
         case SS_Random:
-            X = vector(Aim);
+            X = Vector(Aim);
             for (i = 0; i < SpawnCount; i++)
             {
                 Aim.Yaw = Spread * (Client.GetRandomFloat() - 0.5);
@@ -156,105 +156,90 @@ function DoFireEffect()
     ServerDelay = 0;
 }
 
-function Projectile SpawnIndexedProjectile(vector Start, Rotator Dir, int Index)
+function Projectile SpawnIndexedProjectile(Vector Start, Rotator Dir, int Index)
 {
-    local Projectile P;
-    local Vector Velocity;
-    local Rotator RandomRotation;
-    local int Bounces;
-    local bool bBounced;
+    local HxNet_FlakChunkDummy P;
 
     if (Level.NetMode == NM_Client)
     {
         P = Weapon.Spawn(class'HxNet_FlakChunkDummy',,, Start, Dir);
-        if (HxNet_FlakChunkDummy(P) != None)
+        if (P != None)
         {
-            Bounces = RandomizeBounces();
-            RandomRotation = Client.GetRandomRotator();
-            HxNet_FlakChunkDummy(P).Randomize(RandomRotation, Index, Bounces);
-            Client.TrackDummyProjectile(P, class'FlakCannon');
+            P.Index = Index;
+            P.Bounces = RandomizeBounces();
         }
-        return P;
+        return Client.TrackDummyProjectile(P, class'FlakCannon');
     }
     if (IsEnhancedNetcodeEnabled())
     {
-        bBounced = Extrapolate(Start, Dir, Velocity, Bounces);
-        RandomRotation = Client.GetRandomRotator();
-        P = SpawnProjectile(Start, Dir);
-        if (HxNet_FlakChunk(P) != None)
-        {
-            HxNet_FlakChunk(P).Randomize(RandomRotation, Index, Bounces, bBounced);
-            if (bBounced)
-            {
-                P.Velocity = Velocity;
-            }
-        }
-        return P;
+        return ExtrapolateProjectile(Start, Dir, Index);
     }
     return SpawnProjectile(Start, Dir);
 }
 
-function bool Extrapolate(out Vector Start, out Rotator Dir, out Vector Velocity, out int Bounces)
+function Projectile ExtrapolateProjectile(Vector Start, Rotator Dir, int Index)
 {
+    local HxNet_FlakChunk P;
     local PhysicsVolume Volume;
+    local Vector Velocity;
     local Vector HitLocation;
     local Vector HitNormal;
+    local Vector Delta;
     local Vector End;
     local Actor Hit;
     local float DeltaTime;
-    local float RemainingTime;
     local float TimeStep;
-    local bool bBounced;
+    local int Bounces;
+    local bool bFalling;
 
-    Velocity = vector(Dir) * class'FlakChunk'.default.Speed;
+    Velocity = GetInitialVelocity(Start, Dir, Volume);
     DeltaTime = Client.GetProjectilePing() + ServerDelay;
-    RemainingTime = DeltaTime;
     Bounces = RandomizeBounces();
-    Volume = Level.GetPhysicsVolume(Start);
-    if (Volume.bWaterVolume)
+    while (DeltaTime > 0)
     {
-        Velocity *= 0.65;
-    }
-    while (RemainingTime > 0)
-    {
-        TimeStep = FMin(BASE_TIMESTEP, RemainingTime);
-        RemainingTime -= TimeStep;
-        if (bBounced)
+        TimeStep = FMin(BASE_TIMESTEP, DeltaTime);
+        DeltaTime -= TimeStep;
+        if (bFalling)
         {
-            End = class'HxNTWeapon'.static.ExtrapolateFalling(Volume, Start, TimeStep, Velocity);
+            Delta = class'HxNTWeapon'.static.AdvanceFalling(Volume, Velocity, TimeStep);
         }
         else
         {
-            End = Start + Velocity * TimeStep;
+            Delta = Velocity * TimeStep;
         }
-        HexedNET.TimeTravel(DeltaTime - RemainingTime);
-        Hit = HexedNET.TimeTravelTrace(Weapon, HitLocation, HitNormal, End, Start);
+        End = Start + Delta;
+        HexedNET.TimeTravel(DeltaTime);
+        Hit = HexedNET.TimeTravelTrace(Weapon, HitLocation, HitNormal, End, Start,, bFalling);
         if (Hit != None)
         {
-            if (Hit.bStatic || Hit.bWorldGeometry)
+            if (HitWall(Hit))
             {
-                RemainingTime += (VSize(HitLocation - End) / VSize(Start - End)) * TimeStep;
-                bBounced = true;
-                End = HitLocation;
                 if (Bounces > 0)
                 {
+                    bFalling = true;
                     Velocity = 0.65 * (Velocity - 2.0 * HitNormal * (Velocity dot HitNormal));
+                    DeltaTime += (VSize(HitLocation - End) / VSize(Delta)) * TimeStep;
+                    End = HitLocation;
                     --Bounces;
                 }
                 else
                 {
-                    Start = End;
+                    Start = HitLocation;
+                    // TODO: find a better way to handle chunks that finished bouncing
+                    if (HitNormal.Z < Hit.MINFLOORZ)
+                    {
+                        Start -= Normal(Velocity) * 100;
+                    }
                     break;
                 }
             }
             else
             {
-                // TODO: Is - Vector(Dir) * 20 really needed?
-                Start = HitLocation - Vector(Dir) * 20;
                 if (Hit.IsA('PawnCollisionCopy'))
                 {
-                    Start += PawnCollisionCopy(Hit).GetLocationDelta();
+                    HitLocation += PawnCollisionCopy(Hit).GetLocationDelta();
                 }
+                Start = HitLocation;
                 break;
             }
         }
@@ -262,10 +247,42 @@ function bool Extrapolate(out Vector Start, out Rotator Dir, out Vector Velocity
         Volume = Level.GetPhysicsVolume(Start);
     }
     HexedNET.UnTimeTravel();
-    return bBounced;
+    P = HxNet_FlakChunk(SpawnProjectile(Start, Dir));
+    if (P != None)
+    {
+        P.Index = Index;
+        P.Bounces = Bounces;
+        if (bFalling)
+        {
+            P.SetPhysics(PHYS_Falling);
+            P.Velocity = Velocity;
+            P.bBounce = Bounces > 0;
+        }
+    }
+    return P;
 }
 
-function int RandomizeBounces()
+final function bool HitWall(Actor Wall)
+{
+    return Wall.bStatic
+        || Wall.bWorldGeometry
+        || (Mover(Wall) != None && !Mover(Wall).bDamageTriggered);
+}
+
+final function Vector GetInitialVelocity(Vector Start, Rotator Dir, out PhysicsVolume Volume)
+{
+    local Vector Velocity;
+
+    Velocity = Vector(Dir) * class'FlakChunk'.default.Speed;
+    Volume = Level.GetPhysicsVolume(Start);
+    if (Volume.bWaterVolume)
+    {
+        Velocity *= 0.65;
+    }
+    return Velocity;
+}
+
+final function int RandomizeBounces()
 {
     local float R;
 

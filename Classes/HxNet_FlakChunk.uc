@@ -2,11 +2,11 @@ class HxNet_FlakChunk extends FlakChunk;
 
 const INTERPOLATION_PERIOD = 0.30;
 
+var int Index;
 var private MutHexedNET MutatorOwner;
 var private Vector DummyOffset;
 var private float ElapsedInterpolationTime;
 var private bool bInterpolateDummy;
-var private int Index;
 
 replication
 {
@@ -36,18 +36,6 @@ simulated function PostNetBeginPlay()
             break;
         }
     }
-}
-
-function Randomize(Rotator NewRotation, int NewIndex, int NewBounces, bool bBounced)
-{
-    Index = NewIndex;
-    Bounces = NewBounces;
-    if (bBounced)
-    {
-        SetPhysics(PHYS_Falling);
-        bBounce = Bounces > 0;
-    }
-    SetRotation(NewRotation);
 }
 
 simulated function SearchPredictedProjectile(HxNTClient Client)
@@ -106,6 +94,7 @@ simulated function InterpolateDummy(FlakChunk Dummy)
             Dummy.Trail = None;
         }
         DoSetLocation(Dummy.Location);
+        SetRotation(Dummy.Rotation);
     }
 }
 

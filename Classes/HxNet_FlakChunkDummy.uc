@@ -2,13 +2,6 @@ class HxNet_FlakChunkDummy extends FlakChunk;
 
 var int Index;
 
-function Randomize(Rotator NewRotation, int NewIndex, int NewBounces)
-{
-    Index = NewIndex;
-    Bounces = NewBounces;
-    SetRotation(NewRotation);
-}
-
 simulated function ProcessTouch(Actor Other, vector HitLocation)
 {
     if (FlakChunk(Other) == None && (Physics == PHYS_Falling || Other != Instigator))

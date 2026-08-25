@@ -118,7 +118,9 @@ function Actor TimeTravelTrace(Weapon Weapon,
                                out vector HitLocation,
                                out vector HitNormal,
                                vector End,
-                               vector Start)
+                               vector Start,
+                               optional vector Extent,
+                               optional bool bHitInstigator)
 {
     local Actor Other;
     local PawnCollisionCopy Copy;
@@ -127,7 +129,7 @@ function Actor TimeTravelTrace(Weapon Weapon,
 
     // First, lets set the extent of our trace.  End once we hit an actor which won't
     // be checked by an unlagged copy.
-    foreach TraceActors(class'Actor', Other, HitLocation, HitNormal, End, Start)
+    foreach TraceActors(class'Actor', Other, HitLocation, HitNormal, End, Start, Extent)
     {
         if ((Other.bBlockActors || Other.bProjTarget || Other.bWorldGeometry)
             && !IsPredicted(Other))
@@ -138,9 +140,11 @@ function Actor TimeTravelTrace(Weapon Weapon,
     }
     // Now, lets see if we run into any copies, we stop at the location
     // determined by the previous trace.
-    foreach TraceActors(class'PawnCollisionCopy', Copy, PCCHitLocation, PCCHitNormal, End, Start)
+    foreach TraceActors(
+        class'PawnCollisionCopy', Copy, PCCHitLocation, PCCHitNormal, End, Start, Extent)
     {
-        if (Copy != None && Copy.CopiedPawn != None && Copy.CopiedPawn != Weapon.Instigator)
+        if (Copy != None && Copy.CopiedPawn != None
+            && (bHitInstigator || Copy.CopiedPawn != Weapon.Instigator))
         {
             HitLocation = PCCHitLocation;
             HitNormal = PCCHitNormal;

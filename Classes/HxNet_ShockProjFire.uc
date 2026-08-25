@@ -107,17 +107,16 @@ function Projectile SpawnProjectile(Vector Start, Rotator Dir)
     if (Level.NetMode == NM_Client)
     {
         P = Weapon.Spawn(class'HxNet_ShockProjectileDummy',,, Start, Dir);
-        if (P != None)
-        {
-            Client.TrackDummyProjectile(P, class'ShockRifle');
-        }
-        return P;
+        return Client.TrackDummyProjectile(P, class'ShockRifle');
     }
     if (IsEnhancedNetcodeEnabled())
     {
-        Extrapolate(Start, Dir);
+        P = ExtrapolateProjectile(Start, Dir);
     }
-    P = Super.SpawnProjectile(Start, Dir);
+    else
+    {
+        P = Super.SpawnProjectile(Start, Dir);
+    }
     if (HexedNET != None)
     {
         HexedNET.RegisterShockProjectile(HxNet_ShockProjectile(P));
@@ -125,29 +124,30 @@ function Projectile SpawnProjectile(Vector Start, Rotator Dir)
     return P;
 }
 
-function Extrapolate(out Vector Start, out Rotator Dir)
+// TODO: handle bSwitchToZeroCollision
+function Projectile ExtrapolateProjectile(Vector Start, Rotator Dir)
 {
     local Vector Velocity;
+    local Vector Extent;
     local Vector HitLocation;
     local Vector HitNormal;
     local Vector Origin;
     local Vector End;
     local Actor Hit;
     local float DeltaTime;
-    local float RemainingTime;
     local float TimeStep;
 
     Velocity = Vector(Dir) * class'ShockProjectile'.default.Speed;
+    Extent = Vect(20, 20, 20);
     DeltaTime = Client.GetProjectilePing() + ServerDelay;
-    RemainingTime = DeltaTime;
     Origin = Start;
-    while (RemainingTime > 0)
+    while (DeltaTime > 0)
     {
-        TimeStep = FMin(BASE_TIMESTEP, RemainingTime);
-        RemainingTime -= TimeStep;
+        TimeStep = FMin(BASE_TIMESTEP, DeltaTime);
+        DeltaTime -= TimeStep;
         End = Start + Velocity * TimeStep;
-        HexedNET.TimeTravel(DeltaTime - RemainingTime);
-        Hit = HexedNET.TimeTravelTrace(Weapon, HitLocation, HitNormal, End, Start);
+        HexedNET.TimeTravel(DeltaTime);
+        Hit = HexedNET.TimeTravelTrace(Weapon, HitLocation, HitNormal, End, Start, Extent);
         if (Hit != None)
         {
             if (Hit.IsA('PawnCollisionCopy'))
@@ -157,22 +157,13 @@ function Extrapolate(out Vector Start, out Rotator Dir)
                 // players might wrongfully avoid self-inflicted splash damage.
                 HitLocation += PawnCollisionCopy(Hit).GetLocationDelta();
             }
-            if (VSize(HitLocation - Origin) <= class'ShockProjectile'.default.DamageRadius)
-            {
-                // TODO: doing this to properly register self-inflicted damage when shooting against
-                // surfaces up close. Is there a better solution?
-                Start = Origin;
-            }
-            else
-            {
-                // TODO: Why subtract? Does spawn/hit fail if inside the target?
-                Start = HitLocation - Vector(Dir) * 20;
-            }
+            Start = HitLocation;
             break;
         }
         Start = End;
     }
     HexedNET.UnTimeTravel();
+    return Super.SpawnProjectile(Start, Dir);
 }
 
 defaultproperties
