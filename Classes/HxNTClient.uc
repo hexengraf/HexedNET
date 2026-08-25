@@ -338,6 +338,10 @@ simulated function Vector GetRandomVector()
 {
     local Vector Result;
 
+    if (!IsEnhancedNetcodeEnabled())
+    {
+        return VRand();
+    }
     Result = RandomVectors[NextRandomVector];
     ReplaceRandomVector();
     NextRandomVector = (NextRandomVector + 1) % ArrayCount(RandomVectors);
@@ -363,6 +367,10 @@ simulated function float GetRandomFloat()
 {
     local float Result;
 
+    if (!IsEnhancedNetcodeEnabled())
+    {
+        return FRand();
+    }
     Result = RandomFLoats[NextRandomFloat];
     ReplaceRandomFloat();
     NextRandomFloat = (NextRandomFloat + 1) % ArrayCount(RandomFLoats);
