@@ -136,7 +136,6 @@ static function StaticTracePart(MutHexedNET HexedNET,
             HitNormal = Vect(0, 0, 0);
             if (Pawn(Other) != None && HitLocation != Start && WF.AllowMultiHit())
             {
-                // TODO: multi-hit in past or present?
                 StaticTracePart(HexedNET, WF, PastHitLocation, End, X, Dir, Pawn(Other));
             }
         }

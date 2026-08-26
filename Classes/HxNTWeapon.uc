@@ -69,14 +69,14 @@ static final function CheckStopFire(Weapon W, out int StopFireTime, out int AltS
 static final function HxBAS EncodeBAS(Weapon W, int Mode, optional bool bSpread)
 {
     local HxBAS BAS;
-    local vector Start;
-    local rotator Aim;
+    local Vector Start;
+    local Rotator Aim;
 
     Start = W.Instigator.Location + W.Instigator.EyePosition();
     Aim = W.FireMode[Mode].AdjustAim(Start, W.FireMode[Mode].AimError);
     if (bSpread)
     {
-        Aim = rotator(vector(Aim) + VRand() * FRand() * W.FireMode[Mode].Spread);
+        Aim = Rotator(Vector(Aim) + VRand() * FRand() * W.FireMode[Mode].Spread);
     }
     BAS.X = Start.X;
     BAS.Y = Start.Y;
@@ -86,7 +86,7 @@ static final function HxBAS EncodeBAS(Weapon W, int Mode, optional bool bSpread)
     return BAS;
 }
 
-static final function DecodeBAS(HxBAS BAS, out vector Start, out rotator Dir)
+static final function DecodeBAS(HxBAS BAS, out Vector Start, out Rotator Dir)
 {
     Start.X = BAS.X;
     Start.Y = BAS.Y;
@@ -97,83 +97,93 @@ static final function DecodeBAS(HxBAS BAS, out vector Start, out rotator Dir)
 
 static function InstantFireTrace(MutHexedNET HexedNET,
                                  InstantFire WF,
-                                 vector Start,
-                                 rotator Dir,
+                                 Vector Start,
+                                 Rotator Dir,
                                  float AveragePing)
 {
-    local Actor Other;
-    local vector X;
-    local vector End;
-    local vector HitLocation;
-    local vector PastHitLocation;
-    local vector HitNormal;
-    local vector RefNormal;
+    local Vector X;
+    local Vector End;
+    local Vector HitLocation;
+    local Vector HitNormal;
+    local Vector RefNormal;
+    local Actor Hit;
     local int Damage;
+    local bool bRewind;
     local bool bDoReflect;
     local int ReflectNum;
 
     WF.MaxRange();
     ReflectNum = 0;
-    HexedNET.TimeTravel(AveragePing);
+    bRewind = HexedNET != None;
     while (true)
     {
         bDoReflect = false;
-        X = vector(Dir);
+        X = Vector(Dir);
         End = Start + WF.TraceRange * X;
-        Other = HexedNET.CompensatedTrace(
-            WF.Weapon, HitLocation, HitNormal, End, Start, PastHitLocation);
-        if (Other != None && (Other != WF.Instigator || ReflectNum > 0))
+        if (bRewind)
         {
-            if (WF.bReflective && Other.IsA('xPawn')
-                && xPawn(Other).CheckReflect(HitLocation, RefNormal, WF.DamageMin * 0.25))
+            HexedNET.TimeTravel(AveragePing);
+            Hit = HexedNET.CompensatedTrace(WF.Weapon, HitLocation, HitNormal, End, Start);
+            HexedNET.UnTimeTravel();
+            bRewind = false;
+        }
+        else
+        {
+            Hit = WF.Weapon.Trace(HitLocation, HitNormal, End, Start, true);
+        }
+        // TODO: is it safe to call UpdateHit in NM_Clients?
+        if (Hit != None && (Hit != WF.Instigator || ReflectNum > 0))
+        {
+            // TODO: shield gun in the past
+            if (WF.bReflective && Hit.IsA('xPawn')
+                && xPawn(Hit).CheckReflect(HitLocation, RefNormal, WF.DamageMin * 0.25))
             {
                 bDoReflect = true;
-                HitNormal = Vect(0,0,0);
+                HitNormal = Vect(0, 0, 0);
             }
-            else if (!Other.bWorldGeometry)
+            else if (!Hit.bWorldGeometry)
             {
-                Damage = WF.DamageMin;
-                if (WF.DamageMin != WF.DamageMax && FRand() > 0.5)
-                {
-                    Damage += Rand(1 + WF.DamageMax - WF.DamageMin);
-                }
-                Damage = Damage * WF.DamageAtten;
-                if (Other.IsA('Vehicle')
-                    || (!Other.IsA('Pawn') && !Other.IsA('HitScanBlockingVolume')))
+                if (Hit.IsA('Vehicle')
+                    || (!Hit.IsA('Pawn') && !Hit.IsA('HitScanBlockingVolume')))
                 {
                     WeaponAttachment(WF.Weapon.ThirdPersonActor).UpdateHit(
-                        Other, HitLocation, HitNormal);
+                        Hit, HitLocation, HitNormal);
                 }
-                Other.TakeDamage(
-                    Damage, WF.Instigator, HitLocation, WF.Momentum * X, WF.DamageType);
-                HitNormal = Vect(0,0,0);
+                if (WF.Level.NetMode != NM_Client)
+                {
+                    Damage = WF.DamageMin;
+                    if (WF.DamageMin != WF.DamageMax && FRand() > 0.5)
+                    {
+                        Damage += Rand(1 + WF.DamageMax - WF.DamageMin);
+                    }
+                    Damage = Damage * WF.DamageAtten;
+                    Hit.TakeDamage(
+                        Damage, WF.Instigator, HitLocation, WF.Momentum * X, WF.DamageType);
+                }
+                HitNormal = Vect(0, 0, 0);
             }
             else if (WeaponAttachment(WF.Weapon.ThirdPersonActor) != None)
             {
-                WeaponAttachment(WF.Weapon.ThirdPersonActor).UpdateHit(
-                    Other, HitLocation, HitNormal);
+                WeaponAttachment(WF.Weapon.ThirdPersonActor).UpdateHit(Hit, HitLocation, HitNormal);
             }
         }
         else
         {
             HitLocation = End;
-            HitNormal = Vect(0,0,0);
-            WeaponAttachment(WF.Weapon.ThirdPersonActor).UpdateHit(
-                Other, HitLocation, HitNormal);
+            HitNormal = Vect(0, 0, 0);
+            WeaponAttachment(WF.Weapon.ThirdPersonActor).UpdateHit(Hit, HitLocation, HitNormal);
         }
         WF.SpawnBeamEffect(Start, Dir, HitLocation, HitNormal, ReflectNum);
-        if (bDoReflect && ++ReflectNum < 4)
+        if (WF.Level.NetMode != NM_Client && bDoReflect && ++ReflectNum < 4)
         {
-            // TODO: reflections in past or present?
-            Start = PastHitLocation;
-            Dir = rotator(RefNormal);
+            Start = HitLocation;
+            Dir = Rotator(RefNormal);
         }
         else
         {
             break;
         }
     }
-    HexedNET.UnTimeTravel();
 }
 
 static final function Vector ExtrapolateFalling(PhysicsVolume Volume,

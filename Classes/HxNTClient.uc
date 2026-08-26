@@ -28,8 +28,6 @@ var private float PingInterval;
 var private float PingSmoothing;
 var private bool bClientUpdated;
 var private float ServerUpdateRequested[3];
-var private Vector RandomVectors[16];
-var private int NextRandomVector;
 var private float RandomFloats[128];
 var private int NextRandomFloat;
 var private HxDummyGroup DummyGroups[WEAPON_GROUP_COUNT];
@@ -37,7 +35,7 @@ var private HxDummyGroup DummyGroups[WEAPON_GROUP_COUNT];
 replication
 {
     reliable if (Role == ROLE_Authority)
-        RandomVectors, RandomFloats;
+        RandomFloats;
 
     unreliable if (Role == ROLE_Authority)
         ClientRequestPing,
@@ -58,7 +56,6 @@ replication
 simulated event PostBeginPlay()
 {
     Super.PostBeginPlay();
-    PopulateRandomVectors();
     PopulateRandomFloats();
 }
 
@@ -317,35 +314,6 @@ simulated function int FindWeaponIndex(class<Weapon> WeaponClass, int GroupIndex
     DummyGroups[GroupIndex].Weapons.Insert(i, 1);
     DummyGroups[GroupIndex].Weapons[i].WeaponClass = WeaponClass;
     return i;
-}
-
-function PopulateRandomVectors()
-{
-    local int i;
-
-    for (i = 0; i < ArrayCount(RandomVectors); ++i)
-    {
-        RandomVectors[i] = VRand();
-    }
-}
-
-function ReplaceRandomVector()
-{
-    RandomVectors[NextRandomVector] = VRand();
-}
-
-simulated function Vector GetRandomVector()
-{
-    local Vector Result;
-
-    if (!IsEnhancedNetcodeEnabled())
-    {
-        return VRand();
-    }
-    Result = RandomVectors[NextRandomVector];
-    ReplaceRandomVector();
-    NextRandomVector = (NextRandomVector + 1) % ArrayCount(RandomVectors);
-    return Result;
 }
 
 function PopulateRandomFloats()

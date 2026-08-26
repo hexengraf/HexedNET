@@ -4,8 +4,8 @@ class HxNet_SniperFire extends SniperFire
 var float ServerDelay;
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
-var private vector BASStart;
-var private rotator BASAim;
+var private Vector BASStart;
+var private Rotator BASAim;
 var private bool bBoostedAimSynchronization;
 
 function PreBeginPlay()
@@ -52,23 +52,23 @@ function DoFireEffect()
     ServerDelay = 0;
 }
 
-function DoTrace(vector Start, Rotator Dir)
+function DoTrace(Vector Start, Rotator Dir)
 {
-    local vector HitLocation;
-    local vector HitNormal;
-    local vector RefNormal;
-    local vector PastHitLocation;
-    local vector End;
-    local vector X;
-    local vector ArcStart;
-    local vector MainArcHit;
-    local Actor Other;
+    local Vector HitLocation;
+    local Vector HitNormal;
+    local Vector RefNormal;
+    local Vector End;
+    local Vector X;
+    local Vector ArcStart;
+    local Vector MainArcHit;
+    local Actor Hit;
     local Actor MainArcHitTarget;
     local Pawn HeadShotPawn;
     local xEmitter HitEmitter;
     local class<Actor> TmpHitEmitClass;
     local float TmpTraceRange;
     local bool bDoReflect;
+    local bool bRewind;
     local int Damage;
     local int ReflectNum;
     local int ArcsRemaining;
@@ -87,47 +87,47 @@ function DoTrace(vector Start, Rotator Dir)
         ArcStart = GetArcStart(Weapon.EffectOffset);
     }
     ArcsRemaining = NumArcs;
-    TmpHitEmitClass = class'HxNet_NewLightningBolt';
     TmpTraceRange = TraceRange;
     ReflectNum = 0;
-    if (HexedNET != None)
-    {
-        HexedNET.TimeTravel(Client.AveragePing + ServerDelay);
-    }
+    TmpHitEmitClass = HitEmitterClass;
+    bRewind = HexedNET != None;
     while (true)
     {
         bDoReflect = false;
-        X = vector(Dir);
+        X = Vector(Dir);
         End = Start + TmpTraceRange * X;
-        if (HexedNET != None)
+        if (bRewind)
         {
-            Other = HexedNET.CompensatedTrace(
-                Weapon, HitLocation, HitNormal, End, Start, PastHitLocation);
+            HexedNET.TimeTravel(Client.AveragePing + ServerDelay);
+            Hit = HexedNET.CompensatedTrace(Weapon, HitLocation, HitNormal, End, Start);
+            HexedNET.UnTimeTravel();
+            TmpHitEmitClass = class'HxNet_NewLightningBolt';
+            bRewind = false;
         }
         else
         {
-            Other = Weapon.Trace(HitLocation, HitNormal, End, Start, true);
-            PastHitLocation = HitLocation;
+            Hit = Weapon.Trace(HitLocation, HitNormal, End, Start, true);
         }
-        if (Other != None && (Other != Instigator || ReflectNum > 0))
+        if (Hit != None && (Hit != Instigator || ReflectNum > 0))
         {
-            if (bReflective && Other.IsA('xPawn')
-                && xPawn(Other).CheckReflect(HitLocation, RefNormal, DamageMin * 0.25))
+            // TODO: shield gun in the past
+            if (bReflective && Hit.IsA('xPawn')
+                && xPawn(Hit).CheckReflect(HitLocation, RefNormal, DamageMin * 0.25))
             {
                 bDoReflect = true;
             }
-            else if (Other != MainArcHitTarget)
+            else if (Hit != MainArcHitTarget)
             {
-                if (Other.bWorldGeometry)
+                if (Hit.bWorldGeometry)
                 {
                     HitLocation = HitLocation + 2.0 * HitNormal;
                 }
                 else if (Level.NetMode != NM_Client)
                 {
                     Damage = (DamageMin + Rand(DamageMax - DamageMin)) * DamageAtten;
-                    if (Vehicle(Other) != None)
+                    if (Vehicle(Hit) != None)
                     {
-                        HeadShotPawn = Vehicle(Other).CheckForHeadShot(HitLocation, X, 1.0);
+                        HeadShotPawn = Vehicle(Hit).CheckForHeadShot(HitLocation, X, 1.0);
                     }
                     if (HeadShotPawn != None)
                     {
@@ -138,10 +138,10 @@ function DoTrace(vector Start, Rotator Dir)
                             Momentum * X,
                             DamageTypeHeadShot);
                     }
-                    else if (Pawn(Other) != None && ArcsRemaining == NumArcs
-                        && Pawn(Other).IsHeadShot(HitLocation, X, 1.0))
+                    else if (Pawn(Hit) != None && ArcsRemaining == NumArcs
+                        && Pawn(Hit).IsHeadShot(HitLocation, X, 1.0))
                     {
-                        Other.TakeDamage(
+                        Hit.TakeDamage(
                             Damage * HeadShotDamageMult,
                             Instigator,
                             HitLocation,
@@ -154,12 +154,7 @@ function DoTrace(vector Start, Rotator Dir)
                         {
                             Damage *= SecDamageMult;
                         }
-                        Other.TakeDamage(
-                            Damage,
-                            Instigator,
-                            HitLocation,
-                            Momentum * X,
-                            DamageType);
+                        Hit.TakeDamage(Damage, Instigator, HitLocation, Momentum * X, DamageType);
                     }
                 }
             }
@@ -171,40 +166,37 @@ function DoTrace(vector Start, Rotator Dir)
         }
         if (Weapon == None)
         {
-            HexedNET.UnTimeTravel();
-            return;
+            break;
         }
         HitEmitter = xEmitter(Weapon.Spawn(TmpHitEmitClass,,, ArcStart, Rotator(HitNormal)));
         if (HitEmitter != None)
         {
             HitEmitter.mSpawnVecA = HitLocation;
         }
-        if (HitScanBlockingVolume(Other) != None)
+        if (HitScanBlockingVolume(Hit) != None || Level.NetMode == NM_Client)
         {
-            HexedNET.UnTimeTravel();
-            return;
+            break;
         }
         if (ArcsRemaining == NumArcs)
         {
-            // TODO: sub-arcs in past or present?
-            MainArcHit = PastHitLocation + (HitNormal * 2.0);
-            if (Other != None && !Other.bWorldGeometry)
+            MainArcHit = HitLocation + (HitNormal * 2.0);
+            if (Hit != None && !Hit.bWorldGeometry)
             {
-                MainArcHitTarget = Other;
+                MainArcHitTarget = Hit;
             }
         }
         if (bDoReflect && ++ReflectNum < 4)
         {
-            // TODO: reflections in past or present?
-            Start = PastHitLocation;
+            Start = HitLocation;
             Dir = Rotator(X - 2.0 * RefNormal * (X dot RefNormal));
+            TmpHitEmitClass = HitEmitterClass;
         }
         else if (ArcsRemaining > 0)
         {
             ArcsRemaining--;
             Start = MainArcHit;
-            Dir = Rotator(Client.GetRandomVector());
-            TmpHitEmitClass = class'HxNet_ChildLightningBolt';
+            Dir = Rotator(VRand());
+            TmpHitEmitClass = SecHitEmitterClass;
             TmpTraceRange = SecTraceDist;
             ArcStart = MainArcHit;
         }
@@ -213,17 +205,13 @@ function DoTrace(vector Start, Rotator Dir)
             break;
         }
     }
-    if (HexedNET != None)
-    {
-        HexedNET.UnTimeTravel();
-    }
 }
 
-function vector GetArcStart(vector EffectOffset)
+function Vector GetArcStart(Vector EffectOffset)
 {
-    local vector X;
-    local vector Y;
-    local vector Z;
+    local Vector X;
+    local Vector Y;
+    local Vector Z;
 
     Weapon.GetViewAxes(X, Y, Z);
     if (Level.NetMode == NM_DedicatedServer)

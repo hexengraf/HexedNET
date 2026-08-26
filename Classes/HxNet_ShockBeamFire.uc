@@ -4,8 +4,8 @@ class HxNet_ShockBeamFire extends ShockBeamFire
 var float ServerDelay;
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
-var private vector BASStart;
-var private rotator BASAim;
+var private Vector BASStart;
+var private Rotator BASAim;
 var private bool bBoostedAimSynchronization;
 
 function PreBeginPlay()
@@ -33,9 +33,9 @@ function PlayFiring()
 
 function ApplyBAS(HxNTWeapon.HxBAS BAS)
 {
-    local vector X;
-    local vector Y;
-    local vector Z;
+    local Vector X;
+    local Vector Y;
+    local Vector Z;
 
     class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
     if (HexedNET == None || HexedNET.IsReasonable(Weapon, BASStart))
@@ -69,124 +69,34 @@ function DoFireEffect()
     ServerDelay = 0;
 }
 
-function SpawnBeamEffect(vector Start,
-                         rotator Dir,
-                         vector HitLocation,
-                         vector HitNormal,
+function SpawnBeamEffect(Vector Start,
+                         Rotator Dir,
+                         Vector HitLocation,
+                         Vector HitNormal,
                          int ReflectNum)
 {
-    local ShockBeamEffect Beam;
-
-    if (!IsEnhancedNetcodeEnabled())
+    if (Level.NetMode != NM_Client && ReflectNum == 0)
+    {
+        BeamEffectClass = class'HxNet_ShockBeamEffect';
+        Super.SpawnBeamEffect(Start, Dir, HitLocation, HitNormal, ReflectNum);
+        BeamEffectClass = default.BeamEffectClass;
+    }
+    else
     {
         Super.SpawnBeamEffect(Start, Dir, HitLocation, HitNormal, ReflectNum);
     }
-    else if (Weapon != None)
-    {
-        Beam = Weapon.Spawn(Class'HxNet_ShockBeamEffect', Weapon,, Start, Dir);
-        if (ReflectNum != 0)
-        {
-            Beam.Instigator = None;
-        }
-        Beam.AimAt(HitLocation, HitNormal);
-    }
 }
 
-function DoTrace(vector Start, rotator Dir)
+function DoTrace(Vector Start, Rotator Dir)
 {
-    local WeaponAttachment Attachment;
-    local Actor Other;
-    local vector X;
-    local vector End;
-    local vector HitLocation;
-    local vector PastHitLocation;
-    local vector HitNormal;
-    local vector RefNormal;
-    local int Damage;
-    local bool bDoReflect;
-    local int ReflectNum;
-
-    if (!IsEnhancedNetcodeEnabled())
+    if (IsEnhancedNetcodeEnabled())
+    {
+        class'HxNTWeapon'.static.InstantFireTrace(
+            HexedNET, Self, Start, Dir, Client.AveragePing + ServerDelay);
+    }
+    else
     {
         Super.DoTrace(Start, Dir);
-        return;
-    }
-    MaxRange();
-    ReflectNum = 0;
-    Attachment = WeaponAttachment(Weapon.ThirdPersonActor);
-    while (true)
-    {
-        bDoReflect = false;
-        X = vector(Dir);
-        End = Start + TraceRange * X;
-        if (HexedNET != None)
-        {
-            HexedNET.TimeTravel(Client.AveragePing + ServerDelay);
-            Other = HexedNET.CompensatedTrace(
-                Weapon, HitLocation, HitNormal, End, Start, PastHitLocation);
-            if (Other != None && Other.IsA('ShockProjectile'))
-            {
-                HexedNET.UnTimeTravel();
-            }
-        }
-        else
-        {
-            Other = Weapon.Trace(HitLocation, HitNormal, End, Start, true);
-            PastHitLocation = HitLocation;
-        }
-        if (Other != None && (Other != Instigator || ReflectNum > 0))
-        {
-            if (bReflective && Other.IsA('xPawn')
-                && xPawn(Other).CheckReflect(HitLocation, RefNormal, DamageMin * 0.25))
-            {
-                bDoReflect = true;
-                HitNormal = Vect(0, 0, 0);
-            }
-            else if (!Other.bWorldGeometry)
-            {
-                Damage = DamageMin;
-                if (DamageMin != DamageMax && (FRand() > 0.5))
-                {
-                    Damage += Rand(1 + DamageMax - DamageMin);
-                }
-                Damage = Damage * DamageAtten;
-                if (Other.IsA('Vehicle')
-                    || (!Other.IsA('Pawn') && !Other.IsA('HitScanBlockingVolume')))
-                {
-                    Attachment.UpdateHit(Other, HitLocation, HitNormal);
-                }
-                if (Level.NetMode != NM_Client)
-                {
-                    Other.TakeDamage(Damage, Instigator, HitLocation, Momentum * X, DamageType);
-                }
-                HitNormal = Vect(0, 0, 0);
-            }
-            else if (Attachment != None)
-            {
-                Attachment.UpdateHit(Other, HitLocation, HitNormal);
-            }
-        }
-        else
-        {
-            HitLocation = End;
-            HitNormal = Vect(0, 0, 0);
-            Attachment.UpdateHit(Other, HitLocation, HitNormal);
-        }
-        SpawnBeamEffect(Start, Dir, HitLocation, HitNormal, ReflectNum);
-        if (bDoReflect && ++ReflectNum < 4)
-        {
-            // TODO: reflections in past or present?
-            Start = PastHitLocation;
-            Dir = rotator(RefNormal);
-        }
-        else
-        {
-            break;
-        }
-    }
-    if (HexedNET != None)
-    {
-        HexedNET.UnTimeTravel();
     }
 }
 
