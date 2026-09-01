@@ -186,51 +186,6 @@ static function InstantFireTrace(MutHexedNET HexedNET,
     }
 }
 
-static final function Vector ExtrapolateFalling(PhysicsVolume Volume,
-                                                Vector Start,
-                                                float DeltaTime,
-                                                out Vector Velocity)
-{
-    local Vector PreviousVelocity;
-    local Vector Delta;
-
-    PreviousVelocity = Velocity;
-    Delta = AdvanceFalling(Volume, Velocity, DeltaTime);
-    Velocity = AdjustFallingVelocity(Volume, PreviousVelocity, Delta, DeltaTime);
-    return Start + Delta;
-}
-
-static final function Vector AdvanceFalling(PhysicsVolume Volume,
-                                            out Vector Velocity,
-                                            float DeltaTime)
-{
-    if (Volume.bWaterVolume)
-    {
-        Velocity *= 1.0 - Volume.FluidFriction * DeltaTime;
-    }
-    Velocity += Volume.Gravity * DeltaTime * 0.5;
-    return (Velocity + Volume.ZoneVelocity) * DeltaTime;
-}
-
-static final function Vector AdjustFallingVelocity(PhysicsVolume Volume,
-                                                   Vector PreviousVelocity,
-                                                   Vector Delta,
-                                                   float DeltaTime)
-{
-    local Vector Velocity;
-
-    Velocity = Delta / DeltaTime - Volume.ZoneVelocity;
-    if (Velocity.Z < PreviousVelocity.Z || PreviousVelocity.Z >= 0)
-    {
-        Velocity = 2 * Velocity - PreviousVelocity;
-    }
-    if (VSize(Velocity) > Volume.TerminalVelocity)
-    {
-        Velocity = Normal(Velocity) * Volume.TerminalVelocity;
-    }
-    return Velocity;
-}
-
 defaultproperties
 {
 }

@@ -1,0 +1,38 @@
+var protected const class<Weapon> WeaponClass;
+var protected const class<Projectile> DummyProjectileClass;
+var protected const class<Projectile> ExtrapolatedProjectileClass;
+
+#include Classes\Include\HxNTBaseProjectileFire.uci
+
+function DoFireEffect()
+{
+    DoBaseFireEffect();
+}
+
+function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir, optional int Index)
+{
+    local Projectile P;
+
+    if (Level.NetMode == NM_Client)
+    {
+        ProjectileClass = DummyProjectileClass;
+        P = SpawnProjectile(Start, Dir);
+        ProjectileClass = default.ProjectileClass;
+        return Client.TrackDummyProjectile(P, WeaponClass);
+    }
+    if (IsEnhancedNetcodeEnabled())
+    {
+        ProjectileClass = ExtrapolatedProjectileClass;
+        P = HexedNET.ExtrapolateFallingProjectile(
+            Self,
+            Start,
+            Dir,
+            GetProjectileVelocity(Dir),
+            Client.GetProjectilePing() + ServerDelay,
+            GetProjectileExtent(),
+            ProjectileClass.default.bSwitchToZeroCollision);
+        ProjectileClass = default.ProjectileClass;
+        return P;
+    }
+    return SpawnProjectile(Start, Dir);
+}

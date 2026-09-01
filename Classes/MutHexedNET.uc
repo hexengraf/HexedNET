@@ -1,6 +1,11 @@
 class MutHexedNET extends HxMutator
     config(HexedMutators);
 
+// TODO: Revisit this later, different values result in different amounts of error.
+// Maybe it should be the average DeltaTime from the client? But then players with super high FPS
+// and super high ping will cause an abusive amount of iterations.
+const BASE_TIMESTEP = 0.02;
+
 var config float MaxPingFrequency;
 var config int PingCompensationLimit;
 var config int ProjectileCompensationLimit;
@@ -369,6 +374,193 @@ function float GetDeltaTimeLimit()
     return PingCompensationLimit / 1000.0;
 }
 
+// TODO: find a clean way to fix sliding on walls if hit is right outside the extrapolation range.
+// Stupid native code uses the remaining movement delta to calculate a sliding movement instead of
+// checking the Velocity vector (which would be zeroed out by HitWall).
+function Projectile ExtrapolateFallingProjectile(ProjectileFire Fire,
+                                                 Vector Start,
+                                                 Rotator Dir,
+                                                 Vector Velocity,
+                                                 float DeltaTime,
+                                                 optional Vector Extent,
+                                                 optional bool bSwitchToZeroExtent)
+{
+    local Projectile P;
+    local PhysicsVolume Volume;
+    local Vector PreviousVelocity;
+    local Vector Delta;
+    local Vector End;
+    local Actor Hit;
+    local Vector HitLocation;
+    local Vector HitNormal;
+    local Actor ZeroCollider;
+    local Vector ZeroHitLocation;
+    local float TimeStep;
+
+    while (DeltaTime > 0)
+    {
+        Volume = Level.GetPhysicsVolume(Start);
+        PreviousVelocity = Velocity;
+        TimeStep = FMin(BASE_TIMESTEP, DeltaTime);
+        DeltaTime -= TimeStep;
+        Delta = AdvanceFalling(Volume, Velocity, TimeStep);
+        End = Start + Delta;
+        TimeTravel(DeltaTime);
+        Hit = TimeTravelTrace(Fire.Weapon, HitLocation, HitNormal, End, Start, Extent);
+        if (Hit != None && bSwitchToZeroExtent && SwitchToZeroExtent(Fire, Hit, Start, HitLocation))
+        {
+            Extent = Vect(0, 0, 0);
+            bSwitchToZeroExtent = false;
+            ZeroHitLocation = HitLocation;
+            ZeroCollider = Hit;
+            Hit = TimeTravelTrace(Fire.Weapon, HitLocation, HitNormal, End, Start);
+        }
+        if (Hit != None)
+        {
+            if (Hit.IsA('PawnCollisionCopy'))
+            {
+                // TODO: what about self-inflicted splash damage if target is close?
+                // By updating to collide in the current target location (instead of past location),
+                // players might wrongfully avoid self-inflicted splash damage.
+                HitLocation += PawnCollisionCopy(Hit).GetLocationDelta();
+            }
+            Start = HitLocation;
+            break;
+        }
+        Velocity = AdjustFallingVelocity(Volume, PreviousVelocity, Delta, TimeStep);
+        Start = End;
+    }
+    UnTimeTravel();
+    P = SpawnProjectile(Fire, Start, Dir, ZeroHitLocation, ZeroCollider);
+    if (P != None && P.Physics == PHYS_Falling)
+    {
+        P.Velocity = Velocity;
+        if (Hit != None)
+        {
+            P.Move(End - Start);
+            if (P != None && !P.bDeleteMe && !Hit.IsA('Pawn'))
+            {
+                P.HitWall(HitNormal, Hit);
+            }
+        }
+    }
+    return P;
+}
+
+static final function Vector ExtrapolateFalling(PhysicsVolume Volume,
+                                                Vector Start,
+                                                float DeltaTime,
+                                                out Vector Velocity)
+{
+    local Vector PreviousVelocity;
+    local Vector Delta;
+
+    PreviousVelocity = Velocity;
+    Delta = AdvanceFalling(Volume, Velocity, DeltaTime);
+    Velocity = AdjustFallingVelocity(Volume, PreviousVelocity, Delta, DeltaTime);
+    return Start + Delta;
+}
+
+static final function Vector AdvanceFalling(PhysicsVolume Volume,
+                                            out Vector Velocity,
+                                            float DeltaTime)
+{
+    if (Volume.bWaterVolume)
+    {
+        Velocity *= 1.0 - Volume.FluidFriction * DeltaTime;
+    }
+    Velocity += Volume.Gravity * DeltaTime * 0.5;
+    return (Velocity + Volume.ZoneVelocity) * DeltaTime;
+}
+
+static final function Vector AdjustFallingVelocity(PhysicsVolume Volume,
+                                                   Vector PreviousVelocity,
+                                                   Vector Delta,
+                                                   float DeltaTime)
+{
+    local Vector Velocity;
+
+    Velocity = Delta / DeltaTime - Volume.ZoneVelocity;
+    if (Velocity.Z < PreviousVelocity.Z || PreviousVelocity.Z >= 0)
+    {
+        Velocity = 2 * Velocity - PreviousVelocity;
+    }
+    if (VSize(Velocity) > Volume.TerminalVelocity)
+    {
+        Velocity = Normal(Velocity) * Volume.TerminalVelocity;
+    }
+    return Velocity;
+}
+
+static function bool SwitchToZeroExtent(ProjectileFire Fire, Actor Hit, Vector Start, Vector End)
+{
+    local Actor OtherHit;
+    local Vector HitLocation;
+    local Vector HitNormal;
+    local Vector Range;
+
+    if (Hit.bBlockZeroExtentTraces
+        && (Hit.StaticMesh == None
+            || (StaticMeshActor(Hit) != None && !StaticMeshActor(Hit).bExactProjectileCollision)))
+    {
+        return false;
+    }
+    Range = Normal(Start - End) * 100;
+    OtherHit = Fire.Trace(HitLocation, HitNormal, Start + Range, End, true);
+    if (OtherHit == None)
+    {
+        OtherHit = Fire.Trace(HitLocation, HitNormal, End, Start + Range, true);
+    }
+    else
+    {
+        OtherHit = Fire.Trace(HitLocation, HitNormal, End, HitLocation, true);
+    }
+    return OtherHit == None;
+}
+
+static function Projectile SpawnProjectile(ProjectileFire Fire,
+                                           Vector Start,
+                                           Rotator Dir,
+                                           Vector ZeroHitLocation,
+                                           Actor ZeroCollider)
+{
+    Local Projectile P;
+
+    if (ZeroCollider == None)
+    {
+        P = Fire.SpawnProjectile(Start, Dir);
+    }
+    else
+    {
+        P = Fire.SpawnProjectile(ZeroHitLocation, Dir);
+        if (P != None)
+        {
+            P.SetCollisionSize(0, 0);
+            P.bSwitchToZeroCollision = false;
+            P.ZeroCollider = ZeroCollider;
+            P.Move(Start - ZeroHitLocation);
+        }
+    }
+    return P;
+}
+
+static function Vector GetClearHitLocation(Vector HitLocation,
+                                           Vector HitNormal,
+                                           Vector Direction,
+                                           float Clearance,
+                                           float Limit)
+{
+    local float Ratio;
+
+    Ratio = Abs(Direction Dot HitNormal);
+    Limit = 1 / Limit;
+    if (Ratio < Limit)
+    {
+        return HitLocation - (Direction * Limit);
+    }
+    return HitLocation - (Direction * (Clearance / Ratio));
+}
+
 static function bool IsPredicted(Actor A)
 {
     return A.IsA('xPawn') || (A.IsA('Vehicle') && Vehicle(A).Driver != None);
@@ -417,7 +609,7 @@ defaultproperties
     NewNetWeaponClasses(3)=class'NewNet_RocketLauncher'
     NewNetWeaponClasses(4)=class'HxNet_SniperRifle'
     NewNetWeaponClasses(5)=class'HxNet_ClassicSniperRifle'
-    NewNetWeaponClasses(6)=class'NewNet_BioRifle'
+    NewNetWeaponClasses(6)=class'HxNet_BioRifle'
     NewNetWeaponClasses(7)=class'HxNet_SuperShockRifle'
     NewNetWeaponClasses(8)=class'HxNet_ZoomSuperShockRifle'
     NewNetWeaponClasses(9)=class'HxNet_HxSuperShockRifle'

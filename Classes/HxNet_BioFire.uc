@@ -1,4 +1,4 @@
-class HxNet_FlakAltFire extends FlakAltFire
+class HxNet_BioFire extends BioFire
     DependsOn(HxNTWeapon);
 
 #include Classes\Include\HxNTFallingProjectileFire.uci
@@ -14,12 +14,17 @@ function Vector GetProjectileVelocity(Rotator Dir)
 
 function Vector GetProjectileExtent()
 {
-    return Vect(2, 2, 2);
+    local Vector Extent;
+
+    Extent = Vect(1, 1, 0);
+    Extent *= ProjectileClass.default.CollisionRadius;
+    Extent.Z = ProjectileClass.default.CollisionHeight;
+    return Extent;
 }
 
 defaultproperties
 {
-    WeaponClass=class'FlakCannon'
-    DummyProjectileClass=class'HxNet_FlakShellDummy'
-    ExtrapolatedProjectileClass=class'HxNet_FlakShell'
+    WeaponClass=class'BioRifle'
+    DummyProjectileClass=class'HxNet_BioGlobDummy'
+    ExtrapolatedProjectileClass=class'HxNet_BioGlob'
 }

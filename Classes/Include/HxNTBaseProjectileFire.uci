@@ -1,0 +1,157 @@
+var float ServerDelay;
+var private MutHexedNET HexedNET;
+var private HxNTClient Client;
+var private Vector BASStart;
+var private rotator BASAim;
+var private float ProjectileDelayTimer;
+var private bool bBoostedAimSynchronization;
+
+function PreBeginPlay()
+{
+    Super.PreBeginPlay();
+    foreach Weapon.DynamicActors(class'MutHexedNET', HexedNET) break;
+    class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
+}
+
+function bool IsEnhancedNetcodeEnabled()
+{
+    return class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
+        && Client.IsEnhancedNetcodeEnabled();
+}
+
+function PlayFiring()
+{
+    local float ProjectileDelay;
+
+    Super.PlayFiring();
+    if (Level.NetMode == NM_Client && IsEnhancedNetcodeEnabled()
+        && Instigator.IsLocallyControlled()
+        && Client.ShouldSpawnDummyProjectile())
+    {
+        ProjectileDelay = Client.GetProjectileDelay();
+        if (ProjectileDelay > 0)
+        {
+            if (ProjectileDelayTimer > 0)
+            {
+                DoFireEffect();
+            }
+            ProjectileDelayTimer = ProjectileDelay;
+            if (!bBoostedAimSynchronization)
+            {
+                BASStart = Instigator.Location + Instigator.EyePosition();
+                BASAim = AdjustAim(BASStart, AimError);
+                bBoostedAimSynchronization = true;
+            }
+        }
+        else
+        {
+            DoFireEffect();
+        }
+    }
+}
+
+event ModeTick(float DT)
+{
+    if (Level.NetMode == NM_Client && ProjectileDelayTimer > 0)
+    {
+        ProjectileDelayTimer -= DT;
+        if (ProjectileDelayTimer <= 0)
+        {
+            DoFireEffect();
+        }
+    }
+    Super.ModeTick(DT);
+}
+
+function ApplyBAS(HxNTWeapon.HxBAS BAS)
+{
+    class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
+    bBoostedAimSynchronization = HexedNET == None || HexedNET.IsReasonable(Weapon, BASStart);
+}
+
+function GetProjectileStartAndDirection(out Vector Start,
+                                        out Rotator Dir,
+                                        optional out Vector X,
+                                        optional out Vector Y,
+                                        optional out Vector Z)
+{
+    local Vector HitLocation;
+    local Vector HitNormal;
+
+    if (bBoostedAimSynchronization)
+    {
+        bBoostedAimSynchronization = false;
+        Dir = BASAim;
+    }
+    else
+    {
+        BASStart = Instigator.Location + Instigator.EyePosition();
+        if (Instigator.Controller != None)
+        {
+            BASAim = Instigator.Controller.Rotation;
+        }
+        else
+        {
+            BASAim = Instigator.Rotation;
+        }
+        Dir = AdjustAim(Start, AimError);
+    }
+    GetAxes(BASAim, X, Y, Z);
+    Start = BASStart + X * ProjSpawnOffset.X;
+    if (!Weapon.WeaponCentered())
+    {
+        Start += Weapon.Hand * Y * ProjSpawnOffset.Y + Z * ProjSpawnOffset.Z;
+    }
+    if (Weapon.Trace(HitLocation, HitNormal, Start, BASStart, false) != None)
+    {
+        Start = HitLocation;
+    }
+}
+
+function DoBaseFireEffect()
+{
+    local Vector Start;
+    local Vector X;
+    local Rotator Dir;
+    local float Theta;
+    local int SpawnCount;
+    local int i;
+
+    if (class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
+    {
+        Instigator.MakeNoise(1.0);
+        GetProjectileStartAndDirection(Start, Dir);
+        SpawnCount = Max(1, ProjPerFire * int(Load));
+        switch (SpreadStyle)
+        {
+            case SS_Random:
+                X = Vector(Dir);
+                for (i = 0; i < SpawnCount; i++)
+                {
+                    Dir.Yaw = Spread * (Client.GetRandomFloat() - 0.5);
+                    Dir.Pitch = Spread * (Client.GetRandomFloat() - 0.5);
+                    Dir.Roll = Spread * (Client.GetRandomFloat() - 0.5);
+                    SpawnHexedProjectile(Start, Rotator(X >> Dir), i);
+                }
+                break;
+            case SS_Line:
+                for (i = 0; i < SpawnCount; i++)
+                {
+                    Theta = Spread * PI / 32768 * (i - float(SpawnCount - 1) / 2.0);
+                    X.X = Cos(Theta);
+                    X.Y = Sin(Theta);
+                    X.Z = 0.0;
+                    SpawnHexedProjectile(Start, Rotator(X >> Dir), i);
+                }
+                break;
+            default:
+                SpawnHexedProjectile(Start, Dir);
+                break;
+        }
+    }
+    else
+    {
+        Super.DoFireEffect();
+    }
+    ServerDelay = 0;
+}
