@@ -343,6 +343,9 @@ final function int FindLowerBound(float Timestamp)
     return Result;
 }
 
+// TODO: what about self-inflicted splash damage if target is close?
+// By updating to collide in the current target location (instead of past location),
+// players might wrongfully avoid self-inflicted splash damage.
 final function vector GetLocationDelta()
 {
     return CopiedPawn.Location - Location;

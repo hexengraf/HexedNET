@@ -201,7 +201,7 @@ function Projectile ExtrapolateProjectile(Vector Start, Rotator Dir, int Index)
         DeltaTime -= TimeStep;
         if (bFalling)
         {
-            Delta = HexedNET.AdvanceFalling(Volume, Velocity, TimeStep);
+            Delta = class'HxNTPhysics'.static.AdvanceFalling(Volume, Velocity, TimeStep);
         }
         else
         {
