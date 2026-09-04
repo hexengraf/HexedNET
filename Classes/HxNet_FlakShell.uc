@@ -2,7 +2,6 @@ class HxNet_FlakShell extends FlakShell;
 
 const INTERPOLATION_PERIOD = 0.30;
 
-var private MutHexedNET MutatorOwner;
 var private Vector DummyOffset;
 var private float ElapsedInterpolationTime;
 var private bool bInterpolateDummy;

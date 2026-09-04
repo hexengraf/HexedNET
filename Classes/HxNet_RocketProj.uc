@@ -1,4 +1,4 @@
-class HxNet_FlakChunk extends FlakChunk;
+class HxNet_RocketProj extends RocketProj;
 
 const INTERPOLATION_PERIOD = 0.30;
 
@@ -45,15 +45,15 @@ simulated function SearchPredictedProjectile(HxNTClient Client)
     local int DummyIndex;
     local int i;
 
-    Dummies = Client.GetDummies(class'FlakCannon');
+    Dummies = Client.GetDummies(class'RocketLauncher');
     if (Dummies.Length > 0)
     {
         DummyIndex = -1;
         MinDistance = MaxInt;
         for (i = 0; i < Dummies.Length; ++i)
         {
-            if (HxNet_FlakChunkDummy(Dummies[i]) != None
-                && HxNet_FlakChunkDummy(Dummies[i]).Index == Index)
+            if (HxNet_RocketProjDummy(Dummies[i]) != None
+                && HxNet_RocketProjDummy(Dummies[i]).Index == Index)
             {
                 Distance = VSize(Location - Dummies[i].Location);
                 if (Distance < MinDistance)
@@ -69,31 +69,20 @@ simulated function SearchPredictedProjectile(HxNTClient Client)
         }
         if (DummyIndex > -1)
         {
-            InterpolateDummy(FlakChunk(Dummies[DummyIndex]));
-            Client.DestroyDummyProjectile(class'FlakCannon', DummyIndex);
+            InterpolateDummy(RocketProj(Dummies[DummyIndex]));
+            Client.DestroyDummyProjectile(class'RocketLauncher', DummyIndex);
         }
     }
 }
 
-simulated function InterpolateDummy(FlakChunk Dummy)
+simulated function InterpolateDummy(RocketProj Dummy)
 {
     if (Dummy != None)
     {
+        ApplyDummyEffects(Self, Dummy);
         bInterpolateDummy = true;
         DummyOffset = Location - Dummy.Location;
-        if (Trail != None)
-        {
-            Trail.mRegen = false;
-            Trail.SetPhysics(PHYS_None);
-        }
-        if (Dummy.Trail != None)
-        {
-            Trail = Dummy.Trail;
-            Trail.SetOwner(Self);
-            Dummy.Trail = None;
-        }
         DoSetLocation(Dummy.Location);
-        SetRotation(Dummy.Rotation);
     }
 }
 
@@ -124,6 +113,50 @@ simulated function DoMove(Vector Offset)
 simulated function DoSetLocation(Vector NewLocation)
 {
     SetLocation(NewLocation);
+}
+
+static function ApplyDummyEffects(RocketProj P, RocketProj Dummy)
+{
+    if (Dummy.SmokeTrail != None)
+    {
+        if (P.SmokeTrail != None)
+        {
+            P.SmokeTrail.mRegen = false;
+        }
+        P.SmokeTrail = Dummy.SmokeTrail;
+        P.SmokeTrail.SetOwner(P);
+        Dummy.SmokeTrail = None;
+    }
+    if (Dummy.Corona != None)
+    {
+        if (P.Corona != None)
+        {
+            P.Corona.Destroy();
+        }
+        P.Corona = Dummy.Corona;
+        P.Corona.SetOwner(P);
+        Dummy.Corona = None;
+    }
+}
+
+static function RemoveFromFlock(RocketProj P)
+{
+    local int i;
+    local int j;
+
+    for (i = 0; i < ArrayCount(P.Flock); ++i)
+    {
+        if (P.Flock[i] != None)
+        {
+            for (j = 0; j < ArrayCount(P.Flock); ++j)
+            {
+                if (P.Flock[i].Flock[j] == P)
+                {
+                    P.Flock[i].Flock[j] = None;
+                }
+            }
+        }
+    }
 }
 
 defaultproperties

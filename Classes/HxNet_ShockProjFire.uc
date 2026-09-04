@@ -11,76 +11,28 @@ function DoFireEffect()
 function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir, optional int Index)
 {
     local Projectile P;
+    local float DeltaTime;
 
     if (Level.NetMode == NM_Client)
     {
-        P = Weapon.Spawn(class'HxNet_ShockProjectileDummy',,, Start, Dir);
+        ProjectileClass = class'HxNet_ShockProjectileDummy';
+        P = SpawnProjectile(Start, Dir);
+        ProjectileClass = default.ProjectileClass;
         return Client.TrackDummyProjectile(P, class'ShockRifle');
     }
+    P = SpawnProjectile(Start, Dir);
     if (IsEnhancedNetcodeEnabled())
     {
-        P = ExtrapolateProjectile(Start, Dir);
-    }
-    else
-    {
-        P = SpawnProjectile(Start, Dir);
+        DeltaTime = Client.GetProjectilePing() + ServerDelay;
+        HexedNET.ExtrapolateLinearProjectile(Weapon, P, DeltaTime);
+        if (P != None)
+        {
+            P.SetTimer(FMax(0, P.TimerRate - DeltaTime), false);
+        }
     }
     if (HexedNET != None)
     {
         HexedNET.RegisterShockProjectile(HxNet_ShockProjectile(P));
-    }
-    return P;
-}
-
-// TODO: handle bSwitchToZeroCollision without causing unexpected passthrough.
-function Projectile ExtrapolateProjectile(Vector Start, Rotator Dir)
-{
-    local Projectile P;
-    local Vector Velocity;
-    local Vector Extent;
-    local Vector End;
-    local Actor Hit;
-    local Vector HitLocation;
-    local Vector HitNormal;
-    local float DeltaTime;
-    local float ElapsedTime;
-    local float TimeStep;
-
-    Velocity = Vector(Dir) * ProjectileClass.default.Speed;
-    Extent = Vect(10, 10, 10);
-    DeltaTime = Client.GetProjectilePing() + ServerDelay;
-    while (DeltaTime > 0)
-    {
-        TimeStep = HexedNET.GetTimeStep(DeltaTime);
-        DeltaTime -= TimeStep;
-        ElapsedTime += TimeStep;
-        if (ElapsedTime >= 0.4)
-        {
-            Extent = Vect(20, 20, 20);
-        }
-        End = Start + Velocity * TimeStep;
-        HexedNET.TimeTravel(DeltaTime);
-        Hit = HexedNET.TimeTravelTrace(Weapon, HitLocation, HitNormal, End, Start, Extent);
-        if (Hit != None)
-        {
-            if (Hit.IsA('PawnCollisionCopy'))
-            {
-                HitLocation += PawnCollisionCopy(Hit).GetLocationDelta();
-            }
-            Start = HitLocation;
-            break;
-        }
-        Start = End;
-    }
-    HexedNET.UnTimeTravel();
-    P = SpawnProjectile(Start, Dir);
-    if (P != None)
-    {
-        if (ElapsedTime >= 0.4)
-        {
-            P.SetCollisionSize(20, 20);
-        }
-        P.SetTimer(FMax(0, ElapsedTime - 0.4), false);
     }
     return P;
 }

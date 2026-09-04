@@ -18,14 +18,12 @@ var const private class<WeaponFire> WeaponFireClasses[4];
 var const private class<WeaponFire> NewNetWeaponFireClasses[4];
 var private PawnCollisionCopy PCC;
 var private array<HxNet_ShockProjectile> ShockProjectiles;
-var private HxNTClock NETClock;
 
 event PostBeginPlay()
 {
     Super.PostBeginPlay();
     if (!bDeleteMe && !bPendingDelete)
     {
-        NETClock = Spawn(class'HxNTClock', Self);
         ApplyNewNetWeaponsOnMutators();
         if (bRubberbandingFix)
         {
@@ -374,6 +372,113 @@ function float GetDeltaTimeLimit()
     return PingCompensationLimit / 1000.0;
 }
 
+// TODO: handle bSwitchToZeroCollision
+function ExtrapolateLinearProjectile(Weapon W, Projectile P, float DeltaTime)
+{
+    local Vector Extent;
+    local Vector Start;
+    local Vector HitLocation;
+    local Vector HitNormal;
+    local Actor Hit;
+    local float Counter;
+    local float TimeStep;
+
+    class'HxNTPhysics'.static.DisableCollision(P);
+    Extent = P.GetCollisionExtent();
+    while (DeltaTime > 0)
+    {
+        TimeStep = GetTimeStep(DeltaTime);
+        DeltaTime -= TimeStep;
+        Counter += TimeStep;
+        Start = P.Location;
+        P.AutonomousPhysics(TimeStep);
+        TimeTravel(DeltaTime);
+        Hit = TimeTravelTrace(W, HitLocation, HitNormal, P.Location, Start, Extent);
+        if (Hit != None)
+        {
+            if (Hit.IsA('PawnCollisionCopy'))
+            {
+                HitLocation += PawnCollisionCopy(Hit).GetLocationDelta();
+            }
+            P.SetLocation(HitLocation);
+            break;
+        }
+        if (P.TimerRate > 0 && Counter >= P.TimerRate)
+        {
+            P.Timer();
+            Counter = 0;
+            Extent = P.GetCollisionExtent();
+        }
+    }
+    UnTimeTravel();
+    class'HxNTPhysics'.static.RestoreCollision(P);
+}
+
+function ExtrapolateLinearProjectiles(Weapon W, array<Projectile> Projectiles, float DeltaTime)
+{
+    local Vector Extent;
+    local Vector Start;
+    local Vector HitLocation;
+    local Vector HitNormal;
+    local Actor Hit;
+    local float Counter;
+    local float TimeStep;
+    local array<byte> Done;
+    local int i;
+
+    Done.Length = Projectiles.Length;
+    for (i = 0; i < Projectiles.Length; ++i)
+    {
+        class'HxNTPhysics'.static.DisableCollision(Projectiles[i]);
+    }
+    while (DeltaTime > 0)
+    {
+        TimeStep = GetTimeStep(DeltaTime);
+        DeltaTime -= TimeStep;
+        Counter += TimeStep;
+        for (i = 0; i < Projectiles.Length; ++i)
+        {
+            if (Done[i] == 1)
+            {
+                continue;
+            }
+            Extent = Projectiles[i].GetCollisionExtent();
+            Start = Projectiles[i].Location;
+            Projectiles[i].AutonomousPhysics(TimeStep);
+            TimeTravel(DeltaTime);
+            Hit = TimeTravelTrace(
+                W, HitLocation, HitNormal, Projectiles[i].Location, Start, Extent);
+            if (Hit != None)
+            {
+                if (Hit.IsA('PawnCollisionCopy'))
+                {
+                    HitLocation += PawnCollisionCopy(Hit).GetLocationDelta();
+                }
+                Projectiles[i].SetLocation(HitLocation);
+                Done[i] = 1;
+                if (Projectiles[i].IsA('RocketProj'))
+                {
+                    class'HxNet_RocketProj'.static.RemoveFromFlock(RocketProj(Projectiles[i]));
+                }
+            }
+        }
+        for (i = 0; i < Projectiles.Length; ++i)
+        {
+            if (Done[i] == 0 && Projectiles[i].TimerRate > 0
+                && Counter >= Projectiles[i].TimerRate)
+            {
+                Projectiles[i].Timer();
+                Counter = 0;
+            }
+        }
+    }
+    UnTimeTravel();
+    for (i = 0; i < Projectiles.Length; ++i)
+    {
+        class'HxNTPhysics'.static.RestoreCollision(Projectiles[i]);
+    }
+}
+
 // TODO: find a clean way to fix sliding on walls if hit is right outside the extrapolation range.
 // Stupid native code uses the remaining movement delta to calculate a sliding movement instead of
 // checking the Velocity vector (which would be zeroed out by HitWall).
@@ -496,7 +601,7 @@ defaultproperties
     NewNetWeaponClasses(0)=class'HxNet_ShockRifle'
     NewNetWeaponClasses(1)=class'NewNet_LinkGun'
     NewNetWeaponClasses(2)=class'HxNet_FlakCannon'
-    NewNetWeaponClasses(3)=class'NewNet_RocketLauncher'
+    NewNetWeaponClasses(3)=class'HxNet_RocketLauncher'
     NewNetWeaponClasses(4)=class'HxNet_SniperRifle'
     NewNetWeaponClasses(5)=class'HxNet_ClassicSniperRifle'
     NewNetWeaponClasses(6)=class'HxNet_BioRifle'

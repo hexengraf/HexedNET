@@ -1,4 +1,4 @@
-class HxNet_FlakChunk extends FlakChunk;
+class HxNet_SeekingRocketProj extends SeekingRocketProj;
 
 const INTERPOLATION_PERIOD = 0.30;
 
@@ -45,15 +45,15 @@ simulated function SearchPredictedProjectile(HxNTClient Client)
     local int DummyIndex;
     local int i;
 
-    Dummies = Client.GetDummies(class'FlakCannon');
+    Dummies = Client.GetDummies(class'RocketLauncher');
     if (Dummies.Length > 0)
     {
         DummyIndex = -1;
         MinDistance = MaxInt;
         for (i = 0; i < Dummies.Length; ++i)
         {
-            if (HxNet_FlakChunkDummy(Dummies[i]) != None
-                && HxNet_FlakChunkDummy(Dummies[i]).Index == Index)
+            if (HxNet_SeekingRocketProjDummy(Dummies[i]) != None
+                && HxNet_SeekingRocketProjDummy(Dummies[i]).Index == Index)
             {
                 Distance = VSize(Location - Dummies[i].Location);
                 if (Distance < MinDistance)
@@ -69,31 +69,20 @@ simulated function SearchPredictedProjectile(HxNTClient Client)
         }
         if (DummyIndex > -1)
         {
-            InterpolateDummy(FlakChunk(Dummies[DummyIndex]));
-            Client.DestroyDummyProjectile(class'FlakCannon', DummyIndex);
+            InterpolateDummy(RocketProj(Dummies[DummyIndex]));
+            Client.DestroyDummyProjectile(class'RocketLauncher', DummyIndex);
         }
     }
 }
 
-simulated function InterpolateDummy(FlakChunk Dummy)
+simulated function InterpolateDummy(RocketProj Dummy)
 {
     if (Dummy != None)
     {
+        class'HxNet_RocketProj'.static.ApplyDummyEffects(Self, Dummy);
         bInterpolateDummy = true;
         DummyOffset = Location - Dummy.Location;
-        if (Trail != None)
-        {
-            Trail.mRegen = false;
-            Trail.SetPhysics(PHYS_None);
-        }
-        if (Dummy.Trail != None)
-        {
-            Trail = Dummy.Trail;
-            Trail.SetOwner(Self);
-            Dummy.Trail = None;
-        }
         DoSetLocation(Dummy.Location);
-        SetRotation(Dummy.Rotation);
     }
 }
 

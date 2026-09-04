@@ -61,6 +61,27 @@ static final function bool SwitchToZeroCollision(ProjectileFire Fire,
     return OtherHit == None;
 }
 
+static final function SafeSetPosition(Projectile P, Vector Start, Rotator Dir)
+{
+    DisableCollision(P);
+    P.SetRotation(Dir);
+    P.SetLocation(Start);
+    RestoreCollision(P);
+}
+
+static final function DisableCollision(Projectile P)
+{
+    P.bCollideWorld = false;
+    P.SetCollision(false, false);
+}
+
+static final function RestoreCollision(Projectile P)
+{
+    P.bCollideWorld = P.default.bCollideWorld;
+    P.SetCollision(P.default.bCollideActors, P.default.bBlockActors);
+
+}
+
 static final function Projectile SpawnProjectile(ProjectileFire Fire,
                                                  Vector Start,
                                                  Rotator Dir,

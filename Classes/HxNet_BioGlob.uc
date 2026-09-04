@@ -2,7 +2,6 @@ class HxNet_BioGlob extends BioGlob;
 
 const INTERPOLATION_PERIOD = 0.10;
 
-var private MutHexedNET MutatorOwner;
 var private Vector DummyOffset;
 var private float ElapsedInterpolationTime;
 var private bool bInterpolateDummy;
