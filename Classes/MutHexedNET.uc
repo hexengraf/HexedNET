@@ -698,7 +698,7 @@ defaultproperties
     WeaponClasses(10)=class'HxZoomSuperShockRifle'
     // replaced NewNet classes
     NewNetWeaponClasses(0)=class'HxNet_ShockRifle'
-    NewNetWeaponClasses(1)=class'NewNet_LinkGun'
+    NewNetWeaponClasses(1)=class'HxNet_LinkGun'
     NewNetWeaponClasses(2)=class'HxNet_FlakCannon'
     NewNetWeaponClasses(3)=class'HxNet_RocketLauncher'
     NewNetWeaponClasses(4)=class'HxNet_SniperRifle'

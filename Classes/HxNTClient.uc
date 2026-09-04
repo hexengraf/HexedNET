@@ -20,7 +20,6 @@ var float AverageDeltaTime;
 var float ProjectileCompensationLimit;
 
 var private HxNetcodeConfig NetConfig;
-var private FakeProjectileManager FPM;
 var private int PingCount;
 var private int TickCount;
 var private bool bEnhancedNetcode;
@@ -203,7 +202,6 @@ function ServerSetPingSmoothingFactor(float Factor)
 
 simulated function NotifyServerPropertiesReady()
 {
-    FPM = FakeProjectileManager(SpawnUnique(Class'FakeProjectileManager', Self));
     SetProjectileCompensationLimit(GetServerProperty("ProjectileCompensationLimit"));
 }
 
