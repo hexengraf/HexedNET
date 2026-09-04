@@ -383,7 +383,7 @@ function ExtrapolateLinearProjectile(Weapon W, Projectile P, float DeltaTime)
     local float Counter;
     local float TimeStep;
 
-    class'HxNTPhysics'.static.DisableCollision(P);
+    DisableCollision(P);
     Extent = P.GetCollisionExtent();
     while (DeltaTime > 0)
     {
@@ -411,7 +411,7 @@ function ExtrapolateLinearProjectile(Weapon W, Projectile P, float DeltaTime)
         }
     }
     UnTimeTravel();
-    class'HxNTPhysics'.static.RestoreCollision(P);
+    RestoreCollision(P);
 }
 
 function ExtrapolateLinearProjectiles(Weapon W, array<Projectile> Projectiles, float DeltaTime)
@@ -429,7 +429,7 @@ function ExtrapolateLinearProjectiles(Weapon W, array<Projectile> Projectiles, f
     Done.Length = Projectiles.Length;
     for (i = 0; i < Projectiles.Length; ++i)
     {
-        class'HxNTPhysics'.static.DisableCollision(Projectiles[i]);
+        DisableCollision(Projectiles[i]);
     }
     while (DeltaTime > 0)
     {
@@ -475,51 +475,40 @@ function ExtrapolateLinearProjectiles(Weapon W, array<Projectile> Projectiles, f
     UnTimeTravel();
     for (i = 0; i < Projectiles.Length; ++i)
     {
-        class'HxNTPhysics'.static.RestoreCollision(Projectiles[i]);
+        RestoreCollision(Projectiles[i]);
     }
 }
 
 // TODO: find a clean way to fix sliding on walls if hit is right outside the extrapolation range.
 // Stupid native code uses the remaining movement delta to calculate a sliding movement instead of
 // checking the Velocity vector (which would be zeroed out by HitWall).
-function Projectile ExtrapolateFallingProjectile(ProjectileFire Fire,
-                                                 Vector Start,
-                                                 Rotator Dir,
-                                                 Vector Velocity,
-                                                 float DeltaTime,
-                                                 optional Vector Extent,
-                                                 optional bool bSwitchToZeroCollision)
+function ExtrapolateFallingProjectile(Weapon W, Projectile P, float DeltaTime)
 {
-    local Projectile P;
-    local PhysicsVolume Volume;
-    local Vector PreviousVelocity;
-    local Vector Delta;
-    local Vector End;
+    local Vector Start;
+    local Vector Extent;
     local Actor Hit;
     local Vector HitLocation;
     local Vector HitNormal;
-    local Actor ZeroCollider;
-    local Vector ZeroHitLocation;
+    local float Counter;
     local float TimeStep;
 
+    DisableCollision(P);
+    Extent = P.GetCollisionExtent();
     while (DeltaTime > 0)
     {
-        Volume = Level.GetPhysicsVolume(Start);
-        PreviousVelocity = Velocity;
         TimeStep = GetTimeStep(DeltaTime);
         DeltaTime -= TimeStep;
-        Delta = class'HxNTPhysics'.static.AdvanceFalling(Volume, Velocity, TimeStep);
-        End = Start + Delta;
+        Start = P.Location;
+        P.AutonomousPhysics(TimeStep);
         TimeTravel(DeltaTime);
-        Hit = TimeTravelTrace(Fire.Weapon, HitLocation, HitNormal, End, Start, Extent);
-        if (Hit != None && bSwitchToZeroCollision
-            && class'HxNTPhysics'.static.SwitchToZeroCollision(Fire, Hit, Start, HitLocation))
+        Hit = TimeTravelTrace(W, HitLocation, HitNormal, P.Location, Start, Extent);
+        if (Hit != None && P.bSwitchToZeroCollision
+            && SwitchToZeroCollision(W, Hit, Start, HitLocation))
         {
             Extent = Vect(0, 0, 0);
-            bSwitchToZeroCollision = false;
-            ZeroHitLocation = HitLocation;
-            ZeroCollider = Hit;
-            Hit = TimeTravelTrace(Fire.Weapon, HitLocation, HitNormal, End, Start);
+            P.bSwitchToZeroCollision = false;
+            P.ZeroCollider = Hit;
+            Hit = TimeTravelTrace(W, HitLocation, HitNormal, P.Location, Start);
         }
         if (Hit != None)
         {
@@ -527,28 +516,72 @@ function Projectile ExtrapolateFallingProjectile(ProjectileFire Fire,
             {
                 HitLocation += PawnCollisionCopy(Hit).GetLocationDelta();
             }
-            Start = HitLocation;
-            break;
-        }
-        Velocity = class'HxNTPhysics'.static.AdjustFallingVelocity(
-            Volume, PreviousVelocity, Delta, TimeStep);
-        Start = End;
-    }
-    UnTimeTravel();
-    P = class'HxNTPhysics'.static.SpawnProjectile(Fire, Start, Dir, ZeroHitLocation, ZeroCollider);
-    if (P != None && P.Physics == PHYS_Falling)
-    {
-        P.Velocity = Velocity;
-        if (Hit != None)
-        {
-            P.Move(End - Start);
+            UnTimeTravel();
+            P.SetLocation(HitLocation);
             if (P != None && !P.bDeleteMe && !Hit.IsA('Pawn'))
             {
                 P.HitWall(HitNormal, Hit);
             }
+            break;
+        }
+        if (P.TimerRate > 0 && Counter >= P.TimerRate)
+        {
+            P.Timer();
+            Counter = 0;
+            Extent = P.GetCollisionExtent();
         }
     }
-    return P;
+    UnTimeTravel();
+    RestoreCollision(P);
+}
+
+function ExtrapolateBouncingProjectile(Weapon W, Projectile P, float DeltaTime)
+{
+    local Vector Start;
+    local Vector Extent;
+    local Actor Hit;
+    local Vector HitLocation;
+    local Vector HitNormal;
+    local float TimeStep;
+
+    DisableCollision(P);
+    Extent = P.GetCollisionExtent();
+    while (DeltaTime > 0)
+    {
+        TimeStep = GetTimeStep(DeltaTime);
+        DeltaTime -= TimeStep;
+        Start = P.Location;
+        P.AutonomousPhysics(TimeStep);
+        TimeTravel(DeltaTime);
+        Hit = TimeTravelTrace(
+            W, HitLocation, HitNormal, P.Location, Start, Extent, P.Physics == PHYS_Falling);
+        if (Hit != None)
+        {
+            if (IsHitWall(Hit))
+            {
+                UnTimeTravel();
+                P.SetLocation(Start);
+                RestoreCollision(P);
+                P.AutonomousPhysics(TimeStep);
+                if (P == None)
+                {
+                    break;
+                }
+                DisableCollision(P);
+            }
+            else
+            {
+                if (Hit.IsA('PawnCollisionCopy'))
+                {
+                    HitLocation += PawnCollisionCopy(Hit).GetLocationDelta();
+                }
+                P.SetLocation(HitLocation);
+                break;
+            }
+        }
+    }
+    UnTimeTravel();
+    RestoreCollision(P);
 }
 
 final function float GetTimeStep(float DeltaTime)
@@ -560,6 +593,72 @@ static function bool IsPredicted(Actor A)
 {
     return A.IsA('xPawn') || (A.IsA('Vehicle') && Vehicle(A).Driver != None);
 }
+
+final function bool IsHitWall(Actor Wall)
+{
+    return Wall.bStatic
+        || Wall.bWorldGeometry
+        || (Mover(Wall) != None && !Mover(Wall).bDamageTriggered);
+}
+
+static final function DisableCollision(Projectile P)
+{
+    P.bCollideWorld = false;
+    P.SetCollision(false, false);
+}
+
+static final function RestoreCollision(Projectile P)
+{
+    if (P != None)
+    {
+        P.bCollideWorld = P.default.bCollideWorld;
+        P.SetCollision(P.default.bCollideActors, P.default.bBlockActors);
+    }
+}
+
+static final function bool SwitchToZeroCollision(Weapon W, Actor Hit, Vector Start, Vector End)
+{
+    local Actor OtherHit;
+    local Vector HitLocation;
+    local Vector HitNormal;
+    local Vector Range;
+
+    if (Hit.bBlockZeroExtentTraces
+        && (Hit.StaticMesh == None
+            || (StaticMeshActor(Hit) != None && !StaticMeshActor(Hit).bExactProjectileCollision)))
+    {
+        return false;
+    }
+    Range = Normal(Start - End) * 100;
+    OtherHit = W.Trace(HitLocation, HitNormal, Start + Range, End, true);
+    if (OtherHit == None)
+    {
+        OtherHit = W.Trace(HitLocation, HitNormal, End, Start + Range, true);
+    }
+    else
+    {
+        OtherHit = W.Trace(HitLocation, HitNormal, End, HitLocation, true);
+    }
+    return OtherHit == None;
+}
+
+static final function Vector GetClearHitLocation(Vector HitLocation,
+                                                 Vector HitNormal,
+                                                 Vector Direction,
+                                                 float Clearance,
+                                                 float Limit)
+{
+    local float Ratio;
+
+    Ratio = Abs(Direction Dot HitNormal);
+    Limit = 1 / Limit;
+    if (Ratio < Limit)
+    {
+        return HitLocation - (Direction * Limit);
+    }
+    return HitLocation - (Direction * (Clearance / Ratio));
+}
+
 
 defaultproperties
 {
