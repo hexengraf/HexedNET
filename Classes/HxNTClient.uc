@@ -22,7 +22,7 @@ var float ProjectileCompensationLimit;
 var private HxNetcodeConfig NetConfig;
 var private int PingCount;
 var private int TickCount;
-var private bool bEnhancedNetcode;
+var private bool bPingCompensation;
 var private float PingInterval;
 var private float PingSmoothing;
 var private bool bClientUpdated;
@@ -47,7 +47,7 @@ replication
         ServerPing;
 
     reliable if (Role < ROLE_Authority)
-        ServerSetEnhancedNetcode,
+        ServerSetPingCompensation,
         ServerSetPingFrequency,
         ServerSetPingSmoothingFactor;
 }
@@ -68,12 +68,18 @@ simulated function SetupClient(HxClientManager Manager)
 {
     Super.SetupClient(Manager);
     NetConfig = HxNetcodeConfig(Configs[0]);
-    bEnhancedNetcode = NetConfig.bEnhancedNetcode && Level.NetMode != NM_ListenServer;
+    bPingCompensation = NetConfig.bPingCompensation && Level.NetMode != NM_ListenServer;
     if (Level.NetMode == NM_Client)
     {
         ServerSetPingSmoothingFactor(NetConfig.PingSmoothing);
         ServerSetPingFrequency(NetConfig.PingFrequency);
-        ServerSetEnhancedNetcode(bEnhancedNetcode);
+        ServerSetPingCompensation(bPingCompensation);
+    }
+    if (Manager.IsFirstRun())
+    {
+        // TODO: remove this in v11
+        NetConfig.ClearConfig();
+        NetConfig.SaveConfig();
     }
 }
 
@@ -99,7 +105,7 @@ simulated function Tick(float DeltaTime)
         if (ServerUpdateRequested[0] > 0
             && Level.TimeSeconds - ServerUpdateRequested[0] > Level.TimeDilation)
         {
-            ServerSetEnhancedNetcode(bEnhancedNetcode);
+            ServerSetPingCompensation(bPingCompensation);
             ServerUpdateRequested[0] = 0;
         }
         if (ServerUpdateRequested[1] > 0
@@ -167,9 +173,9 @@ simulated function SetProjectileCompensationLimit(coerce float Value)
     ProjectileCompensationLimit = Value / 1000;
 }
 
-function ServerSetEnhancedNetcode(bool bEnable)
+function ServerSetPingCompensation(bool bEnable)
 {
-    bEnhancedNetcode = bEnable;
+    bPingCompensation = bEnable;
     if (!bEnable)
     {
         Disable('Timer');
@@ -188,7 +194,7 @@ function ServerSetPingFrequency(float Frequency)
         float(ConfigClasses[0].default.Properties[1].LowerLimit),
         MutHexedNET(MutatorOwner).MaxPingFrequency);
     PingInterval = Level.TimeDilation / Frequency;
-    if (bEnhancedNetcode)
+    if (bPingCompensation)
     {
         SetTimer(PingInterval, true);
     }
@@ -217,8 +223,8 @@ simulated function NotifyUserPropertyChanged(HxConfig Config, int Index, string 
 {
     switch (Config.Properties[Index].Name)
     {
-        case "bEnhancedNetcode":
-            bEnhancedNetcode = NetConfig.bEnhancedNetcode && Level.NetMode != NM_ListenServer;
+        case "bPingCompensation":
+            bPingCompensation = NetConfig.bPingCompensation && Level.NetMode != NM_ListenServer;
             break;
     }
     if (ServerUpdateRequested[Index] == 0)
@@ -244,7 +250,7 @@ simulated function float GetProjectileDelay()
 
 simulated function bool IsEnhancedNetcodeEnabled()
 {
-    return bEnhancedNetcode && AveragePing > 0;
+    return bPingCompensation && AveragePing > 0;
 }
 
 simulated function bool ShouldSpawnDummyProjectile()
