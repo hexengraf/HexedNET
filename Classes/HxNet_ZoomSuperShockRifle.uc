@@ -60,7 +60,7 @@ simulated event ClientStartFire(int Mode)
     if (Role == ROLE_Authority || Pawn(Owner).Controller.IsInState('GameEnded')
         || Pawn(Owner).Controller.IsInState('RoundEnded') || ShockBeamFire(FireMode[Mode]) == None
         || !class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
-        || !Client.IsEnhancedNetcodeEnabled())
+        || !Client.WantsPingCompensation())
     {
         Super.ClientStartFire(Mode);
     }

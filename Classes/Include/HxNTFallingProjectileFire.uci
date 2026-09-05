@@ -20,7 +20,7 @@ function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir, optional int
         ProjectileClass = default.ProjectileClass;
         return Client.TrackDummyProjectile(P, WeaponClass);
     }
-    if (IsEnhancedNetcodeEnabled())
+    if (WantsPingCompensation())
     {
         ProjectileClass = ExtrapolatedProjectileClass;
         P = SpawnProjectile(Start, Dir);

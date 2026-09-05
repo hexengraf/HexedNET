@@ -61,7 +61,7 @@ simulated event ClientStartFire(int Mode)
         || Pawn(Owner).Controller.IsInState('RoundEnded')
         || HxNet_LinkAltFire(FireMode[Mode]) == None
         || !class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
-        || !Client.IsEnhancedNetcodeEnabled())
+        || !Client.WantsPingCompensation())
     {
         Super.ClientStartFire(Mode);
     }

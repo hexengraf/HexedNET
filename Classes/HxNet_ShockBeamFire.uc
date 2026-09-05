@@ -15,17 +15,16 @@ function PreBeginPlay()
     class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
 }
 
-function bool IsEnhancedNetcodeEnabled()
+function bool WantsPingCompensation()
 {
     return class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
-        && Client.IsEnhancedNetcodeEnabled();
+        && Client.WantsPingCompensation();
 }
 
 function PlayFiring()
 {
     Super.PlayFiring();
-    if (Level.NetMode == NM_Client && IsEnhancedNetcodeEnabled()
-        && Instigator.IsLocallyControlled())
+    if (Level.NetMode == NM_Client && WantsPingCompensation() && Instigator.IsLocallyControlled())
     {
         DoFireEffect();
     }
@@ -75,7 +74,7 @@ function SpawnBeamEffect(Vector Start,
                          Vector HitNormal,
                          int ReflectNum)
 {
-    if (Level.NetMode != NM_Client && ReflectNum == 0 && IsEnhancedNetcodeEnabled())
+    if (Level.NetMode != NM_Client && ReflectNum == 0 && WantsPingCompensation())
     {
         BeamEffectClass = class'HxNet_ShockBeamEffect';
         Super.SpawnBeamEffect(Start, Dir, HitLocation, HitNormal, ReflectNum);
@@ -89,7 +88,7 @@ function SpawnBeamEffect(Vector Start,
 
 function DoTrace(Vector Start, Rotator Dir)
 {
-    if (IsEnhancedNetcodeEnabled())
+    if (WantsPingCompensation())
     {
         class'HxNTWeapon'.static.InstantFireTrace(
             HexedNET, Self, Start, Dir, Client.AveragePing + ServerDelay);

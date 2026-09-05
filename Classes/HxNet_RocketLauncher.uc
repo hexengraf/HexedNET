@@ -45,10 +45,10 @@ simulated function PostBeginPlay()
     }
 }
 
-simulated function bool IsEnhancedNetcodeEnabled()
+simulated function bool WantsPingCompensation()
 {
     return class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
-        && Client.IsEnhancedNetcodeEnabled();
+        && Client.WantsPingCompensation();
 }
 
 simulated event WeaponTick(float DT)
@@ -70,7 +70,7 @@ simulated event ClientStopFire(int Mode)
     local HxNTWeapon.HxBAS BAS;
 
     if (Role == ROLE_Authority || HxNet_RocketMultiFire(FireMode[Mode]) == None
-        || !IsEnhancedNetcodeEnabled())
+        || !WantsPingCompensation())
     {
         Super.ClientStopFire(Mode);
     }
@@ -91,7 +91,7 @@ simulated event ClientStartFire(int Mode)
     if (Role == ROLE_Authority || Pawn(Owner).Controller.IsInState('GameEnded')
         || Pawn(Owner).Controller.IsInState('RoundEnded')
         || HxNet_RocketFire(FireMode[Mode]) == None
-        || !IsEnhancedNetcodeEnabled())
+        || !WantsPingCompensation())
     {
         Super.ClientStartFire(Mode);
     }

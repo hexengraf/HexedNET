@@ -24,7 +24,7 @@ function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir, optional int
         }
         return Client.TrackDummyProjectile(Dummy, class'FlakCannon');
     }
-    if (IsEnhancedNetcodeEnabled())
+    if (WantsPingCompensation())
     {
         P = HxNet_FlakChunk(SpawnProjectile(Start, Dir));
         if (P != None)

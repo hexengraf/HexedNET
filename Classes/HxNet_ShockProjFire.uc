@@ -21,7 +21,7 @@ function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir, optional int
         return Client.TrackDummyProjectile(P, class'ShockRifle');
     }
     P = SpawnProjectile(Start, Dir);
-    if (IsEnhancedNetcodeEnabled())
+    if (WantsPingCompensation())
     {
         DeltaTime = Client.GetProjectilePing() + ServerDelay;
         HexedNET.ExtrapolateLinearProjectile(Weapon, P, DeltaTime);

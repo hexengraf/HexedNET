@@ -10,10 +10,10 @@ function PreBeginPlay()
     class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
 }
 
-function bool IsEnhancedNetcodeEnabled()
+function bool WantsPingCompensation()
 {
     return class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
-        && Client.IsEnhancedNetcodeEnabled();
+        && Client.WantsPingCompensation();
 }
 
 simulated function ModeTick(float DT)
@@ -36,7 +36,7 @@ simulated function ModeTick(float DT)
     local DestroyableObjective HealObjective;
     local Vehicle LinkedVehicle;
 
-    if (Instigator.Role < Role_Authority || !IsEnhancedNetcodeEnabled() || !bIsFiring)
+    if (Instigator.Role < Role_Authority || !WantsPingCompensation() || !bIsFiring)
     {
         super.ModeTick(DT);
         return;

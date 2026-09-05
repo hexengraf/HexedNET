@@ -22,17 +22,16 @@ function PreBeginPlay()
     }
 }
 
-function bool IsEnhancedNetcodeEnabled()
+function bool WantsPingCompensation()
 {
     return class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
-        && Client.IsEnhancedNetcodeEnabled();
+        && Client.WantsPingCompensation();
 }
 
 function PlayFiring()
 {
     Super.PlayFiring();
-    if (Level.NetMode == NM_Client && IsEnhancedNetcodeEnabled()
-        && Instigator.IsLocallyControlled())
+    if (Level.NetMode == NM_Client && WantsPingCompensation() && Instigator.IsLocallyControlled())
     {
         DoFireEffect();
     }
@@ -67,7 +66,7 @@ function SpawnBeamEffect(vector Start,
 {
     local ShockBeamEffect Beam;
 
-    if (Level.NetMode != NM_Client && IsEnhancedNetcodeEnabled())
+    if (Level.NetMode != NM_Client && WantsPingCompensation())
     {
         if (Weapon != None)
         {
@@ -95,7 +94,7 @@ function SpawnBeamEffect(vector Start,
 
 function TracePart(Vector Start, Vector End, Vector X, Rotator Dir, Pawn Ignored)
 {
-    if (!IsEnhancedNetcodeEnabled())
+    if (!WantsPingCompensation())
     {
         Super.TracePart(Start, End, X, Dir, Ignored);
     }

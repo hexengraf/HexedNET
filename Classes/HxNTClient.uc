@@ -248,7 +248,7 @@ simulated function float GetProjectileDelay()
     return AveragePing - ProjectileCompensationLimit;
 }
 
-simulated function bool IsEnhancedNetcodeEnabled()
+simulated function bool WantsPingCompensation()
 {
     return bPingCompensation && AveragePing > 0;
 }
@@ -339,7 +339,7 @@ simulated function float GetRandomFloat()
 {
     local float Result;
 
-    if (!IsEnhancedNetcodeEnabled())
+    if (!WantsPingCompensation())
     {
         return FRand();
     }

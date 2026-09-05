@@ -88,7 +88,7 @@ function DoFireEffect()
             Client.TrackDummyProjectile(FiredRockets[p], class'RocketLauncher');
         }
     }
-    else if (IsEnhancedNetcodeEnabled())
+    else if (WantsPingCompensation())
     {
         HexedNET.ExtrapolateLinearProjectiles(
             Weapon, FiredRockets, Client.GetProjectilePing() + ServerDelay);
@@ -105,7 +105,7 @@ function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir, optional int
             Start, Dir, Index, class'HxNet_RocketProjDummy', class'HxNet_SeekingRocketProjDummy');
         return Client.TrackDummyProjectile(P, class'RocketLauncher');
     }
-    if (IsEnhancedNetcodeEnabled())
+    if (WantsPingCompensation())
     {
         P = SpawnIndexedProjectile(
             Start, Dir, Index, class'HxNet_RocketProj', class'HxNet_SeekingRocketProj');

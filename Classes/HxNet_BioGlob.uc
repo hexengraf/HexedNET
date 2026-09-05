@@ -23,7 +23,7 @@ simulated function PostNetBeginPlay()
         PC = Level.GetLocalPlayerController();
         foreach DynamicActors(class'HxNTClient', Client)
         {
-            if (Client.IsEnhancedNetcodeEnabled()
+            if (Client.WantsPingCompensation()
                 && PC != None && PC.Pawn != None && PC.Pawn == Instigator)
             {
                 SearchPredictedProjectile(Client);

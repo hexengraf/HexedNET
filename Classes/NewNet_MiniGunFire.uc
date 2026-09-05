@@ -10,15 +10,15 @@ function PreBeginPlay()
     class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
 }
 
-function bool IsEnhancedNetcodeEnabled()
+function bool WantsPingCompensation()
 {
     return class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
-        && Client.IsEnhancedNetcodeEnabled();
+        && Client.WantsPingCompensation();
 }
 
 function DoTrace(vector Start, rotator Dir)
 {
-    if (Level.NetMode == NM_Client || !IsEnhancedNetcodeEnabled())
+    if (Level.NetMode == NM_Client || !WantsPingCompensation())
     {
         super.DoTrace(Start, Dir);
     }
