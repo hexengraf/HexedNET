@@ -41,6 +41,12 @@ simulated function PostBeginPlay()
     }
 }
 
+simulated function bool IsEnhancedNetcodeEnabled()
+{
+    return class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
+        && Client.IsEnhancedNetcodeEnabled();
+}
+
 simulated event WeaponTick(float DT)
 {
     Super.WeaponTick(DT);
@@ -52,8 +58,7 @@ simulated event ClientStopFire(int Mode)
     local HxNTWeapon.HxBAS BAS;
 
     if (Role == ROLE_Authority || HxNet_BioChargedFire(FireMode[Mode]) == None
-        || !class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
-        || !Client.IsEnhancedNetcodeEnabled())
+        || !IsEnhancedNetcodeEnabled())
     {
         Super.ClientStopFire(Mode);
     }
@@ -74,8 +79,7 @@ simulated event ClientStartFire(int Mode)
     if (Role == ROLE_Authority || Pawn(Owner).Controller.IsInState('GameEnded')
         || Pawn(Owner).Controller.IsInState('RoundEnded')
         || HxNet_BioFire(FireMode[Mode]) == None
-        || !class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
-        || !Client.IsEnhancedNetcodeEnabled())
+        || !IsEnhancedNetcodeEnabled())
     {
         Super.ClientStartFire(Mode);
     }
