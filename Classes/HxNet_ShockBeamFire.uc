@@ -75,7 +75,7 @@ function SpawnBeamEffect(Vector Start,
                          Vector HitNormal,
                          int ReflectNum)
 {
-    if (Level.NetMode != NM_Client && ReflectNum == 0)
+    if (Level.NetMode != NM_Client && ReflectNum == 0 && IsEnhancedNetcodeEnabled())
     {
         BeamEffectClass = class'HxNet_ShockBeamEffect';
         Super.SpawnBeamEffect(Start, Dir, HitLocation, HitNormal, ReflectNum);
