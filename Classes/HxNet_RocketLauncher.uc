@@ -45,7 +45,7 @@ simulated function PostBeginPlay()
     }
 }
 
-function bool IsEnhancedNetcodeEnabled()
+simulated function bool IsEnhancedNetcodeEnabled()
 {
     return class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
         && Client.IsEnhancedNetcodeEnabled();
