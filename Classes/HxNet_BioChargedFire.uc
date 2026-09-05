@@ -32,29 +32,6 @@ function Projectile SpawnProjectile(Vector Start, Rotator Dir)
     return Glob;
 }
 
-function Vector GetProjectileVelocity(Rotator Dir)
-{
-    local Vector Velocity;
-
-    Velocity = Vector(Dir) * ProjectileClass.default.Speed;
-    if (GoopLoad >= 1)
-    {
-        Velocity *= (0.4 + GoopLoad) / (1.4 * GoopLoad);
-    }
-    Velocity.Z += ProjectileClass.default.TossZ;
-    return Velocity;
-}
-
-function Vector GetProjectileExtent()
-{
-    local Vector Extent;
-
-    Extent = Vect(1, 1, 0);
-    Extent *= ProjectileClass.default.CollisionRadius;
-    Extent.Z = ProjectileClass.default.CollisionHeight;
-    return Extent;
-}
-
 DefaultProperties
 {
     WeaponClass=class'BioRifle'

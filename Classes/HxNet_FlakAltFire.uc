@@ -3,20 +3,6 @@ class HxNet_FlakAltFire extends FlakAltFire
 
 #include Classes\Include\HxNTFallingProjectileFire.uci
 
-function Vector GetProjectileVelocity(Rotator Dir)
-{
-    local Vector Velocity;
-
-    Velocity = Vector(Dir) * ProjectileClass.default.Speed;
-    Velocity.Z += ProjectileClass.default.TossZ;
-    return Velocity;
-}
-
-function Vector GetProjectileExtent()
-{
-    return Vect(2, 2, 2);
-}
-
 defaultproperties
 {
     WeaponClass=class'FlakCannon'
