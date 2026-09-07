@@ -1,4 +1,4 @@
-class NewNet_MiniGunAltFire extends MiniGunAltFire;
+class HxNet_MiniGunFire extends MiniGunFire;
 
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;

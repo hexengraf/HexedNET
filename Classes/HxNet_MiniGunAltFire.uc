@@ -1,4 +1,4 @@
-class NewNet_MiniGunFire extends MiniGunFire;
+class HxNet_MiniGunAltFire extends MiniGunAltFire;
 
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
@@ -28,6 +28,6 @@ function DoTrace(vector Start, rotator Dir)
     }
 }
 
-DefaultProperties
+defaultproperties
 {
 }

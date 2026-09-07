@@ -705,6 +705,6 @@ defaultproperties
     NewNetWeaponClasses(11)=class'HxNet_HxZoomSuperShockRifle'
     WeaponFireClasses(0)=class'MiniGunFire'
     WeaponFireClasses(1)=class'MiniGunAltFire'
-    NewNetWeaponFireClasses(0)=class'NewNet_MiniGunFire'
-    NewNetWeaponFireClasses(1)=class'NewNet_MiniGunAltFire'
+    NewNetWeaponFireClasses(0)=class'HxNet_MiniGunFire'
+    NewNetWeaponFireClasses(1)=class'HxNet_MiniGunAltFire'
 }
