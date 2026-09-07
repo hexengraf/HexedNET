@@ -97,88 +97,9 @@ function ModifyPlayer(Pawn Other)
     Super.ModifyPlayer(Other);
 }
 
-function TimeTravel(float DeltaTime)
-{
-    if (PCC != None)
-    {
-        PCC.TimeTravel(DeltaTime);
-    }
-    RewindShockProjectiles(DeltaTime);
-}
-
-function UnTimeTravel()
-{
-    if (PCC != None)
-    {
-        PCC.UnTimeTravel();
-    }
-    RestoreShockProjectiles();
-}
-
-// We need to do 2 traces. First, one that ignores the things which have already been copied
-// and a second one that looks only for things that are copied
-function Actor TimeTravelTrace(Weapon Weapon,
-                               out vector HitLocation,
-                               out vector HitNormal,
-                               vector End,
-                               vector Start,
-                               optional vector Extent,
-                               optional bool bHitInstigator)
-{
-    local Actor Other;
-    local PawnCollisionCopy Copy;
-    local vector PCCHitNormal;
-    local vector PCCHitLocation;
-
-    // First, lets set the extent of our trace.  End once we hit an actor which won't
-    // be checked by an unlagged copy.
-    foreach TraceActors(class'Actor', Other, HitLocation, HitNormal, End, Start, Extent)
-    {
-        if ((Other.bBlockActors || Other.bProjTarget || Other.bWorldGeometry)
-            && !IsPredicted(Other))
-        {
-            End = HitLocation;
-            break;
-        }
-    }
-    // Now, lets see if we run into any copies, we stop at the location
-    // determined by the previous trace.
-    foreach TraceActors(
-        class'PawnCollisionCopy', Copy, PCCHitLocation, PCCHitNormal, End, Start, Extent)
-    {
-        if (Copy != None && Copy.CopiedPawn != None
-            && (bHitInstigator || Copy.CopiedPawn != Weapon.Instigator))
-        {
-            HitLocation = PCCHitLocation;
-            HitNormal = PCCHitNormal;
-            return Copy;
-        }
-    }
-    return Other;
-}
-
-function Actor CompensatedTrace(Weapon Weapon,
-                                out vector HitLocation,
-                                out vector HitNormal,
-                                vector End,
-                                vector Start,
-                                optional out vector PastHitLocation)
-{
-    local Actor Other;
-
-    Other = TimeTravelTrace(Weapon, PastHitLocation, HitNormal, End, Start);
-    if (Other != None && Other.IsA('PawnCollisionCopy'))
-    {
-        HitLocation = PawnCollisionCopy(Other).GetPresentHitLocation(PastHitLocation);
-        return PawnCollisionCopy(Other).CopiedPawn;
-    }
-    HitLocation = PastHitLocation;
-    return Other;
-}
-
 function bool IsReasonable(Weapon W, Vector V)
 {
-    local vector LocDiff;
+    local Vector LocDiff;
 
     if (Pawn(W.Owner) == None)
     {
@@ -309,6 +230,24 @@ function string GetInventoryClassOverride(string InventoryClassName)
     return InventoryClassName;
 }
 
+function Rewind(float DeltaTime)
+{
+    if (PCC != None)
+    {
+        PCC.Rewind(DeltaTime);
+    }
+    RewindShockProjectiles(DeltaTime);
+}
+
+function UndoRewind()
+{
+    if (PCC != None)
+    {
+        PCC.UndoRewind();
+    }
+    RestoreShockProjectiles();
+}
+
 function RewindShockProjectiles(float DeltaTime)
 {
     local int i;
@@ -367,9 +306,38 @@ function RemoveShockProjectile(HxNet_ShockProjectile P)
     }
 }
 
-function float GetDeltaTimeLimit()
+function Actor RewoundTrace(Weapon Weapon,
+                            out Vector HitLocation,
+                            out Vector HitNormal,
+                            Vector End,
+                            Vector Start,
+                            optional Vector Extent,
+                            optional bool bHitInstigator,
+                            optional Vector PastLocation)
 {
-    return PingCompensationLimit / 1000.0;
+    local Actor Hit;
+    local Actor Pawn;
+
+    foreach TraceActors(class'Actor', Hit, HitLocation, HitNormal, End, Start, Extent)
+    {
+        if (Hit.IsA('PawnCollisionCopy'))
+        {
+            Pawn = PawnCollisionCopy(Hit).CopiedPawn;
+            if (Pawn != None && (bHitInstigator || Pawn != Weapon.Instigator))
+            {
+                PastLocation = HitLocation;
+                HitLocation = PawnCollisionCopy(Hit).GetPresentHitLocation(HitLocation);
+                Hit = Pawn;
+                break;
+            }
+        }
+        else if ((Hit.bBlockActors || Hit.bProjTarget || Hit.bWorldGeometry) && !IsPredicted(Hit))
+        {
+            PastLocation = HitLocation;
+            break;
+        }
+    }
+    return Hit;
 }
 
 // TODO: handle bSwitchToZeroCollision
@@ -392,14 +360,10 @@ function ExtrapolateLinearProjectile(Weapon W, Projectile P, float DeltaTime)
         Counter += TimeStep;
         Start = P.Location;
         P.AutonomousPhysics(TimeStep);
-        TimeTravel(DeltaTime);
-        Hit = TimeTravelTrace(W, HitLocation, HitNormal, P.Location, Start, Extent);
+        Rewind(DeltaTime);
+        Hit = RewoundTrace(W, HitLocation, HitNormal, P.Location, Start, Extent);
         if (Hit != None)
         {
-            if (Hit.IsA('PawnCollisionCopy'))
-            {
-                HitLocation += PawnCollisionCopy(Hit).GetLocationDelta();
-            }
             P.SetLocation(HitLocation);
             break;
         }
@@ -410,7 +374,7 @@ function ExtrapolateLinearProjectile(Weapon W, Projectile P, float DeltaTime)
             Extent = P.GetCollisionExtent();
         }
     }
-    UnTimeTravel();
+    UndoRewind();
     RestoreCollision(P);
 }
 
@@ -445,15 +409,10 @@ function ExtrapolateLinearProjectiles(Weapon W, array<Projectile> Projectiles, f
             Extent = Projectiles[i].GetCollisionExtent();
             Start = Projectiles[i].Location;
             Projectiles[i].AutonomousPhysics(TimeStep);
-            TimeTravel(DeltaTime);
-            Hit = TimeTravelTrace(
-                W, HitLocation, HitNormal, Projectiles[i].Location, Start, Extent);
+            Rewind(DeltaTime);
+            Hit = RewoundTrace(W, HitLocation, HitNormal, Projectiles[i].Location, Start, Extent);
             if (Hit != None)
             {
-                if (Hit.IsA('PawnCollisionCopy'))
-                {
-                    HitLocation += PawnCollisionCopy(Hit).GetLocationDelta();
-                }
                 Projectiles[i].SetLocation(HitLocation);
                 Done[i] = 1;
                 if (Projectiles[i].IsA('RocketProj'))
@@ -472,7 +431,7 @@ function ExtrapolateLinearProjectiles(Weapon W, array<Projectile> Projectiles, f
             }
         }
     }
-    UnTimeTravel();
+    UndoRewind();
     for (i = 0; i < Projectiles.Length; ++i)
     {
         RestoreCollision(Projectiles[i]);
@@ -500,23 +459,19 @@ function ExtrapolateFallingProjectile(Weapon W, Projectile P, float DeltaTime)
         DeltaTime -= TimeStep;
         Start = P.Location;
         P.AutonomousPhysics(TimeStep);
-        TimeTravel(DeltaTime);
-        Hit = TimeTravelTrace(W, HitLocation, HitNormal, P.Location, Start, Extent);
+        Rewind(DeltaTime);
+        Hit = RewoundTrace(W, HitLocation, HitNormal, P.Location, Start, Extent);
         if (Hit != None && P.bSwitchToZeroCollision
             && SwitchToZeroCollision(W, Hit, Start, HitLocation))
         {
             Extent = Vect(0, 0, 0);
             P.bSwitchToZeroCollision = false;
             P.ZeroCollider = Hit;
-            Hit = TimeTravelTrace(W, HitLocation, HitNormal, P.Location, Start);
+            Hit = RewoundTrace(W, HitLocation, HitNormal, P.Location, Start);
         }
         if (Hit != None)
         {
-            if (Hit.IsA('PawnCollisionCopy'))
-            {
-                HitLocation += PawnCollisionCopy(Hit).GetLocationDelta();
-            }
-            UnTimeTravel();
+            UndoRewind();
             P.SetLocation(HitLocation);
             if (P != None && !P.bDeleteMe && !Hit.IsA('Pawn'))
             {
@@ -531,7 +486,7 @@ function ExtrapolateFallingProjectile(Weapon W, Projectile P, float DeltaTime)
             Extent = P.GetCollisionExtent();
         }
     }
-    UnTimeTravel();
+    UndoRewind();
     RestoreCollision(P);
 }
 
@@ -543,6 +498,7 @@ function ExtrapolateBouncingProjectile(Weapon W, Projectile P, float DeltaTime)
     local Vector HitLocation;
     local Vector HitNormal;
     local float TimeStep;
+    local bool bHitInstigator;
 
     DisableCollision(P);
     Extent = P.GetCollisionExtent();
@@ -552,14 +508,13 @@ function ExtrapolateBouncingProjectile(Weapon W, Projectile P, float DeltaTime)
         DeltaTime -= TimeStep;
         Start = P.Location;
         P.AutonomousPhysics(TimeStep);
-        TimeTravel(DeltaTime);
-        Hit = TimeTravelTrace(
-            W, HitLocation, HitNormal, P.Location, Start, Extent, P.Physics == PHYS_Falling);
+        Rewind(DeltaTime);
+        Hit = RewoundTrace(W, HitLocation, HitNormal, P.Location, Start, Extent, bHitInstigator);
         if (Hit != None)
         {
-            if (!IsPredicted(Hit))
+            if (!Hit.IsA('Pawn'))
             {
-                UnTimeTravel();
+                UndoRewind();
                 P.SetLocation(Start);
                 RestoreCollision(P);
                 P.AutonomousPhysics(TimeStep);
@@ -571,17 +526,19 @@ function ExtrapolateBouncingProjectile(Weapon W, Projectile P, float DeltaTime)
             }
             else
             {
-                if (Hit.IsA('PawnCollisionCopy'))
-                {
-                    HitLocation += PawnCollisionCopy(Hit).GetLocationDelta();
-                }
                 P.SetLocation(HitLocation);
                 break;
             }
+            bHitInstigator = true;
         }
     }
-    UnTimeTravel();
+    UndoRewind();
     RestoreCollision(P);
+}
+
+final function float GetDeltaTimeLimit()
+{
+    return PingCompensationLimit / 1000.0;
 }
 
 final function float GetTimeStep(float DeltaTime)

@@ -100,10 +100,10 @@ function TracePart(Vector Start, Vector End, Vector X, Rotator Dir, Pawn Ignored
     }
     else if (HexedNET != None)
     {
-        HexedNET.TimeTravel(Client.AveragePing + ServerDelay);
+        HexedNET.Rewind(Client.AveragePing + ServerDelay);
         class'HxNet_SuperShockBeamFire'.static.StaticTracePart(
             HexedNET, Self, Start, End, X, Dir, Ignored);
-        HexedNET.UnTimeTravel();
+        HexedNET.UndoRewind();
     }
     else
     {

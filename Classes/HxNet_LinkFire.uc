@@ -87,18 +87,9 @@ simulated function ModeTick(float DT)
             X = Vector(Aim);
             EndTrace = StartTrace + TraceRange * X;
         }
-        HexedNET.TimeTravel(Client.AveragePing);
-        Other = HexedNET.TimeTravelTrace(Weapon, HitLocation, HitNormal, EndTrace, StartTrace);
-        HexedNET.UnTimeTravel();
-        if (Other != None && Other.IsA('PawnCollisionCopy'))
-        {
-            PawnHitLocation = HitLocation + PawnCollisionCopy(Other).GetLocationDelta();
-            Other = PawnCollisionCopy(Other).CopiedPawn;
-        }
-        else
-        {
-            PawnHitLocation = HitLocation;
-        }
+        HexedNET.Rewind(Client.AveragePing);
+        Other = HexedNET.RewoundTrace(Weapon, HitLocation, HitNormal, EndTrace, StartTrace);
+        HexedNET.UndoRewind();
         if (Other != None && Other != Instigator)
         {
             EndEffect = HitLocation;

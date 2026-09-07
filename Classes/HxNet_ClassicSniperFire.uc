@@ -59,9 +59,9 @@ function DoTrace(vector Start, Rotator Dir)
     }
     X = vector(Dir);
     End = Start + TraceRange * X;
-    HexedNET.TimeTravel(Client.AveragePing + ServerDelay);
-    Other = HexedNET.CompensatedTrace(Weapon, HitLocation, HitNormal, End, Start);
-    HexedNET.UnTimeTravel();
+    HexedNET.Rewind(Client.AveragePing + ServerDelay);
+    Other = HexedNET.RewoundTrace(Weapon, HitLocation, HitNormal, End, Start);
+    HexedNET.UndoRewind();
     if (Level.NetMode != NM_Standalone || PlayerController(Instigator.Controller) == None)
     {
         Weapon.Spawn(class'TracerProjectile', Instigator.Controller,, Start, Dir);

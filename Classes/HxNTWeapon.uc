@@ -122,9 +122,9 @@ static function InstantFireTrace(MutHexedNET HexedNET,
         End = Start + WF.TraceRange * X;
         if (bRewind)
         {
-            HexedNET.TimeTravel(AveragePing);
-            Hit = HexedNET.CompensatedTrace(WF.Weapon, HitLocation, HitNormal, End, Start);
-            HexedNET.UnTimeTravel();
+            HexedNET.Rewind(AveragePing);
+            Hit = HexedNET.RewoundTrace(WF.Weapon, HitLocation, HitNormal, End, Start);
+            HexedNET.UndoRewind();
             bRewind = false;
         }
         else

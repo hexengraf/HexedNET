@@ -97,9 +97,9 @@ function DoTrace(Vector Start, Rotator Dir)
         End = Start + TmpTraceRange * X;
         if (bRewind)
         {
-            HexedNET.TimeTravel(Client.AveragePing + ServerDelay);
-            Hit = HexedNET.CompensatedTrace(Weapon, HitLocation, HitNormal, End, Start);
-            HexedNET.UnTimeTravel();
+            HexedNET.Rewind(Client.AveragePing + ServerDelay);
+            Hit = HexedNET.RewoundTrace(Weapon, HitLocation, HitNormal, End, Start);
+            HexedNET.UndoRewind();
             TmpHitEmitClass = class'HxNet_NewLightningBolt';
             bRewind = false;
         }

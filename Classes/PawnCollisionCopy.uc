@@ -125,7 +125,7 @@ function GoToPawn()
 }
 
 // What happens if its not an xpawn and its changing shapes?
-function TimeTravelPawn(float DeltaTime)
+function RewindPawn(float DeltaTime)
 {
     local float TargetTimestamp;
     local float Alpha;
@@ -288,17 +288,17 @@ function Tick(float DeltaTime)
     }
 }
 
-function TimeTravel(float delta)
+function Rewind(float delta)
 {
     local PawnCollisionCopy PCC;
 
     for (PCC = Self; PCC != None; PCC = PCC.Next)
     {
-        PCC.TimeTravelPawn(Delta);
+        PCC.RewindPawn(Delta);
     }
 }
 
-function UnTimeTravel()
+function UndoRewind()
 {
     local PawnCollisionCopy PCC;
 
@@ -308,6 +308,9 @@ function UnTimeTravel()
     }
 }
 
+// TODO: what about self-inflicted splash damage if target is close?
+// By updating to collide in the current target location (instead of past location),
+// players might wrongfully avoid self-inflicted splash damage.
 function vector GetPresentHitLocation(vector HitLocation)
 {
     // TODO: handle crouching differences
@@ -341,14 +344,6 @@ final function int FindLowerBound(float Timestamp)
         }
     }
     return Result;
-}
-
-// TODO: what about self-inflicted splash damage if target is close?
-// By updating to collide in the current target location (instead of past location),
-// players might wrongfully avoid self-inflicted splash damage.
-final function vector GetLocationDelta()
-{
-    return CopiedPawn.Location - Location;
 }
 
 final function float GetAlpha(float Value, float A, float B)

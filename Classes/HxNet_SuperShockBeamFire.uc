@@ -90,9 +90,9 @@ function TracePart(Vector Start, Vector End, Vector X, Rotator Dir, Pawn Ignored
     }
     else if (HexedNET != None)
     {
-        HexedNET.TimeTravel(Client.AveragePing + ServerDelay);
+        HexedNET.Rewind(Client.AveragePing + ServerDelay);
         StaticTracePart(HexedNET, Self, Start, End, X, Dir, Ignored);
-        HexedNET.UnTimeTravel();
+        HexedNET.UndoRewind();
     }
     else
     {
@@ -108,34 +108,33 @@ static function StaticTracePart(MutHexedNET HexedNET,
                                 Rotator Dir,
                                 Pawn Ignored)
 {
-    local Actor Other;
+    local Actor Hit;
     local Vector HitLocation;
-    local vector PastHitLocation;
+    local vector PastLocation;
     local Vector HitNormal;
 
     if (HexedNET != None)
     {
-        Other = HexedNET.CompensatedTrace(
-            WF.Weapon, HitLocation, HitNormal, End, Start, PastHitLocation);
+        Hit = HexedNET.RewoundTrace(WF.Weapon, HitLocation, HitNormal, End, Start,,, PastLocation);
     }
     else
     {
-        Other = Ignored.Trace(HitLocation, HitNormal, End, Start, true);
-        PastHitLocation = HitLocation;
+        Hit = Ignored.Trace(HitLocation, HitNormal, End, Start, true);
+        PastLocation = HitLocation;
     }
-    if (Other != None && Other != Ignored)
+    if (Hit != None && Hit != Ignored)
     {
-        if (!Other.bWorldGeometry)
+        if (!Hit.bWorldGeometry)
         {
             if (WF.Level.NetMode != NM_Client)
             {
-                Other.TakeDamage(
+                Hit.TakeDamage(
                     WF.DamageMax, WF.Instigator, HitLocation, WF.Momentum * X, WF.DamageType);
             }
             HitNormal = Vect(0, 0, 0);
-            if (Pawn(Other) != None && HitLocation != Start && WF.AllowMultiHit())
+            if (Pawn(Hit) != None && HitLocation != Start && WF.AllowMultiHit())
             {
-                StaticTracePart(HexedNET, WF, PastHitLocation, End, X, Dir, Pawn(Other));
+                StaticTracePart(HexedNET, WF, PastLocation, End, X, Dir, Pawn(Hit));
             }
         }
     }
