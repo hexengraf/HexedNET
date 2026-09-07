@@ -12,10 +12,10 @@ var config int ProjectileCompensationLimit;
 var config bool bRubberbandingFix;
 var config bool bLinkMeshes;
 
-var const private class<Weapon> WeaponClasses[11];
-var const private class<Weapon> NewNetWeaponClasses[11];
-var const private class<WeaponFire> WeaponFireClasses[4];
-var const private class<WeaponFire> NewNetWeaponFireClasses[4];
+var const private class<Weapon> WeaponClasses[12];
+var const private class<Weapon> NewNetWeaponClasses[12];
+var const private class<WeaponFire> WeaponFireClasses[2];
+var const private class<WeaponFire> NewNetWeaponFireClasses[2];
 var private PawnCollisionCopy PCC;
 var private array<HxNet_ShockProjectile> ShockProjectiles;
 
@@ -557,13 +557,13 @@ function ExtrapolateBouncingProjectile(Weapon W, Projectile P, float DeltaTime)
             W, HitLocation, HitNormal, P.Location, Start, Extent, P.Physics == PHYS_Falling);
         if (Hit != None)
         {
-            if (IsHitWall(Hit))
+            if (!IsPredicted(Hit))
             {
                 UnTimeTravel();
                 P.SetLocation(Start);
                 RestoreCollision(P);
                 P.AutonomousPhysics(TimeStep);
-                if (P == None)
+                if (P == None || P.bDeleteMe)
                 {
                     break;
                 }
@@ -589,16 +589,9 @@ final function float GetTimeStep(float DeltaTime)
     return FMin(BASE_TIMESTEP, DeltaTime);
 }
 
-static function bool IsPredicted(Actor A)
+static final function bool IsPredicted(Actor A)
 {
     return A.IsA('xPawn') || (A.IsA('Vehicle') && Vehicle(A).Driver != None);
-}
-
-final function bool IsHitWall(Actor Wall)
-{
-    return Wall.bStatic
-        || Wall.bWorldGeometry
-        || (Mover(Wall) != None && !Mover(Wall).bDamageTriggered);
 }
 
 static final function DisableCollision(Projectile P)
@@ -685,35 +678,33 @@ defaultproperties
     bRubberbandingFix=false
     bLinkMeshes=true
     //original weapons
-    WeaponClasses(0)=class'ShockRifle'
-    WeaponClasses(1)=class'LinkGun'
-    WeaponClasses(2)=class'FlakCannon'
-    WeaponClasses(3)=class'RocketLauncher'
-    WeaponClasses(4)=class'SniperRifle'
-    WeaponClasses(5)=class'ClassicSniperRifle'
-    WeaponClasses(6)=class'BioRifle'
-    WeaponClasses(7)=class'SuperShockRifle'
-    WeaponClasses(8)=class'ZoomSuperShockRifle'
-    WeaponClasses(9)=class'HxSuperShockRifle'
-    WeaponClasses(10)=class'HxZoomSuperShockRifle'
+    WeaponClasses(0)=class'AssaultRifle'
+    WeaponClasses(1)=class'BioRifle'
+    WeaponClasses(2)=class'ShockRifle'
+    WeaponClasses(3)=class'LinkGun'
+    WeaponClasses(4)=class'FlakCannon'
+    WeaponClasses(5)=class'RocketLauncher'
+    WeaponClasses(6)=class'SniperRifle'
+    WeaponClasses(7)=class'ClassicSniperRifle'
+    WeaponClasses(8)=class'SuperShockRifle'
+    WeaponClasses(9)=class'ZoomSuperShockRifle'
+    WeaponClasses(10)=class'HxSuperShockRifle'
+    WeaponClasses(11)=class'HxZoomSuperShockRifle'
     // replaced NewNet classes
-    NewNetWeaponClasses(0)=class'HxNet_ShockRifle'
-    NewNetWeaponClasses(1)=class'HxNet_LinkGun'
-    NewNetWeaponClasses(2)=class'HxNet_FlakCannon'
-    NewNetWeaponClasses(3)=class'HxNet_RocketLauncher'
-    NewNetWeaponClasses(4)=class'HxNet_SniperRifle'
-    NewNetWeaponClasses(5)=class'HxNet_ClassicSniperRifle'
-    NewNetWeaponClasses(6)=class'HxNet_BioRifle'
-    NewNetWeaponClasses(7)=class'HxNet_SuperShockRifle'
-    NewNetWeaponClasses(8)=class'HxNet_ZoomSuperShockRifle'
-    NewNetWeaponClasses(9)=class'HxNet_HxSuperShockRifle'
-    NewNetWeaponClasses(10)=class'HxNet_HxZoomSuperShockRifle'
-    WeaponFireClasses(0)=class'AssaultFire'
-    WeaponFireClasses(1)=class'AssaultGrenade'
-    WeaponFireClasses(2)=class'MiniGunFire'
-    WeaponFireClasses(3)=class'MiniGunAltFire'
-    NewNetWeaponFireClasses(0)=class'NewNet_AssaultFire'
-    NewNetWeaponFireClasses(1)=class'NewNet_AssaultGrenade'
-    NewNetWeaponFireClasses(2)=class'NewNet_MiniGunFire'
-    NewNetWeaponFireClasses(3)=class'NewNet_MiniGunAltFire'
+    NewNetWeaponClasses(0)=class'HxNet_AssaultRifle'
+    NewNetWeaponClasses(1)=class'HxNet_BioRifle'
+    NewNetWeaponClasses(2)=class'HxNet_ShockRifle'
+    NewNetWeaponClasses(3)=class'HxNet_LinkGun'
+    NewNetWeaponClasses(4)=class'HxNet_FlakCannon'
+    NewNetWeaponClasses(5)=class'HxNet_RocketLauncher'
+    NewNetWeaponClasses(6)=class'HxNet_SniperRifle'
+    NewNetWeaponClasses(7)=class'HxNet_ClassicSniperRifle'
+    NewNetWeaponClasses(8)=class'HxNet_SuperShockRifle'
+    NewNetWeaponClasses(9)=class'HxNet_ZoomSuperShockRifle'
+    NewNetWeaponClasses(10)=class'HxNet_HxSuperShockRifle'
+    NewNetWeaponClasses(11)=class'HxNet_HxZoomSuperShockRifle'
+    WeaponFireClasses(0)=class'MiniGunFire'
+    WeaponFireClasses(1)=class'MiniGunAltFire'
+    NewNetWeaponFireClasses(0)=class'NewNet_MiniGunFire'
+    NewNetWeaponFireClasses(1)=class'NewNet_MiniGunAltFire'
 }
