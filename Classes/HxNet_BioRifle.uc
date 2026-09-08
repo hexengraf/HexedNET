@@ -14,31 +14,21 @@ replication
         ServerStartFireBAS, ServerStopFireBAS;
 }
 
-simulated function PreBeginPlay()
+simulated event PreBeginPlay()
 {
     Super.PreBeginPlay();
     if (Level.NetMode != NM_DedicatedServer)
     {
-        if (!default.bConfigCleared)
-        {
-            ClearConfig();
-            default.bConfigCleared = true;
-        }
-        class'HxNTWeapon'.static.ForceBaseClassConfig(Self, class'BioRifle');
+        class'HxNTWeapon'.static.LoadDefaultConfig(
+            Self, class'BioRifle', !default.bConfigCleared);
+        default.bConfigCleared = true;
     }
 }
 
-simulated function PostBeginPlay()
+simulated event PostBeginPlay()
 {
     Super.PostBeginPlay();
-    if (Level.NetMode != NM_Client)
-    {
-        foreach DynamicActors(class'MutHexedNET', HexedNET) break;
-    }
-    else
-    {
-        class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
-    }
+    class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
 }
 
 simulated function bool WantsPingCompensation()
@@ -76,9 +66,8 @@ simulated event ClientStartFire(int Mode)
 {
     local HxNTWeapon.HxBAS BAS;
 
-    if (Role == ROLE_Authority || Pawn(Owner).Controller.IsInState('GameEnded')
-        || Pawn(Owner).Controller.IsInState('RoundEnded')
-        || HxNet_BioFire(FireMode[Mode]) == None || !WantsPingCompensation())
+    if (!class'HxNTWeapon'.static.DoBAS(Self) || HxNet_BioFire(FireMode[Mode]) == None
+        || !WantsPingCompensation())
     {
         Super.ClientStartFire(Mode);
     }
@@ -116,13 +105,10 @@ simulated function bool StartFire(int Mode)
     ServerDelay = Level.TimeSeconds - FireMode[Mode].NextFireTime;
     if (Super.StartFire(Mode))
     {
-        if (FireMode[Mode].bServerDelayStartFire)
+        if (FireMode[Mode].bServerDelayStartFire && HxNet_BioFire(FireMode[Mode]) != None)
         {
-            if (HxNet_BioFire(FireMode[Mode]) != None)
-            {
-                FireMode[Mode].NextFireTime -= ServerDelay + 0.001;
-                HxNet_BioFire(FireMode[Mode]).ServerDelay = ServerDelay;
-            }
+            FireMode[Mode].NextFireTime -= ServerDelay + 0.001;
+            HxNet_BioFire(FireMode[Mode]).ServerDelay = ServerDelay;
         }
         return true;
     }

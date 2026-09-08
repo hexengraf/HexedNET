@@ -4,14 +4,13 @@ class HxNet_ClassicSniperFire extends ClassicSniperFire
 var float ServerDelay;
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
-var private vector BASStart;
-var private rotator BASAim;
+var private Vector BASStart;
+var private Rotator BASAim;
 var private bool bBoostedAimSynchronization;
 
 function PreBeginPlay()
 {
     Super.PreBeginPlay();
-    foreach Weapon.DynamicActors(class'MutHexedNET', HexedNET) break;
     class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
 }
 
@@ -42,22 +41,22 @@ function DoFireEffect()
     ServerDelay = 0;
 }
 
-function DoTrace(vector Start, Rotator Dir)
+function DoTrace(Vector Start, Rotator Dir)
 {
     local Actor Other;
     local Pawn HeadShotPawn;
     local SniperWallHitEffect S;
-    local vector X;
-    local vector End;
-    local vector HitLocation;
-    local vector HitNormal;
+    local Vector X;
+    local Vector End;
+    local Vector HitLocation;
+    local Vector HitNormal;
 
     if (Level.NetMode == NM_Client || !WantsPingCompensation())
     {
-        super.DoTrace(Start,Dir);
+        Super.DoTrace(Start,Dir);
         return;
     }
-    X = vector(Dir);
+    X = Vector(Dir);
     End = Start + TraceRange * X;
     HexedNET.Rewind(Client.AveragePing + ServerDelay);
     Other = HexedNET.RewoundTrace(Weapon, HitLocation, HitNormal, End, Start);
@@ -110,7 +109,7 @@ function DoTrace(vector Start, Rotator Dir)
     }
     if (HitNormal != Vect(0, 0, 0) && HitScanBlockingVolume(Other) == None)
     {
-        S = Weapon.Spawn(class'SniperWallHitEffect',,, HitLocation, rotator(-1 * HitNormal));
+        S = Weapon.Spawn(class'SniperWallHitEffect',,, HitLocation, Rotator(-1 * HitNormal));
         if (S != None)
         {
             S.FireStart = Start;
@@ -118,6 +117,6 @@ function DoTrace(vector Start, Rotator Dir)
     }
 }
 
-DefaultProperties
+defaultproperties
 {
 }

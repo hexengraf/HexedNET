@@ -16,23 +16,16 @@ replication
 simulated event PostBeginPlay()
 {
     Super.PostBeginPlay();
-    if (Level.NetMode != NM_Client)
-    {
-        foreach DynamicActors(class'MutHexedNET', HexedNET) break;
-    }
-    else
-    {
-        class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
-    }
     if (Level.NetMode != NM_DedicatedServer)
     {
         RefreshConfiguration();
     }
+    class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
 }
 
-simulated event WeaponTick(float dt)
+simulated event WeaponTick(float DT)
 {
-    Super.WeaponTick(dt);
+    Super.WeaponTick(DT);
     class'HxNTWeapon'.static.CheckStopFire(Self, StopFireTime[0], StopFireTime[1]);
 }
 
@@ -46,8 +39,7 @@ simulated event ClientStartFire(int Mode)
 {
     local HxNTWeapon.HxBAS BAS;
 
-    if (Role == ROLE_Authority || Pawn(Owner).Controller.IsInState('GameEnded')
-        || Pawn(Owner).Controller.IsInState('RoundEnded') || ShockBeamFire(FireMode[Mode]) == None
+    if (!class'HxNTWeapon'.static.DoBAS(Self) || ShockBeamFire(FireMode[Mode]) == None
         || !class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
         || !Client.WantsPingCompensation())
     {
@@ -75,20 +67,18 @@ simulated function bool StartFire(int Mode)
     ServerDelay = Level.TimeSeconds - FireMode[Mode].NextFireTime;
     if (Super.StartFire(Mode))
     {
-        if (FireMode[Mode].bServerDelayStartFire)
+        if (FireMode[Mode].bServerDelayStartFire
+            && HxNet_ZoomSuperShockBeamFire(FireMode[Mode]) != None)
         {
             FireMode[Mode].NextFireTime -= ServerDelay + 0.001;
-            if (HxNet_ZoomSuperShockBeamFire(FireMode[Mode]) != None)
-            {
-                HxNet_ZoomSuperShockBeamFire(FireMode[Mode]).ServerDelay = ServerDelay;
-            }
+            HxNet_ZoomSuperShockBeamFire(FireMode[Mode]).ServerDelay = ServerDelay;
         }
         return true;
     }
     return false;
 }
 
-DefaultProperties
+defaultproperties
 {
     FireModeClass(0)=class'HxNet_ZoomSuperShockBeamFire'
 }

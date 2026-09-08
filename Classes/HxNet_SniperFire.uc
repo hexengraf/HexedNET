@@ -11,7 +11,6 @@ var private bool bBoostedAimSynchronization;
 function PreBeginPlay()
 {
     Super.PreBeginPlay();
-    foreach Weapon.DynamicActors(class'MutHexedNET', HexedNET) break;
     class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
 }
 
@@ -74,7 +73,7 @@ function DoTrace(Vector Start, Rotator Dir)
 
     if (!WantsPingCompensation())
     {
-        super.DoTrace(Start, Dir);
+        Super.DoTrace(Start, Dir);
         return;
     }
     if (class'PlayerController'.Default.bSmallWeapons)
@@ -240,6 +239,6 @@ function Vector GetArcStart(Vector EffectOffset)
         + EffectOffset.Z * Z;
 }
 
-DefaultProperties
+defaultproperties
 {
 }

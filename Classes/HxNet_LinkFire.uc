@@ -6,7 +6,6 @@ var private HxNTClient Client;
 function PreBeginPlay()
 {
     Super.PreBeginPlay();
-    foreach Weapon.DynamicActors(class'MutHexedNET', HexedNET) break;
     class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
 }
 
@@ -38,7 +37,7 @@ simulated function ModeTick(float DT)
 
     if (Instigator.Role < Role_Authority || !WantsPingCompensation() || !bIsFiring)
     {
-        super.ModeTick(DT);
+        Super.ModeTick(DT);
         return;
     }
     LinkGun = LinkGun(Weapon);

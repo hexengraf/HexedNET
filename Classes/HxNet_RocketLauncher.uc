@@ -18,31 +18,21 @@ replication
         ServerStartFireBAS, ServerStopFireBAS;
 }
 
-simulated function PreBeginPlay()
+simulated event PreBeginPlay()
 {
     Super.PreBeginPlay();
     if (Level.NetMode != NM_DedicatedServer)
     {
-        if (!default.bConfigCleared)
-        {
-            ClearConfig();
-            default.bConfigCleared = true;
-        }
-        class'HxNTWeapon'.static.ForceBaseClassConfig(Self, class'RocketLauncher');
+        class'HxNTWeapon'.static.LoadDefaultConfig(
+            Self, class'RocketLauncher', !default.bConfigCleared);
+        default.bConfigCleared = true;
     }
 }
 
-simulated function PostBeginPlay()
+simulated event PostBeginPlay()
 {
     Super.PostBeginPlay();
-    if (Level.NetMode != NM_Client)
-    {
-        foreach DynamicActors(class'MutHexedNET', HexedNET) break;
-    }
-    else
-    {
-        class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
-    }
+    class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
 }
 
 simulated function bool WantsPingCompensation()
@@ -87,10 +77,11 @@ simulated event ClientStopFire(int Mode)
 simulated event ClientStartFire(int Mode)
 {
     local HxNTWeapon.HxBAS BAS;
+    local int OtherMode;
 
-    if (Role == ROLE_Authority || Pawn(Owner).Controller.IsInState('GameEnded')
-        || Pawn(Owner).Controller.IsInState('RoundEnded')
-        || HxNet_RocketFire(FireMode[Mode]) == None
+    OtherMode = 1 - Mode;
+    if (!class'HxNTWeapon'.static.DoBAS(Self) || HxNet_RocketFire(FireMode[Mode]) == None
+        || FireMode[OtherMode].bIsFiring || FireMode[OtherMode].NextFireTime > Level.TimeSeconds
         || !WantsPingCompensation())
     {
         Super.ClientStartFire(Mode);
@@ -129,13 +120,10 @@ simulated function bool StartFire(int Mode)
     ServerDelay = Level.TimeSeconds - FireMode[Mode].NextFireTime;
     if (Super.StartFire(Mode))
     {
-        if (FireMode[Mode].bServerDelayStartFire)
+        if (FireMode[Mode].bServerDelayStartFire && HxNet_RocketFire(FireMode[Mode]) != None)
         {
-            if (HxNet_RocketFire(FireMode[Mode]) != None)
-            {
-                FireMode[Mode].NextFireTime -= ServerDelay + 0.001;
-                HxNet_RocketFire(FireMode[Mode]).ServerDelay = ServerDelay;
-            }
+            FireMode[Mode].NextFireTime -= ServerDelay + 0.001;
+            HxNet_RocketFire(FireMode[Mode]).ServerDelay = ServerDelay;
         }
         return true;
     }
@@ -159,7 +147,7 @@ static function RocketProj SpawnHexedProjectile(RocketLauncher Weapon,
     return Weapon.Spawn(RocketClass,,, Start, Dir);
 }
 
-DefaultProperties
+defaultproperties
 {
     FireModeClass(0)=class'HxNet_RocketFire'
     FireModeClass(1)=class'HxNet_RocketMultiFire'

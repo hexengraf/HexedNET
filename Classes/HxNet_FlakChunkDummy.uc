@@ -2,7 +2,7 @@ class HxNet_FlakChunkDummy extends FlakChunk;
 
 var int Index;
 
-simulated function ProcessTouch(Actor Other, vector HitLocation)
+simulated function ProcessTouch(Actor Other, Vector HitLocation)
 {
     if (FlakChunk(Other) == None && (Physics == PHYS_Falling || Other != Instigator))
     {

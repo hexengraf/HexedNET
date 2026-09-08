@@ -10,8 +10,12 @@ struct HxBAS
     var int Pitch;
 };
 
-static function ForceBaseClassConfig(Weapon W, class<Weapon> BaseClass)
+static function LoadDefaultConfig(Weapon W, class<Weapon> BaseClass, bool bClearConfig)
 {
+    if (bClearConfig)
+    {
+        W.ClearConfig();
+    }
     W.default.ExchangeFireModes = BaseClass.default.ExchangeFireModes;
     W.ExchangeFireModes = W.default.ExchangeFireModes;
     W.default.Priority = BaseClass.default.Priority;
@@ -27,7 +31,7 @@ static function ForceBaseClassConfig(Weapon W, class<Weapon> BaseClass)
 }
 
 static function bool ValidateClient(LevelInfo Level,
-                                    MutHexedNET HexedNET,
+                                    out MutHexedNET HexedNET,
                                     Pawn Instigator,
                                     out HxNTClient Client)
 {
@@ -39,11 +43,25 @@ static function bool ValidateClient(LevelInfo Level,
     {
         foreach Level.DynamicActors(class'HxNTClient', Client) break;
     }
-    else if (HexedNET != None && Instigator != None)
+    else
     {
-        Client = HxNTClient(HexedNET.GetClientReplicationInfo(Instigator.Controller));
+        if (HexedNET == None)
+        {
+            foreach Level.DynamicActors(class'MutHexedNET', HexedNET) break;
+        }
+        if (HexedNET != None && Instigator != None)
+        {
+            Client = HxNTClient(HexedNET.GetClientReplicationInfo(Instigator.Controller));
+        }
     }
     return Client != None;
+}
+
+static final function bool DoBAS(Weapon W)
+{
+    return W.Role < ROLE_Authority
+        && !Pawn(W.Owner).Controller.IsInState('GameEnded')
+        && !Pawn(W.Owner).Controller.IsInState('RoundEnded');
 }
 
 static final function CheckStopFire(Weapon W, out int StopFireTime, out int AltStopFireTime)

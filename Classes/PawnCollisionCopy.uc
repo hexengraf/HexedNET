@@ -31,8 +31,8 @@ class PawnCollisionCopy extends Actor;
 struct PawnHistoryElement
 {
     var float Timestamp;
-    var vector Location;
-    var rotator Rotation;
+    var Vector Location;
+    var Rotator Rotation;
     var bool bCrouched;
 };
 
@@ -237,8 +237,8 @@ function PawnCollisionCopy RemoveOldPawns()
 // damage the copied pawn, NOT THIS
 event TakeDamage(int Damage,
                  Pawn EventInstigator,
-                 vector HitLocation,
-                 vector Momentum,
+                 Vector HitLocation,
+                 Vector Momentum,
                  class<DamageType> DamageType)
 {
     // TODO: could some code be simplified by redirecting damage to CopiedPawn here?
@@ -311,7 +311,7 @@ function UndoRewind()
 // TODO: what about self-inflicted splash damage if target is close?
 // By updating to collide in the current target location (instead of past location),
 // players might wrongfully avoid self-inflicted splash damage.
-function vector GetPresentHitLocation(vector HitLocation)
+function Vector GetPresentHitLocation(Vector HitLocation)
 {
     // TODO: handle crouching differences
     return HitLocation + CopiedPawn.Location - Location;

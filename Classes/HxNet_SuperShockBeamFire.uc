@@ -4,14 +4,13 @@ class HxNet_SuperShockBeamFire extends SuperShockBeamFire
 var float ServerDelay;
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
-var private vector BASStart;
-var private rotator BASAim;
+var private Vector BASStart;
+var private Rotator BASAim;
 var private bool bBoostedAimSynchronization;
 
 function PreBeginPlay()
 {
     Super.PreBeginPlay();
-    foreach Weapon.DynamicActors(class'MutHexedNET', HexedNET) break;
     class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
 }
 
@@ -51,10 +50,10 @@ function DoFireEffect()
     ServerDelay = 0;
 }
 
-function SpawnBeamEffect(vector Start,
-                         rotator Dir,
-                         vector HitLocation,
-                         vector HitNormal,
+function SpawnBeamEffect(Vector Start,
+                         Rotator Dir,
+                         Vector HitLocation,
+                         Vector HitNormal,
                          int ReflectNum)
 {
     local ShockBeamEffect Beam;
@@ -110,7 +109,7 @@ static function StaticTracePart(MutHexedNET HexedNET,
 {
     local Actor Hit;
     local Vector HitLocation;
-    local vector PastLocation;
+    local Vector PastLocation;
     local Vector HitNormal;
 
     if (HexedNET != None)
@@ -146,6 +145,6 @@ static function StaticTracePart(MutHexedNET HexedNET,
     WF.SpawnBeamEffect(Start, Dir, HitLocation, HitNormal, 0);
 }
 
-DefaultProperties
+defaultproperties
 {
 }

@@ -2,14 +2,13 @@ var float ServerDelay;
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
 var private Vector BASStart;
-var private rotator BASAim;
+var private Rotator BASAim;
 var private float ProjectileDelayTimer;
 var private bool bBoostedAimSynchronization;
 
 function PreBeginPlay()
 {
     Super.PreBeginPlay();
-    foreach Weapon.DynamicActors(class'MutHexedNET', HexedNET) break;
     class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
 }
 

@@ -10,7 +10,7 @@ var private bool bConfigCleared;
 
 replication
 {
-    reliable if(Role < Role_Authority)
+    reliable if (Role < Role_Authority)
         ServerStartFireBAS;
 }
 
@@ -19,31 +19,21 @@ simulated event PreBeginPlay()
     Super.PreBeginPlay();
     if (Level.NetMode != NM_DedicatedServer)
     {
-        if (!default.bConfigCleared)
-        {
-            ClearConfig();
-            default.bConfigCleared = true;
-        }
-        class'HxNTWeapon'.static.ForceBaseClassConfig(Self, class'ClassicSniperRifle');
+        class'HxNTWeapon'.static.LoadDefaultConfig(
+            Self, class'ClassicSniperRifle', !default.bConfigCleared);
+        default.bConfigCleared = true;
     }
 }
 
-simulated function PostBeginPlay()
+simulated event PostBeginPlay()
 {
     Super.PostBeginPlay();
-    if (Level.NetMode != NM_Client)
-    {
-        foreach DynamicActors(class'MutHexedNET', HexedNET) break;
-    }
-    else
-    {
-        class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
-    }
+    class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
 }
 
-simulated event WeaponTick(float dt)
+simulated event WeaponTick(float DT)
 {
-    Super.WeaponTick(dt);
+    Super.WeaponTick(DT);
     class'HxNTWeapon'.static.CheckStopFire(Self, StopFireTime[0], StopFireTime[1]);
 }
 
@@ -57,8 +47,7 @@ simulated event ClientStartFire(int Mode)
 {
     local HxNTWeapon.HxBAS BAS;
 
-    if (Role == ROLE_Authority || Pawn(Owner).Controller.IsInState('GameEnded')
-        || Pawn(Owner).Controller.IsInState('RoundEnded') || SniperFire(FireMode[Mode]) == None
+    if (!class'HxNTWeapon'.static.DoBAS(Self) || SniperFire(FireMode[Mode]) == None
         || !class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
         || !Client.WantsPingCompensation())
     {
@@ -86,13 +75,11 @@ simulated function bool StartFire(int Mode)
     ServerDelay = Level.TimeSeconds - FireMode[Mode].NextFireTime;
     if (Super.StartFire(Mode))
     {
-        if (FireMode[Mode].bServerDelayStartFire)
+        if (FireMode[Mode].bServerDelayStartFire
+            && HxNet_ClassicSniperFire(FireMode[Mode]) != None)
         {
             FireMode[Mode].NextFireTime -= ServerDelay + 0.001;
-            if (HxNet_ClassicSniperFire(FireMode[Mode]) != None)
-            {
-                HxNet_ClassicSniperFire(FireMode[Mode]).ServerDelay = ServerDelay;
-            }
+            HxNet_ClassicSniperFire(FireMode[Mode]).ServerDelay = ServerDelay;
         }
         return true;
     }

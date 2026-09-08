@@ -6,7 +6,6 @@ var private HxNTClient Client;
 function PreBeginPlay()
 {
     Super.PreBeginPlay();
-    foreach Weapon.DynamicActors(class'MutHexedNET', HexedNET) break;
     class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
 }
 
@@ -16,11 +15,11 @@ function bool WantsPingCompensation()
         && Client.WantsPingCompensation();
 }
 
-function DoTrace(vector Start, rotator Dir)
+function DoTrace(Vector Start, Rotator Dir)
 {
     if (Level.NetMode == NM_Client || !WantsPingCompensation())
     {
-        super.DoTrace(Start, Dir);
+        Super.DoTrace(Start, Dir);
     }
     else
     {
@@ -28,6 +27,6 @@ function DoTrace(vector Start, rotator Dir)
     }
 }
 
-DefaultProperties
+defaultproperties
 {
 }

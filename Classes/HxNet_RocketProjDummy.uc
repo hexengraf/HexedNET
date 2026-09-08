@@ -4,5 +4,5 @@ var int Index;
 
 defaultproperties
 {
-    bNetTemporary=False
+    bNetTemporary=false
 }

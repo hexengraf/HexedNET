@@ -6,10 +6,10 @@ simulated function Destroyed()
     {
         ShockBallEffect.Destroy();
     }
-    super(Projectile).Destroyed();
+    Super(Projectile).Destroyed();
 }
 
 defaultproperties
 {
-    bCollideActors=False
+    bCollideActors=false
 }
