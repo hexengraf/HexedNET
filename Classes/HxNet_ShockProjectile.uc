@@ -2,12 +2,10 @@ class HxNet_ShockProjectile extends ShockProjectile;
 
 const INTERPOLATION_PERIOD = 0.30;
 
-var private MutHexedNET MutatorOwner;
 var private bool bInterpolateDummy;
-var private vector DummyOffset;
+var private Vector DummyOffset;
 var private float ElapsedInterpolationTime;
-var private bool bRewinded;
-var private vector OriginalLocation;
+var private HxNTProjectileTracker Tracker;
 
 replication
 {
@@ -79,40 +77,6 @@ simulated function InterpolateDummy(ShockProjectile Dummy)
     }
 }
 
-function Register(MutHexedNET HexedNET)
-{
-    MutatorOwner = HexedNET;
-}
-
-function RewindLocation(float DeltaTime)
-{
-    if (!bRewinded)
-    {
-        OriginalLocation = Location;
-        bRewinded = true;
-    }
-    // TODO: What about projectiles with trajectory changed by shield gun's reflection?
-    SetLocation(OriginalLocation - Extrapolate(DeltaTime));
-}
-
-function RestoreLocation()
-{
-    if (bRewinded)
-    {
-        SetLocation(OriginalLocation);
-        bRewinded = false;
-    }
-}
-
-simulated event Destroyed()
-{
-    if (MutatorOwner != None)
-    {
-        MutatorOwner.RemoveShockProjectile(Self);
-    }
-    Super.Destroyed();
-}
-
 simulated function Tick(float DeltaTime)
 {
     Super.Tick(DeltaTime);
@@ -142,7 +106,7 @@ simulated function DoSetLocation(Vector NewLocation)
     SetLocation(NewLocation);
 }
 
-simulated function Explode(vector HitLocation, vector HitNormal)
+simulated function Explode(Vector HitLocation, Vector HitNormal)
 {
     Super.Explode(HitLocation, HitNormal);
     if (bInterpolateDummy)
@@ -152,9 +116,56 @@ simulated function Explode(vector HitLocation, vector HitNormal)
     }
 }
 
-simulated final function vector Extrapolate(float DeltaTime)
+simulated function ProcessTouch(Actor Other, Vector HitLocation)
 {
-    return Velocity * DeltaTime;
+    local HxNet_ShockProjectile P;
+    local Vector X;
+    local Vector RefNormal;
+    local Vector RefDir;
+
+    if (Role == ROLE_Authority && Other != Instigator && Other != Owner
+        && Other.IsA('xPawn') && xPawn(Other).CheckReflect(HitLocation, RefNormal, Damage * 0.25))
+    {
+        X = Normal(Velocity);
+        RefDir = X - 2.0 * RefNormal * (X dot RefNormal);
+        RefDir = RefNormal;
+        P = Spawn(Class, Other,, HitLocation + RefDir * 20, Rotator(RefDir));
+        if (P != None)
+        {
+            P.SetTracker(Tracker);
+            Tracker = None;
+        }
+        DestroyTrails();
+        Destroy();
+    }
+    else
+    {
+        Super.ProcessTouch(Other, HitLocation);
+    }
+}
+
+function Timer()
+{
+    Super.Timer();
+    if (Tracker != None)
+    {
+        Tracker.StoreRoutePoint();
+    }
+}
+
+simulated event Destroyed()
+{
+    if (Tracker != None)
+    {
+        Tracker.Destroy();
+    }
+    Super.Destroyed();
+}
+
+function SetTracker(HxNTProjectileTracker T)
+{
+    Tracker = T;
+    Tracker.SetTracked(Self);
 }
 
 defaultproperties

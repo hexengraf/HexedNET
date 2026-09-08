@@ -17,7 +17,7 @@ var const private class<Weapon> NewNetWeaponClasses[12];
 var const private class<WeaponFire> WeaponFireClasses[2];
 var const private class<WeaponFire> NewNetWeaponFireClasses[2];
 var private PawnCollisionCopy PCC;
-var private array<HxNet_ShockProjectile> ShockProjectiles;
+var private array<HxNTProjectileTracker> ProjectileTrackers;
 
 event PostBeginPlay()
 {
@@ -232,77 +232,70 @@ function string GetInventoryClassOverride(string InventoryClassName)
 
 function Rewind(float DeltaTime)
 {
+    local int i;
+
+    DeltaTime = FMin(DeltaTime, GetDeltaTimeLimit());
     if (PCC != None)
     {
         PCC.Rewind(DeltaTime);
     }
-    RewindShockProjectiles(DeltaTime);
+    for (i = ProjectileTrackers.Length - 1; i >= 0; --i)
+    {
+        if (ProjectileTrackers[i] == None)
+        {
+            ProjectileTrackers.Remove(i, 1);
+        }
+        else
+        {
+            ProjectileTrackers[i].Rewind(DeltaTime);
+        }
+    }
 }
 
 function UndoRewind()
 {
+    local int i;
+
     if (PCC != None)
     {
         PCC.UndoRewind();
     }
-    RestoreShockProjectiles();
-}
-
-function RewindShockProjectiles(float DeltaTime)
-{
-    local int i;
-
-    DeltaTime = FMin(DeltaTime, GetDeltaTimeLimit());
-    for (i = ShockProjectiles.Length - 1; i >= 0; --i)
+    for (i = ProjectileTrackers.Length - 1; i >= 0; --i)
     {
-        if (ShockProjectiles[i] == None)
+        if (ProjectileTrackers[i] == None)
         {
-            ShockProjectiles.Remove(i, 1);
+            ProjectileTrackers.Remove(i, 1);
         }
         else
         {
-            ShockProjectiles[i].RewindLocation(DeltaTime);
+            ProjectileTrackers[i].UndoRewind();
         }
     }
 }
 
-function RestoreShockProjectiles()
+function RemoveProjectileTracker(HxNTProjectileTracker Tracker)
 {
     local int i;
 
-    for (i = ShockProjectiles.Length - 1; i >= 0; --i)
+    for (i = 0; i < ProjectileTrackers.Length; ++i)
     {
-        if (ShockProjectiles[i] == None)
+        if (ProjectileTrackers[i] == Tracker)
         {
-            ShockProjectiles.Remove(i, 1);
-        }
-        else
-        {
-            ShockProjectiles[i].RestoreLocation();
+            ProjectileTrackers.Remove(i, 1);
+            break;
         }
     }
 }
 
 function RegisterShockProjectile(HxNet_ShockProjectile P)
 {
+    local HxNTProjectileTracker Tracker;
+
     if (P != None)
     {
-        ShockProjectiles[ShockProjectiles.Length] = P;
-        P.Register(Self);
-    }
-}
-
-function RemoveShockProjectile(HxNet_ShockProjectile P)
-{
-    local int i;
-
-    for (i = 0; i < ShockProjectiles.Length; ++i)
-    {
-        if (ShockProjectiles[i] == P)
-        {
-            ShockProjectiles.Remove(i, 1);
-            break;
-        }
+        Tracker = Spawn(class'HxNTProjectileTracker', Self);
+        P.SetTracker(Tracker);
+        ProjectileTrackers[ProjectileTrackers.Length] = Tracker;
     }
 }
 
@@ -328,6 +321,15 @@ function Actor RewoundTrace(Weapon Weapon,
                 PastLocation = HitLocation;
                 HitLocation = PawnCollisionCopy(Hit).GetPresentHitLocation(HitLocation);
                 Hit = Pawn;
+                break;
+            }
+        }
+        else if (Hit.IsA('HxNTProjectileTracker'))
+        {
+            PastLocation = HitLocation;
+            Hit = HxNTProjectileTracker(Hit).GetTracked(HitLocation);
+            if (Hit != None)
+            {
                 break;
             }
         }
@@ -551,18 +553,18 @@ static final function bool IsPredicted(Actor A)
     return A.IsA('xPawn') || (A.IsA('Vehicle') && Vehicle(A).Driver != None);
 }
 
-static final function DisableCollision(Projectile P)
+static final function DisableCollision(Actor A)
 {
-    P.bCollideWorld = false;
-    P.SetCollision(false, false);
+    A.bCollideWorld = false;
+    A.SetCollision(false, false);
 }
 
-static final function RestoreCollision(Projectile P)
+static final function RestoreCollision(Actor A)
 {
-    if (P != None)
+    if (A != None)
     {
-        P.bCollideWorld = P.default.bCollideWorld;
-        P.SetCollision(P.default.bCollideActors, P.default.bBlockActors);
+        A.bCollideWorld = A.default.bCollideWorld;
+        A.SetCollision(A.default.bCollideActors, A.default.bBlockActors);
     }
 }
 

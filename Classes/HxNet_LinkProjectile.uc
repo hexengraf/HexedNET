@@ -2,12 +2,9 @@ class HxNet_LinkProjectile extends LinkProjectile;
 
 const INTERPOLATION_PERIOD = 0.30;
 
-var private MutHexedNET MutatorOwner;
 var private bool bInterpolateDummy;
-var private vector DummyOffset;
+var private Vector DummyOffset;
 var private float ElapsedInterpolationTime;
-var private bool bRewinded;
-var private vector OriginalLocation;
 
 replication
 {
