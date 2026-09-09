@@ -85,7 +85,7 @@ function DoFireEffect()
     P = SpawnProjectile(Start, Dir);
     if (P != None && WantsPingCompensation())
     {
-        HexedNET.ExtrapolateBouncingProjectile(Weapon, P, Client.GetProjectilePing() + ServerDelay);
+        HexedNET.ForwardBouncingProjectile(Weapon, P, Client.GetProjectilePing() + ServerDelay);
     }
 }
 

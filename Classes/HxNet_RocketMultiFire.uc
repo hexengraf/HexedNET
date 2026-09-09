@@ -90,7 +90,7 @@ function DoFireEffect()
     }
     else if (WantsPingCompensation())
     {
-        HexedNET.ExtrapolateLinearProjectiles(
+        HexedNET.ForwardLinearProjectiles(
             Weapon, FiredRockets, Client.GetProjectilePing() + ServerDelay);
     }
 }
@@ -111,8 +111,7 @@ function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir, optional int
             Start, Dir, Index, class'HxNet_RocketProj', class'HxNet_SeekingRocketProj');
         if (P != None)
         {
-            HexedNET.ExtrapolateLinearProjectile(
-                Weapon, P, Client.GetProjectilePing() + ServerDelay);
+            HexedNET.ForwardLinearProjectile(Weapon, P, Client.GetProjectilePing() + ServerDelay);
         }
         return P;
     }

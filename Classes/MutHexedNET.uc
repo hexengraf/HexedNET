@@ -343,7 +343,7 @@ function Actor RewoundTrace(Weapon Weapon,
 }
 
 // TODO: handle bSwitchToZeroCollision
-function ExtrapolateLinearProjectile(Weapon W, Projectile P, float DeltaTime)
+function ForwardLinearProjectile(Weapon W, Projectile P, float DeltaTime)
 {
     local Vector Extent;
     local Vector Start;
@@ -380,7 +380,7 @@ function ExtrapolateLinearProjectile(Weapon W, Projectile P, float DeltaTime)
     RestoreCollision(P);
 }
 
-function ExtrapolateLinearProjectiles(Weapon W, array<Projectile> Projectiles, float DeltaTime)
+function ForwardLinearProjectiles(Weapon W, array<Projectile> Projectiles, float DeltaTime)
 {
     local Vector Extent;
     local Vector Start;
@@ -443,7 +443,7 @@ function ExtrapolateLinearProjectiles(Weapon W, array<Projectile> Projectiles, f
 // TODO: find a clean way to fix sliding on walls if hit is right outside the extrapolation range.
 // Stupid native code uses the remaining movement delta to calculate a sliding movement instead of
 // checking the Velocity vector (which would be zeroed out by HitWall).
-function ExtrapolateFallingProjectile(Weapon W, Projectile P, float DeltaTime)
+function ForwardFallingProjectile(Weapon W, Projectile P, float DeltaTime)
 {
     local Vector Start;
     local Vector Extent;
@@ -492,7 +492,7 @@ function ExtrapolateFallingProjectile(Weapon W, Projectile P, float DeltaTime)
     RestoreCollision(P);
 }
 
-function ExtrapolateBouncingProjectile(Weapon W, Projectile P, float DeltaTime)
+function ForwardBouncingProjectile(Weapon W, Projectile P, float DeltaTime)
 {
     local Vector Start;
     local Vector Extent;

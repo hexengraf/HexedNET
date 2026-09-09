@@ -26,7 +26,7 @@ function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir, optional int
         P = SpawnProjectile(Start, Dir);
         ProjectileClass = default.ProjectileClass;
         DeltaTime = Client.GetProjectilePing() + ServerDelay;
-        HexedNET.ExtrapolateLinearProjectile(Weapon, P, DeltaTime);
+        HexedNET.ForwardLinearProjectile(Weapon, P, DeltaTime);
         return P;
     }
     return SpawnProjectile(Start, Dir);

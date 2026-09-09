@@ -7,5 +7,5 @@ defaultproperties
 {
     WeaponClass=class'FlakCannon'
     DummyProjectileClass=class'HxNet_FlakShellDummy'
-    ExtrapolatedProjectileClass=class'HxNet_FlakShell'
+    HexedProjectileClass=class'HxNet_FlakShell'
 }

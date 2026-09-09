@@ -24,7 +24,7 @@ function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir, optional int
     if (WantsPingCompensation())
     {
         DeltaTime = Client.GetProjectilePing() + ServerDelay;
-        HexedNET.ExtrapolateLinearProjectile(Weapon, P, DeltaTime);
+        HexedNET.ForwardLinearProjectile(Weapon, P, DeltaTime);
         if (P != None)
         {
             P.SetTimer(FMax(0, P.TimerRate - DeltaTime), false);

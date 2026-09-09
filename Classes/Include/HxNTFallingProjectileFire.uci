@@ -1,6 +1,6 @@
 var protected const class<Weapon> WeaponClass;
 var protected const class<Projectile> DummyProjectileClass;
-var protected const class<Projectile> ExtrapolatedProjectileClass;
+var protected const class<Projectile> HexedProjectileClass;
 
 #include Classes\Include\HxNTBaseProjectileFire.uci
 
@@ -22,10 +22,10 @@ function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir, optional int
     }
     if (WantsPingCompensation())
     {
-        ProjectileClass = ExtrapolatedProjectileClass;
+        ProjectileClass = HexedProjectileClass;
         P = SpawnProjectile(Start, Dir);
         ProjectileClass = default.ProjectileClass;
-        HexedNET.ExtrapolateFallingProjectile(Weapon, P, Client.GetProjectilePing() + ServerDelay);
+        HexedNET.ForwardFallingProjectile(Weapon, P, Client.GetProjectilePing() + ServerDelay);
         return P;
     }
     return SpawnProjectile(Start, Dir);

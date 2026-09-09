@@ -32,7 +32,7 @@ function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir, optional int
             P.Index = Index;
             P.Bounces = RandomizeBounces();
         }
-        HexedNET.ExtrapolateBouncingProjectile(Weapon, P, Client.GetProjectilePing() + ServerDelay);
+        HexedNET.ForwardBouncingProjectile(Weapon, P, Client.GetProjectilePing() + ServerDelay);
         return P;
     }
     return SpawnProjectile(Start, Dir);

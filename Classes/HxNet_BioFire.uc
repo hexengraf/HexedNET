@@ -7,5 +7,5 @@ defaultproperties
 {
     WeaponClass=class'BioRifle'
     DummyProjectileClass=class'HxNet_BioGlobDummy'
-    ExtrapolatedProjectileClass=class'HxNet_BioGlob'
+    HexedProjectileClass=class'HxNet_BioGlob'
 }
