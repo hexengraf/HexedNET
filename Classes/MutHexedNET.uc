@@ -519,7 +519,10 @@ function ExtrapolateBouncingProjectile(Weapon W, Projectile P, float DeltaTime)
                 UndoRewind();
                 P.SetLocation(Start);
                 RestoreCollision(P);
-                P.AutonomousPhysics(TimeStep);
+                if (P != None)
+                {
+                    P.AutonomousPhysics(TimeStep);
+                }
                 if (P == None || P.bDeleteMe)
                 {
                     break;
