@@ -1,16 +1,8 @@
 class HxNet_BioGlobDummy extends BioGlob;
 
-simulated function Destroyed()
+function BlowUp(Vector HitLocation)
 {
-    if (Fear != None)
-    {
-        Fear.Destroy();
-    }
-    if (Trail != None)
-    {
-        Trail.Destroy();
-    }
-    Super(Projectile).Destroyed();
+    Destroy();
 }
 
 singular function SplashGlobs(int NumGloblings)

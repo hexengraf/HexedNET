@@ -258,7 +258,7 @@ simulated function bool ShouldSpawnDummyProjectile()
     return AveragePing > (AverageDeltaTime * 1.5);
 }
 
-simulated function Projectile TrackDummyProjectile(Projectile Dummy, class<Weapon> WeaponClass)
+simulated function Projectile TrackDummy(Projectile Dummy, class<Weapon> WeaponClass)
 {
     local int GroupIndex;
     local int WeaponIndex;
@@ -275,13 +275,14 @@ simulated function Projectile TrackDummyProjectile(Projectile Dummy, class<Weapo
     return Dummy;
 }
 
-simulated function DestroyDummyProjectile(class<Weapon> WeaponClass, int Index)
+simulated function DestroyDummy(class<Weapon> WeaponClass, int Index)
 {
     local int GroupIndex;
     local int WeaponIndex;
 
     GroupIndex = WeaponClass.default.InventoryGroup;
     WeaponIndex = FindWeaponIndex(WeaponClass, GroupIndex);
+    DummyGroups[GroupIndex].Weapons[WeaponIndex].Dummies[Index].bNoFX = true;
     DummyGroups[GroupIndex].Weapons[WeaponIndex].Dummies[Index].Destroy();
     DummyGroups[GroupIndex].Weapons[WeaponIndex].Dummies.Remove(Index, 1);
 }

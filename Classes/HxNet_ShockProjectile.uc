@@ -1,40 +1,31 @@
 class HxNet_ShockProjectile extends ShockProjectile;
 
-const INTERPOLATION_PERIOD = 0.30;
-
-var private bool bInterpolateDummy;
-var private Vector DummyOffset;
-var private float ElapsedInterpolationTime;
+var HxNTClient Client;
 var private HxNTProjectileTracker Tracker;
+var private Vector InterpolationOffset;
+var private float InterpolationPeriod;
+var private bool bInterpolate;
+var private int TickCount;
 
 replication
 {
     unreliable if (bDemoRecording)
         DoMove, DoSetLocation;
+
+    reliable if (Role == ROLE_Authority && bNetInitial)
+        Client;
 }
 
 simulated function PostNetBeginPlay()
 {
-    local PlayerController PC;
-    local HxNTClient Client;
-
     Super.PostNetBeginPlay();
-    if (Level.NetMode == NM_Client)
+    if (Level.NetMode == NM_Client && Client != None && Client.WantsPingCompensation())
     {
-        PC = Level.GetLocalPlayerController();
-        foreach DynamicActors(class'HxNTClient', Client)
-        {
-            if (Client.WantsPingCompensation()
-                && PC != None && PC.Pawn != None && PC.Pawn == Instigator)
-            {
-                SearchPredictedProjectile(Client);
-            }
-            break;
-        }
+        SearchDummyProjectile();
     }
 }
 
-simulated function SearchPredictedProjectile(HxNTClient Client)
+simulated function SearchDummyProjectile()
 {
     local array<Projectile> Dummies;
     local float Distance;
@@ -53,7 +44,7 @@ simulated function SearchPredictedProjectile(HxNTClient Client)
         }
         --i;
         InterpolateDummy(ShockProjectile(Dummies[i]));
-        Client.DestroyDummyProjectile(class'ShockRifle', i);
+        Client.DestroyDummy(class'ShockRifle', i);
     }
 }
 
@@ -61,10 +52,7 @@ simulated function InterpolateDummy(ShockProjectile Dummy)
 {
     if (Dummy != None)
     {
-        bInterpolateDummy = true;
-        DummyOffset = Location - Dummy.Location;
-        DoSetLocation(Dummy.Location);
-        if (ShockBallEffect != None)
+        if (Dummy.ShockBallEffect != None)
         {
             ShockBallEffect.Destroy();
             ShockBallEffect = Dummy.ShockBallEffect;
@@ -74,25 +62,28 @@ simulated function InterpolateDummy(ShockProjectile Dummy)
             ShockBallEffect.SetBase(Self);
             Dummy.ShockBallEffect = None;
         }
+        bInterpolate = true;
+        InterpolationOffset = Location - Dummy.Location;
+        DoSetLocation(Dummy.Location);
     }
 }
 
 simulated function Tick(float DeltaTime)
 {
     Super.Tick(DeltaTime);
-    if (bInterpolateDummy)
+    if (TickCount < 2)
     {
-        DeltaTime = FMin(DeltaTime, INTERPOLATION_PERIOD - ElapsedInterpolationTime);
+        ++TickCount;
+    }
+    if (bInterpolate)
+    {
+        DeltaTime = FMin(DeltaTime, InterpolationPeriod);
         if (DeltaTime > 0)
         {
-            DoMove(DummyOffset * DeltaTime / INTERPOLATION_PERIOD);
-            ElapsedInterpolationTime += DeltaTime;
-            bInterpolateDummy = ElapsedInterpolationTime < INTERPOLATION_PERIOD;
+            DoMove(InterpolationOffset * DeltaTime / default.InterpolationPeriod);
+            InterpolationPeriod -= DeltaTime;
         }
-        else
-        {
-            bInterpolateDummy = false;
-        }
+        bInterpolate = InterpolationPeriod > 0;
     }
 }
 
@@ -108,11 +99,25 @@ simulated function DoSetLocation(Vector NewLocation)
 
 simulated function Explode(Vector HitLocation, Vector HitNormal)
 {
-    Super.Explode(HitLocation, HitNormal);
-    if (bInterpolateDummy)
+    local HxNet_ShockProjectileEffects Effects;
+
+    if (Role == ROLE_Authority && TickCount < 2)
     {
-        bCollideWorld = false;
-        SetCollision(false, false);
+        HurtRadius(Damage, DamageRadius, MyDamageType, MomentumTransfer, HitLocation);
+        Effects = Spawn(class'HxNet_ShockProjectileEffects',,, Location, Rotation);
+        Effects.HitLocation = HitLocation;
+        Effects.HitNormal = HitNormal;
+        SetCollisionSize(0.0, 0.0);
+        Destroy();
+    }
+    else
+    {
+        Super.Explode(HitLocation, HitNormal);
+        if (bInterpolate)
+        {
+            bCollideWorld = false;
+            SetCollision(false, false);
+        }
     }
 }
 
@@ -123,8 +128,8 @@ simulated function ProcessTouch(Actor Other, Vector HitLocation)
     local Vector RefNormal;
     local Vector RefDir;
 
-    if (Role == ROLE_Authority && Other != Instigator && Other != Owner
-        && Other.IsA('xPawn') && xPawn(Other).CheckReflect(HitLocation, RefNormal, Damage * 0.25))
+    if (Role == ROLE_Authority && Other != Instigator && Other != Owner && Other.IsA('xPawn')
+        && xPawn(Other).CheckReflect(HitLocation, RefNormal, Damage * 0.25))
     {
         X = Normal(Velocity);
         RefDir = X - 2.0 * RefNormal * (X dot RefNormal);
@@ -170,4 +175,5 @@ function SetTracker(HxNTProjectileTracker T)
 
 defaultproperties
 {
+    InterpolationPeriod=0.15
 }

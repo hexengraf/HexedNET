@@ -18,11 +18,12 @@ function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir, optional int
         ProjectileClass = class'HxNet_ShockProjectileDummy';
         P = SpawnProjectile(Start, Dir);
         ProjectileClass = default.ProjectileClass;
-        return Client.TrackDummyProjectile(P, class'ShockRifle');
+        return Client.TrackDummy(P, class'ShockRifle');
     }
     P = SpawnProjectile(Start, Dir);
-    if (WantsPingCompensation())
+    if (P != None && WantsPingCompensation())
     {
+        HxNet_ShockProjectile(P).Client = Client;
         DeltaTime = Client.GetProjectilePing() + ServerDelay;
         HexedNET.ForwardLinearProjectile(Weapon, P, DeltaTime);
         if (P != None)

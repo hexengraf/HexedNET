@@ -22,17 +22,20 @@ function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir, optional int
             Dummy.Index = Index;
             Dummy.Bounces = RandomizeBounces();
         }
-        return Client.TrackDummyProjectile(Dummy, class'FlakCannon');
+        return Client.TrackDummy(Dummy, class'FlakCannon');
     }
     if (WantsPingCompensation())
     {
+        ProjectileClass = class'HxNet_FlakChunk';
         P = HxNet_FlakChunk(SpawnProjectile(Start, Dir));
+        ProjectileClass = default.ProjectileClass;
         if (P != None)
         {
+            P.Client = Client;
             P.Index = Index;
             P.Bounces = RandomizeBounces();
+            HexedNET.ForwardBouncingProjectile(Weapon, P, Client.GetProjectilePing() + ServerDelay);
         }
-        HexedNET.ForwardBouncingProjectile(Weapon, P, Client.GetProjectilePing() + ServerDelay);
         return P;
     }
     return SpawnProjectile(Start, Dir);
@@ -56,5 +59,4 @@ final function int RandomizeBounces()
 
 defaultproperties
 {
-    ProjectileClass=class'HxNet_FlakChunk'
 }

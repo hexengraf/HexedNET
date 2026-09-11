@@ -1,39 +1,30 @@
 class HxNet_LinkProjectile extends LinkProjectile;
 
-const INTERPOLATION_PERIOD = 0.30;
-
-var private bool bInterpolateDummy;
-var private Vector DummyOffset;
-var private float ElapsedInterpolationTime;
+var HxNTClient Client;
+var private Vector InterpolationOffset;
+var private float InterpolationPeriod;
+var private bool bInterpolate;
+var private int TickCount;
 
 replication
 {
     unreliable if (bDemoRecording)
         DoMove, DoSetLocation;
+
+    reliable if (Role == ROLE_Authority && bNetInitial)
+        Client;
 }
 
 simulated function PostNetBeginPlay()
 {
-    local PlayerController PC;
-    local HxNTClient Client;
-
     Super.PostNetBeginPlay();
-    if (Level.NetMode == NM_Client)
+    if (Level.NetMode == NM_Client && Client != None && Client.WantsPingCompensation())
     {
-        PC = Level.GetLocalPlayerController();
-        foreach DynamicActors(class'HxNTClient', Client)
-        {
-            if (Client.WantsPingCompensation()
-                && PC != None && PC.Pawn != None && PC.Pawn == Instigator)
-            {
-                SearchPredictedProjectile(Client);
-            }
-            break;
-        }
+        SearchDummyProjectile();
     }
 }
 
-simulated function SearchPredictedProjectile(HxNTClient Client)
+simulated function SearchDummyProjectile()
 {
     local array<Projectile> Dummies;
     local float Distance;
@@ -52,7 +43,7 @@ simulated function SearchPredictedProjectile(HxNTClient Client)
         }
         --i;
         InterpolateDummy(LinkProjectile(Dummies[i]));
-        Client.DestroyDummyProjectile(class'LinkGun', i);
+        Client.DestroyDummy(class'LinkGun', i);
     }
 }
 
@@ -60,8 +51,18 @@ simulated function InterpolateDummy(LinkProjectile Dummy)
 {
     if (Dummy != None)
     {
-        bInterpolateDummy = true;
-        DummyOffset = Location - Dummy.Location;
+        if (Trail != None)
+        {
+            Trail.Destroy();
+        }
+        if (Dummy.Trail != None)
+        {
+            Trail = Dummy.Trail;
+            Trail.SetOwner(Self);
+            Dummy.Trail = None;
+        }
+        bInterpolate = true;
+        InterpolationOffset = Location - Dummy.Location;
         DoSetLocation(Dummy.Location);
     }
 }
@@ -69,19 +70,37 @@ simulated function InterpolateDummy(LinkProjectile Dummy)
 simulated function Tick(float DeltaTime)
 {
     Super.Tick(DeltaTime);
-    if (bInterpolateDummy)
+    if (TickCount < 2)
     {
-        DeltaTime = FMin(DeltaTime, INTERPOLATION_PERIOD - ElapsedInterpolationTime);
+        ++TickCount;
+    }
+    if (bInterpolate)
+    {
+        DeltaTime = FMin(DeltaTime, InterpolationPeriod);
         if (DeltaTime > 0)
         {
-            DoMove(DummyOffset * DeltaTime / INTERPOLATION_PERIOD);
-            ElapsedInterpolationTime += DeltaTime;
-            bInterpolateDummy = ElapsedInterpolationTime < INTERPOLATION_PERIOD;
+            DoMove(InterpolationOffset * DeltaTime / default.InterpolationPeriod);
+            InterpolationPeriod -= DeltaTime;
         }
-        else
-        {
-            bInterpolateDummy = false;
-        }
+        bInterpolate = InterpolationPeriod > 0;
+    }
+}
+
+simulated function Explode(Vector HitLocation, Vector HitNormal)
+{
+    local HxNet_LinkProjectileEffects Effects;
+
+    if (Role == ROLE_Authority && TickCount < 2)
+    {
+        Effects = Spawn(class'HxNet_LinkProjectileEffects',,, Location, Rotation);
+        Effects.HitLocation = HitLocation;
+        Effects.HitNormal = HitNormal;
+        Effects.bYellow = Links > 0;
+        Destroy();
+    }
+    else
+    {
+        Super.Explode(HitLocation, HitNormal);
     }
 }
 
@@ -97,4 +116,5 @@ simulated function DoSetLocation(Vector NewLocation)
 
 defaultproperties
 {
+    InterpolationPeriod=0.15
 }

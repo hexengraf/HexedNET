@@ -74,10 +74,7 @@ function DoFireEffect()
                     }
                 }
                 bCurl = !bCurl;
-                if (Level.NetMode != NM_DedicatedServer)
-                {
-                    FiredRockets[p].SetTimer(0.1, true);
-                }
+                FiredRockets[p].SetTimer(0.1, true);
             }
         }
     }
@@ -85,11 +82,22 @@ function DoFireEffect()
     {
         for (p = 0; p < SpawnCount; ++p)
         {
-            Client.TrackDummyProjectile(FiredRockets[p], class'RocketLauncher');
+            Client.TrackDummy(FiredRockets[p], class'RocketLauncher');
         }
     }
     else if (WantsPingCompensation())
     {
+        for (p = 0; p < FiredRockets.Length; ++p)
+        {
+            if (HxNet_RocketProj(FiredRockets[p]) != None)
+            {
+                HxNet_RocketProj(FiredRockets[p]).Client = Client;
+            }
+            else if (HxNet_SeekingRocketProj(FiredRockets[p]) != None)
+            {
+                HxNet_SeekingRocketProj(FiredRockets[p]).Client = Client;
+            }
+        }
         HexedNET.ForwardLinearProjectiles(
             Weapon, FiredRockets, Client.GetProjectilePing() + ServerDelay);
     }
@@ -103,7 +111,7 @@ function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir, optional int
     {
         P = SpawnIndexedProjectile(
             Start, Dir, Index, class'HxNet_RocketProjDummy', class'HxNet_SeekingRocketProjDummy');
-        return Client.TrackDummyProjectile(P, class'RocketLauncher');
+        return Client.TrackDummy(P, class'RocketLauncher');
     }
     if (WantsPingCompensation())
     {
@@ -111,6 +119,14 @@ function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir, optional int
             Start, Dir, Index, class'HxNet_RocketProj', class'HxNet_SeekingRocketProj');
         if (P != None)
         {
+            if (HxNet_RocketProj(P) != None)
+            {
+                HxNet_RocketProj(P).Client = Client;
+            }
+            else
+            {
+                HxNet_SeekingRocketProj(P).Client = Client;
+            }
             HexedNET.ForwardLinearProjectile(Weapon, P, Client.GetProjectilePing() + ServerDelay);
         }
         return P;

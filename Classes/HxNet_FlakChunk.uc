@@ -1,11 +1,11 @@
 class HxNet_FlakChunk extends FlakChunk;
 
-const INTERPOLATION_PERIOD = 0.30;
-
+var HxNTClient Client;
 var int Index;
-var private Vector DummyOffset;
-var private float ElapsedInterpolationTime;
-var private bool bInterpolateDummy;
+var private Vector InterpolationOffset;
+var private float InterpolationPeriod;
+var private bool bInterpolate;
+var private int TickCount;
 
 replication
 {
@@ -13,31 +13,20 @@ replication
         DoMove, DoSetLocation;
 
     reliable if (Role == ROLE_Authority && bNetInitial)
-        Index;
+        Client, Index;
 }
 
 simulated function PostNetBeginPlay()
 {
-    local PlayerController PC;
-    local HxNTClient Client;
 
     Super.PostNetBeginPlay();
-    if (Level.NetMode == NM_Client)
+    if (Level.NetMode == NM_Client && Client != None && Client.WantsPingCompensation())
     {
-        PC = Level.GetLocalPlayerController();
-        foreach DynamicActors(class'HxNTClient', Client)
-        {
-            if (Client.WantsPingCompensation()
-                && PC != None && PC.Pawn != None && PC.Pawn == Instigator)
-            {
-                SearchPredictedProjectile(Client);
-            }
-            break;
-        }
+        SearchDummyProjectile();
     }
 }
 
-simulated function SearchPredictedProjectile(HxNTClient Client)
+simulated function SearchDummyProjectile()
 {
     local array<Projectile> Dummies;
     local float MinDistance;
@@ -70,7 +59,7 @@ simulated function SearchPredictedProjectile(HxNTClient Client)
         if (DummyIndex > -1)
         {
             InterpolateDummy(FlakChunk(Dummies[DummyIndex]));
-            Client.DestroyDummyProjectile(class'FlakCannon', DummyIndex);
+            Client.DestroyDummy(class'FlakCannon', DummyIndex);
         }
     }
 }
@@ -79,8 +68,6 @@ simulated function InterpolateDummy(FlakChunk Dummy)
 {
     if (Dummy != None)
     {
-        bInterpolateDummy = true;
-        DummyOffset = Location - Dummy.Location;
         if (Trail != None)
         {
             Trail.mRegen = false;
@@ -92,6 +79,8 @@ simulated function InterpolateDummy(FlakChunk Dummy)
             Trail.SetOwner(Self);
             Dummy.Trail = None;
         }
+        bInterpolate = true;
+        InterpolationOffset = Location - Dummy.Location;
         DoSetLocation(Dummy.Location);
         SetRotation(Dummy.Rotation);
     }
@@ -100,19 +89,19 @@ simulated function InterpolateDummy(FlakChunk Dummy)
 simulated function Tick(float DeltaTime)
 {
     Super.Tick(DeltaTime);
-    if (bInterpolateDummy)
+    if (TickCount < 2)
     {
-        DeltaTime = FMin(DeltaTime, INTERPOLATION_PERIOD - ElapsedInterpolationTime);
+        ++TickCount;
+    }
+    if (bInterpolate)
+    {
+        DeltaTime = FMin(DeltaTime, InterpolationPeriod);
         if (DeltaTime > 0)
         {
-            DoMove(DummyOffset * DeltaTime / INTERPOLATION_PERIOD);
-            ElapsedInterpolationTime += DeltaTime;
-            bInterpolateDummy = ElapsedInterpolationTime < INTERPOLATION_PERIOD;
+            DoMove(InterpolationOffset * DeltaTime / default.InterpolationPeriod);
+            InterpolationPeriod -= DeltaTime;
         }
-        else
-        {
-            bInterpolateDummy = false;
-        }
+        bInterpolate = InterpolationPeriod > 0;
     }
 }
 
@@ -128,4 +117,5 @@ simulated function DoSetLocation(Vector NewLocation)
 
 defaultproperties
 {
+    InterpolationPeriod=0.15
 }

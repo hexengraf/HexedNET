@@ -16,7 +16,7 @@ function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir, optional int
     {
         P = SpawnIndexedProjectile(
             Start, Dir, Index, class'HxNet_RocketProjDummy', class'HxNet_SeekingRocketProjDummy');
-        return Client.TrackDummyProjectile(P, class'RocketLauncher');
+        return Client.TrackDummy(P, class'RocketLauncher');
     }
     if (WantsPingCompensation())
     {
@@ -24,6 +24,14 @@ function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir, optional int
             Start, Dir, Index, class'HxNet_RocketProj', class'HxNet_SeekingRocketProj');
         if (P != None)
         {
+            if (HxNet_RocketProj(P) != None)
+            {
+                HxNet_RocketProj(P).Client = Client;
+            }
+            else
+            {
+                HxNet_SeekingRocketProj(P).Client = Client;
+            }
             HexedNET.ForwardLinearProjectile(Weapon, P, Client.GetProjectilePing() + ServerDelay);
         }
         return P;

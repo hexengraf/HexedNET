@@ -1,11 +1,11 @@
 class HxNet_RocketProj extends RocketProj;
 
-const INTERPOLATION_PERIOD = 0.30;
-
+var HxNTClient Client;
 var int Index;
-var private Vector DummyOffset;
-var private float ElapsedInterpolationTime;
-var private bool bInterpolateDummy;
+var private Vector InterpolationOffset;
+var private float InterpolationPeriod;
+var private bool bInterpolate;
+var private int TickCount;
 
 replication
 {
@@ -13,31 +13,48 @@ replication
         DoMove, DoSetLocation;
 
     reliable if (Role == ROLE_Authority && bNetInitial)
-        Index;
+        Client, Index;
 }
 
 simulated function PostNetBeginPlay()
 {
     local PlayerController PC;
-    local HxNTClient Client;
 
-    Super.PostNetBeginPlay();
-    if (Level.NetMode == NM_Client)
+    Super(Projectile).PostNetBeginPlay();
+    if (Level.NetMode == NM_Client && Client != None && Client.WantsPingCompensation())
     {
-        PC = Level.GetLocalPlayerController();
-        foreach DynamicActors(class'HxNTClient', Client)
+        SearchDummyProjectile();
+    }
+    if (FlockIndex != 0)
+    {
+        SetTimer(0.1, true);
+        if (Flock[1] == None)
         {
-            if (Client.WantsPingCompensation()
-                && PC != None && PC.Pawn != None && PC.Pawn == Instigator)
+            PopulateFlock(Self);
+        }
+    }
+    if (Level.NetMode != NM_DedicatedServer)
+    {
+        if (Level.bDropDetail || Level.DetailMode == DM_Low)
+        {
+            bDynamicLight = false;
+            LightType = LT_None;
+        }
+        else
+        {
+            PC = Level.GetLocalPlayerController();
+            if ((Instigator == None || PC != Instigator.Controller)
+                && (PC == None || PC.ViewTarget == None
+                    || VSize(PC.ViewTarget.Location - Location) > 3000))
             {
-                SearchPredictedProjectile(Client);
+                bDynamicLight = false;
+                LightType = LT_None;
             }
-            break;
         }
     }
 }
 
-simulated function SearchPredictedProjectile(HxNTClient Client)
+simulated function SearchDummyProjectile()
 {
     local array<Projectile> Dummies;
     local float MinDistance;
@@ -70,7 +87,7 @@ simulated function SearchPredictedProjectile(HxNTClient Client)
         if (DummyIndex > -1)
         {
             InterpolateDummy(RocketProj(Dummies[DummyIndex]));
-            Client.DestroyDummyProjectile(class'RocketLauncher', DummyIndex);
+            Client.DestroyDummy(class'RocketLauncher', DummyIndex);
         }
     }
 }
@@ -80,8 +97,8 @@ simulated function InterpolateDummy(RocketProj Dummy)
     if (Dummy != None)
     {
         ApplyDummyEffects(Self, Dummy);
-        bInterpolateDummy = true;
-        DummyOffset = Location - Dummy.Location;
+        bInterpolate = true;
+        InterpolationOffset = Location - Dummy.Location;
         DoSetLocation(Dummy.Location);
     }
 }
@@ -89,19 +106,37 @@ simulated function InterpolateDummy(RocketProj Dummy)
 simulated function Tick(float DeltaTime)
 {
     Super.Tick(DeltaTime);
-    if (bInterpolateDummy)
+    if (TickCount < 2)
     {
-        DeltaTime = FMin(DeltaTime, INTERPOLATION_PERIOD - ElapsedInterpolationTime);
+        ++TickCount;
+    }
+    if (bInterpolate)
+    {
+        DeltaTime = FMin(DeltaTime, InterpolationPeriod);
         if (DeltaTime > 0)
         {
-            DoMove(DummyOffset * DeltaTime / INTERPOLATION_PERIOD);
-            ElapsedInterpolationTime += DeltaTime;
-            bInterpolateDummy = ElapsedInterpolationTime < INTERPOLATION_PERIOD;
+            DoMove(InterpolationOffset * DeltaTime / default.InterpolationPeriod);
+            InterpolationPeriod -= DeltaTime;
         }
-        else
-        {
-            bInterpolateDummy = false;
-        }
+        bInterpolate = InterpolationPeriod > 0;
+    }
+}
+
+simulated function Explode(Vector HitLocation, Vector HitNormal)
+{
+    local HxNet_RocketProjEffects Effects;
+
+    if (Role == ROLE_Authority && TickCount < 2)
+    {
+        Effects = Spawn(class'HxNet_RocketProjEffects',,, Location, Rotation);
+        Effects.HitLocation = HitLocation;
+        Effects.HitNormal = HitNormal;
+        BlowUp(HitLocation);
+        Destroy();
+    }
+    else
+    {
+        Super.Explode(HitLocation, HitNormal);
     }
 }
 
@@ -117,25 +152,52 @@ simulated function DoSetLocation(Vector NewLocation)
 
 static function ApplyDummyEffects(RocketProj P, RocketProj Dummy)
 {
+    if (P.SmokeTrail != None)
+    {
+        P.SmokeTrail.mRegen = false;
+    }
     if (Dummy.SmokeTrail != None)
     {
-        if (P.SmokeTrail != None)
-        {
-            P.SmokeTrail.mRegen = false;
-        }
         P.SmokeTrail = Dummy.SmokeTrail;
         P.SmokeTrail.SetOwner(P);
         Dummy.SmokeTrail = None;
     }
+    if (P.Corona != None)
+    {
+        P.Corona.Destroy();
+    }
     if (Dummy.Corona != None)
     {
-        if (P.Corona != None)
-        {
-            P.Corona.Destroy();
-        }
         P.Corona = Dummy.Corona;
         P.Corona.SetOwner(P);
         Dummy.Corona = None;
+    }
+}
+
+static simulated function PopulateFlock(RocketProj P)
+{
+    local RocketProj R;
+    local int i;
+
+    foreach P.DynamicActors(class'RocketProj', R)
+    {
+        if (R.FlockIndex == P.FlockIndex && R.Class == P.Class)
+        {
+            P.Flock[i] = R;
+            if (R.Flock[0] == None)
+            {
+                R.Flock[0] = P;
+            }
+            else if (R.Flock[0] != P)
+            {
+                R.Flock[1] = P;
+            }
+            ++i;
+            if (i == 2)
+            {
+                break;
+            }
+        }
     }
 }
 
@@ -161,4 +223,5 @@ static function RemoveFromFlock(RocketProj P)
 
 defaultproperties
 {
+    InterpolationPeriod=0.30
 }

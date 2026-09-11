@@ -1,10 +1,9 @@
 class MutHexedNET extends HxMutator
     config(HexedMutators);
 
-// TODO: Revisit this later, different values result in different amounts of error.
-// Maybe it should be the average DeltaTime from the client? But then players with super high FPS
-// and super high ping will cause an abusive amount of iterations.
-const BASE_TIMESTEP = 0.02;
+const MIN_TIMESTEP = 0.0165;
+const WARMUP_COUNT = 10;
+const AVG_DELTA_RATIO = 0.3;
 
 var config float MaxPingFrequency;
 var config int PingCompensationLimit;
@@ -18,6 +17,9 @@ var const private class<WeaponFire> WeaponFireClasses[2];
 var const private class<WeaponFire> NewNetWeaponFireClasses[2];
 var private PawnCollisionCopy PCC;
 var private array<HxNTProjectileTracker> ProjectileTrackers;
+var private float AverageDeltaTime;
+var private float ForwardTimestep;
+var private int TickCount;
 
 event PostBeginPlay()
 {
@@ -30,6 +32,21 @@ event PostBeginPlay()
             Level.Game.PlayerControllerClassName = string(class'HxNTPlayer');
         }
     }
+}
+
+function Tick(float DeltaTime)
+{
+    Super.Tick(DeltaTime);
+    if (TickCount < WARMUP_COUNT)
+    {
+        TickCount++;
+        AverageDeltaTime += (DeltaTime - AverageDeltaTime) / TickCount;
+    }
+    else
+    {
+        AverageDeltaTime += (DeltaTime - AverageDeltaTime) * AVG_DELTA_RATIO;
+    }
+    ForwardTimestep = FMax(MIN_TIMESTEP, AverageDeltaTime);
 }
 
 function bool MutatorIsAllowed()
@@ -357,7 +374,7 @@ function ForwardLinearProjectile(Weapon W, Projectile P, float DeltaTime)
     Extent = P.GetCollisionExtent();
     while (DeltaTime > 0)
     {
-        TimeStep = GetTimeStep(DeltaTime);
+        TimeStep = FMin(ForwardTimestep, DeltaTime);
         DeltaTime -= TimeStep;
         Counter += TimeStep;
         Start = P.Location;
@@ -395,16 +412,19 @@ function ForwardLinearProjectiles(Weapon W, array<Projectile> Projectiles, float
     Done.Length = Projectiles.Length;
     for (i = 0; i < Projectiles.Length; ++i)
     {
-        DisableCollision(Projectiles[i]);
+        if (Projectiles[i] != None)
+        {
+            DisableCollision(Projectiles[i]);
+        }
     }
     while (DeltaTime > 0)
     {
-        TimeStep = GetTimeStep(DeltaTime);
+        TimeStep = FMin(ForwardTimestep, DeltaTime);
         DeltaTime -= TimeStep;
         Counter += TimeStep;
         for (i = 0; i < Projectiles.Length; ++i)
         {
-            if (Done[i] == 1)
+            if (Done[i] == 1 || Projectiles[i] == None)
             {
                 continue;
             }
@@ -436,17 +456,20 @@ function ForwardLinearProjectiles(Weapon W, array<Projectile> Projectiles, float
     UndoRewind();
     for (i = 0; i < Projectiles.Length; ++i)
     {
-        RestoreCollision(Projectiles[i]);
+        if (Projectiles[i] != None)
+        {
+            RestoreCollision(Projectiles[i]);
+        }
     }
 }
 
 // TODO: find a clean way to fix sliding on walls if hit is right outside the extrapolation range.
 // Stupid native code uses the remaining movement delta to calculate a sliding movement instead of
 // checking the Velocity vector (which would be zeroed out by HitWall).
-function ForwardFallingProjectile(Weapon W, Projectile P, float DeltaTime)
+function ForwardFallingProjectile(Weapon W, Projectile P, float DeltaTime, optional bool bSticky)
 {
-    local Vector Start;
     local Vector Extent;
+    local Vector Start;
     local Actor Hit;
     local Vector HitLocation;
     local Vector HitNormal;
@@ -457,7 +480,7 @@ function ForwardFallingProjectile(Weapon W, Projectile P, float DeltaTime)
     Extent = P.GetCollisionExtent();
     while (DeltaTime > 0)
     {
-        TimeStep = GetTimeStep(DeltaTime);
+        TimeStep = FMin(ForwardTimestep, DeltaTime);
         DeltaTime -= TimeStep;
         Start = P.Location;
         P.AutonomousPhysics(TimeStep);
@@ -473,12 +496,7 @@ function ForwardFallingProjectile(Weapon W, Projectile P, float DeltaTime)
         }
         if (Hit != None)
         {
-            UndoRewind();
             P.SetLocation(HitLocation);
-            if (P != None && !P.bDeleteMe && !Hit.IsA('Pawn'))
-            {
-                P.HitWall(HitNormal, Hit);
-            }
             break;
         }
         if (P.TimerRate > 0 && Counter >= P.TimerRate)
@@ -490,25 +508,35 @@ function ForwardFallingProjectile(Weapon W, Projectile P, float DeltaTime)
     }
     UndoRewind();
     RestoreCollision(P);
+    if (bSticky && Hit != None && !Hit.IsA('Pawn') && !Hit.IsA('Projectile'))
+    {
+        if (P != None && !P.bDeleteMe)
+        {
+            P.HitWall(HitNormal, Hit);
+        }
+    }
 }
 
 function ForwardBouncingProjectile(Weapon W, Projectile P, float DeltaTime)
 {
-    local Vector Start;
     local Vector Extent;
+    local Vector Start;
+    local Vector PreviousVelocity;
     local Actor Hit;
     local Vector HitLocation;
     local Vector HitNormal;
     local float TimeStep;
     local bool bHitInstigator;
 
+    P.SetPropertyText("bForwarded", "true");
     DisableCollision(P);
     Extent = P.GetCollisionExtent();
     while (DeltaTime > 0)
     {
-        TimeStep = GetTimeStep(DeltaTime);
+        TimeStep = FMin(ForwardTimestep, DeltaTime);
         DeltaTime -= TimeStep;
         Start = P.Location;
+        PreviousVelocity = P.Velocity;
         P.AutonomousPhysics(TimeStep);
         Rewind(DeltaTime);
         Hit = RewoundTrace(W, HitLocation, HitNormal, P.Location, Start, Extent, bHitInstigator);
@@ -521,6 +549,7 @@ function ForwardBouncingProjectile(Weapon W, Projectile P, float DeltaTime)
                 RestoreCollision(P);
                 if (P != None)
                 {
+                    P.Velocity = PreviousVelocity;
                     P.AutonomousPhysics(TimeStep);
                 }
                 if (P == None || P.bDeleteMe)
@@ -544,11 +573,6 @@ function ForwardBouncingProjectile(Weapon W, Projectile P, float DeltaTime)
 final function float GetDeltaTimeLimit()
 {
     return PingCompensationLimit / 1000.0;
-}
-
-final function float GetTimeStep(float DeltaTime)
-{
-    return FMin(BASE_TIMESTEP, DeltaTime);
 }
 
 static final function bool IsPredicted(Actor A)
@@ -597,11 +621,10 @@ static final function bool SwitchToZeroCollision(Weapon W, Actor Hit, Vector Sta
     return OtherHit == None;
 }
 
-static final function Vector GetClearHitLocation(Vector HitLocation,
-                                                 Vector HitNormal,
-                                                 Vector Direction,
-                                                 float Clearance,
-                                                 float Limit)
+static final function Vector GetClearance(Vector HitNormal,
+                                          Vector Direction,
+                                          float Clearance,
+                                          float Limit)
 {
     local float Ratio;
 
@@ -609,9 +632,9 @@ static final function Vector GetClearHitLocation(Vector HitLocation,
     Limit = 1 / Limit;
     if (Ratio < Limit)
     {
-        return HitLocation - (Direction * Limit);
+        return Direction * Limit;
     }
-    return HitLocation - (Direction * (Clearance / Ratio));
+    return Direction * (Clearance / Ratio);
 }
 
 
@@ -631,7 +654,6 @@ defaultproperties
     DisplayInfo(2)=(Caption="Projectile Compensation Limit",Hint="Ping compensation limit (in milliseconds) applied to projectiles.",Step="10",bMPOnly=true,bAdvanced=true)
     DisplayInfo(3)=(Caption="Backport Rubberbanding Fix",Hint="Backport OldUnreal's rubberbanding fix. Applied on restart/map change.",bMPOnly=true,bAdvanced=true)
     DisplayInfo(4)=(Caption="Link Meshes",Hint="Link meshes for collision detection. Disable this if experiencing crashes.",bMPOnly=true,bAdvanced=true)
-    bDisableTick=true
 
     // configs
     MaxPingFrequency=10.0
