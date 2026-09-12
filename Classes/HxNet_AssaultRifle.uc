@@ -82,7 +82,7 @@ simulated event ClientStartFire(int Mode)
 
 function ServerStopFireBAS(byte Mode, HxNTWeapon.HxBAS BAS)
 {
-    if (HxNet_AssaultGrenade(FireMode[Mode]) != None)
+    if (HxNet_AssaultGrenade(FireMode[Mode]) != None && FireMode[Mode].bIsFiring)
     {
         HxNet_AssaultGrenade(FireMode[Mode]).ApplyBAS(BAS);
     }

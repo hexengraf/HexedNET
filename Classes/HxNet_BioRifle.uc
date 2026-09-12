@@ -82,7 +82,7 @@ simulated event ClientStartFire(int Mode)
 
 function ServerStopFireBAS(byte Mode, HxNTWeapon.HxBAS BAS)
 {
-    if (HxNet_BioChargedFire(FireMode[Mode]) != None)
+    if (HxNet_BioChargedFire(FireMode[Mode]) != None && FireMode[Mode].bIsFiring)
     {
         HxNet_BioChargedFire(FireMode[Mode]).ApplyBAS(BAS);
     }

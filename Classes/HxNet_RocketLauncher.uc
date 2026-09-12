@@ -57,20 +57,22 @@ simulated event WeaponTick(float DT)
 
 simulated event ClientStopFire(int Mode)
 {
-    local HxNTWeapon.HxBAS BAS;
+    // TODO: why this code causes stale BAS to be consumed?
+    // local HxNTWeapon.HxBAS BAS;
 
-    if (Role == ROLE_Authority || HxNet_RocketMultiFire(FireMode[Mode]) == None
-        || !WantsPingCompensation())
-    {
-        Super.ClientStopFire(Mode);
-    }
-    else
-    {
-        BAS = class'HxNTWeapon'.static.EncodeBAS(Self, Mode);
-        HxNet_RocketMultiFire(FireMode[Mode]).ApplyBAS(BAS);
-        StopFire(Mode);
-        ServerStopFireBAS(Mode, BAS);
-    }
+    // if (Role == ROLE_Authority || HxNet_RocketMultiFire(FireMode[Mode]) == None
+    //     || HxNet_RocketMultiFire(FireMode[Mode]).Load > 2 || !WantsPingCompensation())
+    // {
+    //     Super.ClientStopFire(Mode);
+    // }
+    // else
+    // {
+    //     BAS = class'HxNTWeapon'.static.EncodeBAS(Self, Mode);
+    //     HxNet_RocketMultiFire(FireMode[Mode]).ApplyBAS(BAS);
+    //     StopFire(Mode);
+    //     ServerStopFireBAS(Mode, BAS);
+    // }
+    Super.ClientStopFire(Mode);
     StopFireTime[Mode] = 0;
 }
 
@@ -97,7 +99,7 @@ simulated event ClientStartFire(int Mode)
 
 function ServerStopFireBAS(byte Mode, HxNTWeapon.HxBAS BAS)
 {
-    if (HxNet_RocketMultiFire(FireMode[Mode]) != None)
+    if (HxNet_RocketMultiFire(FireMode[Mode]) != None && FireMode[Mode].bIsFiring)
     {
         HxNet_RocketMultiFire(FireMode[Mode]).ApplyBAS(BAS);
     }
