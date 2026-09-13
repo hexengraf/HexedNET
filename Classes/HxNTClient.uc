@@ -14,6 +14,8 @@ struct HxDummyGroup
 // BallLauncher's InventoryGroup is 15
 const WEAPON_GROUP_COUNT = 16;
 const WARMUP_COUNT = 10;
+const BAS_LOCATION_TOLERANCE = 360;
+const BAS_ANGLE_TOLERANCE = -0.5;
 
 var float AveragePing;
 var float AverageDeltaTime;
@@ -256,6 +258,23 @@ simulated function bool WantsPingCompensation()
 simulated function bool ShouldSpawnDummyProjectile()
 {
     return AveragePing > (AverageDeltaTime * 1.5);
+}
+
+simulated function bool IsAcceptableBAS(Weapon W, Vector BASStart, Rotator BASAim)
+{
+    local Vector Diff;
+
+    if (Role == ROLE_Authority)
+    {
+        if (Pawn(W.Owner) == None)
+        {
+            return false;
+        }
+        Diff = BASStart - (W.Owner.Location + Pawn(W.Owner).EyePosition());
+        return (Diff dot Diff) < BAS_LOCATION_TOLERANCE
+            && (Vector(BasAim) dot Vector(W.Owner.Rotation) > BAS_ANGLE_TOLERANCE);
+    }
+    return true;
 }
 
 simulated function Projectile TrackDummy(Projectile Dummy, class<Weapon> WeaponClass)

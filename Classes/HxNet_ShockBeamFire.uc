@@ -36,19 +36,23 @@ function ApplyBAS(HxNTWeapon.HxBAS BAS)
     local Vector Z;
 
     class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
-    if (HexedNET == None || HexedNET.IsReasonable(Weapon, BASStart))
+    if (class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
     {
-        if (PlayerController(Instigator.Controller) != None)
+        class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
+        if (Client.IsAcceptableBAS(Weapon, BASStart, BASAim))
         {
-            GetAxes(BASAim, X, Y, Z);
-            BASStart += X * class'ShockProjFire'.Default.ProjSpawnOffset.X;
-            if (!Weapon.WeaponCentered())
+            if (PlayerController(Instigator.Controller) != None)
             {
-                BASStart += Weapon.Hand * Y * class'ShockProjFire'.Default.ProjSpawnOffset.Y
-                    + Z * class'ShockProjFire'.Default.ProjSpawnOffset.Z;
+                GetAxes(BASAim, X, Y, Z);
+                BASStart += X * class'ShockProjFire'.Default.ProjSpawnOffset.X;
+                if (!Weapon.WeaponCentered())
+                {
+                    BASStart += Weapon.Hand * Y * class'ShockProjFire'.Default.ProjSpawnOffset.Y
+                        + Z * class'ShockProjFire'.Default.ProjSpawnOffset.Z;
+                }
             }
+            bBoostedAimSynchronization = true;
         }
-        bBoostedAimSynchronization = true;
     }
 }
 

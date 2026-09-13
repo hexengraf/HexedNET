@@ -38,8 +38,11 @@ function PlayFiring()
 
 function ApplyBAS(HxNTWeapon.HxBAS BAS)
 {
-    class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
-    bBoostedAimSynchronization = HexedNET == None || HexedNET.IsReasonable(Weapon, BASStart);
+    if (class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
+    {
+        class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
+        bBoostedAimSynchronization = Client.IsAcceptableBAS(Weapon, BASStart, BASAim);
+    }
 }
 
 function DoFireEffect()
