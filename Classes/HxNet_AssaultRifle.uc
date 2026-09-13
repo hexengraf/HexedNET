@@ -3,8 +3,6 @@ class HxNet_AssaultRifle extends AssaultRifle
     HideDropDown
     CacheExempt;
 
-var private MutHexedNET HexedNET;
-var private HxNTClient Client;
 var private int StopFireTime[2];
 var private bool bConfigCleared;
 
@@ -25,18 +23,6 @@ simulated event PreBeginPlay()
     }
 }
 
-simulated event PostBeginPlay()
-{
-    Super.PostBeginPlay();
-    class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
-}
-
-simulated function bool WantsPingCompensation()
-{
-    return class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
-        && Client.WantsPingCompensation();
-}
-
 simulated event WeaponTick(float DT)
 {
     Super.WeaponTick(DT);
@@ -47,17 +33,16 @@ simulated event ClientStopFire(int Mode)
 {
     local HxNTWeapon.HxBAS BAS;
 
-    if (Role == ROLE_Authority || HxNet_AssaultGrenade(FireMode[Mode]) == None
-        || !WantsPingCompensation())
-    {
-        Super.ClientStopFire(Mode);
-    }
-    else
+    if (Role < ROLE_Authority && WantsStopFireBAS(Mode))
     {
         BAS = class'HxNTWeapon'.static.EncodeBAS(Self, Mode);
         HxNet_AssaultGrenade(FireMode[Mode]).ApplyBAS(BAS);
         StopFire(Mode);
         ServerStopFireBAS(Mode, BAS);
+    }
+    else
+    {
+        Super.ClientStopFire(Mode);
     }
     StopFireTime[Mode] = 0;
 }
@@ -66,23 +51,30 @@ simulated event ClientStartFire(int Mode)
 {
     local HxNTWeapon.HxBAS BAS;
 
-    if (!class'HxNTWeapon'.static.DoBAS(Self) || HxNet_AssaultFire(FireMode[Mode]) == None
-        || !WantsPingCompensation())
+    if (Pawn(Owner).Controller.IsInState('GameEnded')
+        || Pawn(Owner).Controller.IsInState('RoundEnded'))
+    {
+        return;
+    }
+    if (Role < ROLE_Authority && WantsStartFireBAS(Mode))
+    {
+        if (StartFire(Mode))
+        {
+            BAS = class'HxNTWeapon'.static.EncodeBAS(Self, Mode);
+            HxNet_AssaultFire(FireMode[Mode]).ApplyBAS(BAS);
+            ServerStartFireBAS(Mode, BAS);
+            StopFireTime[Mode] = 3;
+        }
+    }
+    else
     {
         Super.ClientStartFire(Mode);
-    }
-    else if (StartFire(Mode))
-    {
-        BAS = class'HxNTWeapon'.static.EncodeBAS(Self, Mode);
-        HxNet_AssaultFire(FireMode[Mode]).ApplyBAS(BAS);
-        ServerStartFireBAS(Mode, BAS);
-        StopFireTime[Mode] = 3;
     }
 }
 
 function ServerStopFireBAS(byte Mode, HxNTWeapon.HxBAS BAS)
 {
-    if (HxNet_AssaultGrenade(FireMode[Mode]) != None && FireMode[Mode].bIsFiring)
+    if (FireMode[Mode].bIsFiring)
     {
         HxNet_AssaultGrenade(FireMode[Mode]).ApplyBAS(BAS);
     }
@@ -91,10 +83,7 @@ function ServerStopFireBAS(byte Mode, HxNTWeapon.HxBAS BAS)
 
 function ServerStartFireBAS(byte Mode, HxNTWeapon.HxBAS BAS)
 {
-    if (HxNet_AssaultFire(FireMode[Mode]) != None)
-    {
-        HxNet_AssaultFire(FireMode[Mode]).ApplyBAS(BAS);
-    }
+    HxNet_AssaultFire(FireMode[Mode]).ApplyBAS(BAS);
     ServerStartFire(Mode);
 }
 
@@ -113,6 +102,18 @@ simulated function bool StartFire(int Mode)
         return true;
     }
     return false;
+}
+
+simulated function bool WantsStopFireBAS(int Mode)
+{
+    return HxNet_AssaultGrenade(FireMode[Mode]) != None
+        && HxNet_AssaultGrenade(FireMode[Mode]).WantsPingCompensation();
+}
+
+simulated function bool WantsStartFireBAS(int Mode)
+{
+    return HxNet_AssaultFire(FireMode[Mode]) != None
+        && HxNet_AssaultFire(FireMode[Mode]).WantsPingCompensation();
 }
 
 defaultproperties

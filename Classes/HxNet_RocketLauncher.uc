@@ -3,8 +3,6 @@ class HxNet_RocketLauncher extends RocketLauncher
     HideDropDown
     CacheExempt;
 
-var private MutHexedNET HexedNET;
-var private HxNTClient Client;
 var private int StopFireTime[2];
 var private bool bConfigCleared;
 var private Pawn ClientSeekTarget;
@@ -29,18 +27,6 @@ simulated event PreBeginPlay()
     }
 }
 
-simulated event PostBeginPlay()
-{
-    Super.PostBeginPlay();
-    class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
-}
-
-simulated function bool WantsPingCompensation()
-{
-    return class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
-        && Client.WantsPingCompensation();
-}
-
 simulated event WeaponTick(float DT)
 {
     Super.WeaponTick(DT);
@@ -57,49 +43,50 @@ simulated event WeaponTick(float DT)
 
 simulated event ClientStopFire(int Mode)
 {
-    // TODO: why this code causes stale BAS to be consumed?
-    // local HxNTWeapon.HxBAS BAS;
+    local HxNTWeapon.HxBAS BAS;
 
-    // if (Role == ROLE_Authority || HxNet_RocketMultiFire(FireMode[Mode]) == None
-    //     || HxNet_RocketMultiFire(FireMode[Mode]).Load > 2 || !WantsPingCompensation())
-    // {
-    //     Super.ClientStopFire(Mode);
-    // }
-    // else
-    // {
-    //     BAS = class'HxNTWeapon'.static.EncodeBAS(Self, Mode);
-    //     HxNet_RocketMultiFire(FireMode[Mode]).ApplyBAS(BAS);
-    //     StopFire(Mode);
-    //     ServerStopFireBAS(Mode, BAS);
-    // }
-    Super.ClientStopFire(Mode);
+    if (Role < ROLE_Authority && WantsStopFireBAS(Mode))
+    {
+        BAS = class'HxNTWeapon'.static.EncodeBAS(Self, Mode);
+        HxNet_RocketMultiFire(FireMode[Mode]).ApplyBAS(BAS);
+        StopFire(Mode);
+        ServerStopFireBAS(Mode, BAS);
+    }
+    else
+    {
+        Super.ClientStopFire(Mode);
+    }
     StopFireTime[Mode] = 0;
 }
 
 simulated event ClientStartFire(int Mode)
 {
     local HxNTWeapon.HxBAS BAS;
-    local int OtherMode;
 
-    OtherMode = 1 - Mode;
-    if (!class'HxNTWeapon'.static.DoBAS(Self) || HxNet_RocketFire(FireMode[Mode]) == None
-        || FireMode[OtherMode].bIsFiring || FireMode[OtherMode].NextFireTime > Level.TimeSeconds
-        || !WantsPingCompensation())
+    if (Pawn(Owner).Controller.IsInState('GameEnded')
+        || Pawn(Owner).Controller.IsInState('RoundEnded'))
+    {
+        return;
+    }
+    if (Role < ROLE_Authority && WantsStartFireBAS(Mode))
+    {
+        if (StartFire(Mode))
+        {
+            BAS = class'HxNTWeapon'.static.EncodeBAS(Self, Mode);
+            HxNet_RocketFire(FireMode[Mode]).ApplyBAS(BAS);
+            ServerStartFireBAS(Mode, BAS);
+            StopFireTime[Mode] = 3;
+        }
+    }
+    else
     {
         Super.ClientStartFire(Mode);
-    }
-    else if (StartFire(Mode))
-    {
-        BAS = class'HxNTWeapon'.static.EncodeBAS(Self, Mode);
-        HxNet_RocketFire(FireMode[Mode]).ApplyBAS(BAS);
-        ServerStartFireBAS(Mode, BAS);
-        StopFireTime[Mode] = 3;
     }
 }
 
 function ServerStopFireBAS(byte Mode, HxNTWeapon.HxBAS BAS)
 {
-    if (HxNet_RocketMultiFire(FireMode[Mode]) != None && FireMode[Mode].bIsFiring)
+    if (FireMode[Mode].bIsFiring)
     {
         HxNet_RocketMultiFire(FireMode[Mode]).ApplyBAS(BAS);
     }
@@ -108,10 +95,7 @@ function ServerStopFireBAS(byte Mode, HxNTWeapon.HxBAS BAS)
 
 function ServerStartFireBAS(byte Mode, HxNTWeapon.HxBAS BAS)
 {
-    if (HxNet_RocketFire(FireMode[Mode]) != None)
-    {
-        HxNet_RocketFire(FireMode[Mode]).ApplyBAS(BAS);
-    }
+    HxNet_RocketFire(FireMode[Mode]).ApplyBAS(BAS);
     ServerStartFire(Mode);
 }
 
@@ -147,6 +131,26 @@ static function RocketProj SpawnHexedProjectile(RocketLauncher Weapon,
         return SeekingRocket;
     }
     return Weapon.Spawn(RocketClass,,, Start, Dir);
+}
+
+simulated function bool WantsStopFireBAS(int Mode)
+{
+    // TODO: why applying on stop fire sometimes causes stale BAS to be consumed?
+    // return HxNet_RocketMultiFire(FireMode[Mode]) != None
+    //     && HxNet_RocketMultiFire(FireMode[Mode]).Load < 3
+    //     && HxNet_RocketMultiFire(FireMode[Mode]).WantsPingCompensation();
+    return false;
+}
+
+simulated function bool WantsStartFireBAS(int Mode)
+{
+    local int AltMode;
+
+    AltMode = int(Mode == 0);
+    return HxNet_RocketFire(FireMode[Mode]) != None
+        && !FireMode[AltMode].bIsFiring
+        && FireMode[AltMode].NextFireTime <= Level.TimeSeconds
+        && HxNet_RocketFire(FireMode[Mode]).WantsPingCompensation();
 }
 
 defaultproperties

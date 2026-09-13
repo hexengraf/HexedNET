@@ -57,13 +57,6 @@ static function bool ValidateClient(LevelInfo Level,
     return Client != None;
 }
 
-static final function bool DoBAS(Weapon W)
-{
-    return W.Role < ROLE_Authority
-        && !Pawn(W.Owner).Controller.IsInState('GameEnded')
-        && !Pawn(W.Owner).Controller.IsInState('RoundEnded');
-}
-
 static final function CheckStopFire(Weapon W, out int StopFireTime, out int AltStopFireTime)
 {
     if (StopFireTime > 0)

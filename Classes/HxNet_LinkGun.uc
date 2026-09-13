@@ -3,8 +3,6 @@ class HxNet_LinkGun extends LinkGun
     HideDropDown
     CacheExempt;
 
-var private MutHexedNET HexedNET;
-var private HxNTClient Client;
 var private int StopFireTime[2];
 var private bool bConfigCleared;
 
@@ -25,12 +23,6 @@ simulated event PreBeginPlay()
     }
 }
 
-simulated event PostBeginPlay()
-{
-    Super.PostBeginPlay();
-    class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
-}
-
 simulated event WeaponTick(float DT)
 {
     Super.WeaponTick(DT);
@@ -47,27 +39,30 @@ simulated event ClientStartFire(int Mode)
 {
     local HxNTWeapon.HxBAS BAS;
 
-    if (!class'HxNTWeapon'.static.DoBAS(Self) || HxNet_LinkAltFire(FireMode[Mode]) == None
-        || !class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
-        || !Client.WantsPingCompensation())
+    if (Pawn(Owner).Controller.IsInState('GameEnded')
+        || Pawn(Owner).Controller.IsInState('RoundEnded'))
+    {
+        return;
+    }
+    if (Role < ROLE_Authority && WantsStartFireBAS(Mode))
+    {
+        if (StartFire(Mode))
+        {
+            BAS = class'HxNTWeapon'.static.EncodeBAS(Self, Mode);
+            HxNet_LinkAltFire(FireMode[Mode]).ApplyBAS(BAS);
+            ServerStartFireBAS(Mode, BAS);
+            StopFireTime[Mode] = 3;
+        }
+    }
+    else
     {
         Super.ClientStartFire(Mode);
-    }
-    else if (StartFire(Mode))
-    {
-        BAS = class'HxNTWeapon'.static.EncodeBAS(Self, Mode);
-        HxNet_LinkAltFire(FireMode[Mode]).ApplyBAS(BAS);
-        ServerStartFireBAS(Mode, BAS);
-        StopFireTime[Mode] = 3;
     }
 }
 
 function ServerStartFireBAS(byte Mode, HxNTWeapon.HxBAS BAS)
 {
-    if (HxNet_LinkAltFire(FireMode[Mode]) != None)
-    {
-        HxNet_LinkAltFire(FireMode[Mode]).ApplyBAS(BAS);
-    }
+    HxNet_LinkAltFire(FireMode[Mode]).ApplyBAS(BAS);
     ServerStartFire(Mode);
 }
 
@@ -86,6 +81,12 @@ simulated function bool StartFire(int Mode)
         return true;
     }
     return false;
+}
+
+simulated function bool WantsStartFireBAS(int Mode)
+{
+    return HxNet_LinkAltFire(FireMode[Mode]) != None
+        && HxNet_LinkAltFire(FireMode[Mode]).WantsPingCompensation();
 }
 
 defaultproperties
