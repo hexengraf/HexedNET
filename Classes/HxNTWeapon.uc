@@ -45,13 +45,18 @@ static function bool ValidateClient(LevelInfo Level,
     }
     else
     {
+        if (Instigator == None || PlayerController(Instigator.Controller) == None)
+        {
+            return false;
+        }
         if (HexedNET == None)
         {
             foreach Level.DynamicActors(class'MutHexedNET', HexedNET) break;
         }
-        if (HexedNET != None && Instigator != None)
+        if (HexedNET != None)
         {
-            Client = HxNTClient(HexedNET.GetClientReplicationInfo(Instigator.Controller));
+            Client = HxNTClient(HexedNET.GetClientReplicationInfo(
+                PlayerController(Instigator.Controller)));
         }
     }
     return Client != None;
