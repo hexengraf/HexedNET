@@ -116,11 +116,11 @@ simulated function bool StartFire(int Mode)
     return false;
 }
 
-static function RocketProj SpawnHexedProjectile(RocketLauncher Weapon,
-                                                Vector Start,
-                                                Rotator Dir,
-                                                class<RocketProj> RocketClass,
-                                                class<SeekingRocketProj> SeekingRocketClass)
+static function RocketProj StaticSpawnProjectile(RocketLauncher Weapon,
+                                                 Vector Start,
+                                                 Rotator Dir,
+                                                 class<RocketProj> RocketClass,
+                                                 class<SeekingRocketProj> SeekingRocketClass)
 {
     local SeekingRocketProj SeekingRocket;
 

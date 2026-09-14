@@ -1,6 +1,16 @@
 class HxNet_SeekingRocketProjDummy extends SeekingRocketProj;
 
-var int Index;
+var HxNTWeaponInfo WeaponInfo;
+var bool bRemoved;
+
+simulated event Destroyed()
+{
+    if (!bRemoved && WeaponInfo != None)
+    {
+        WeaponInfo.RemoveProjectile(Self);
+    }
+    Super.Destroyed();
+}
 
 simulated function PostNetBeginPlay()
 {

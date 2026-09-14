@@ -8,7 +8,10 @@ function DoFireEffect()
     DoBaseFireEffect();
 }
 
-function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir, optional int Index)
+function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
+                                         Vector Start,
+                                         Rotator Dir,
+                                         optional int Index)
 {
     local Projectile P;
 
@@ -17,7 +20,11 @@ function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir, optional int
         ProjectileClass = class'HxNet_BioGlobDummy';
         P = SpawnProjectile(Start, Dir);
         ProjectileClass = default.ProjectileClass;
-        return Client.TrackDummy(P, class'BioRifle');
+        if (P != None)
+        {
+            HxNet_BioGlobDummy(P).WeaponInfo = WeaponInfo;
+        }
+        return WeaponInfo.TrackProjectile(P, Index);
     }
     if (WantsPingCompensation())
     {
@@ -66,4 +73,5 @@ function Projectile SpawnProjectile(Vector Start, Rotator Dir)
 
 defaultproperties
 {
+    WeaponClass=class'BioRifle'
 }

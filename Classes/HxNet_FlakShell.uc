@@ -26,38 +26,15 @@ simulated function PostNetBeginPlay()
 
 simulated function SearchDummyProjectile()
 {
-    local array<Projectile> Dummies;
-    local float MinDistance;
-    local float Distance;
-    local float DummyIndex;
-    local int i;
+    local HxNTWeaponInfo WeaponInfo;
+    local FlakShell Shell;
 
-    Dummies = Client.GetDummies(class'FlakCannon');
-    if (Dummies.Length > 0)
+    WeaponInfo = Client.GetWeaponInfo(class'FlakCannon');
+    Shell = FlakShell(WeaponInfo.MatchProjectileClass(Location, class'HxNet_FlakShellDummy'));
+    if (Shell != None)
     {
-        DummyIndex = -1;
-        MinDistance = MaxInt;
-        for (i = 0; i < Dummies.Length; ++i)
-        {
-            if (FlakShell(Dummies[i]) != None)
-            {
-                Distance = VSize(Location - Dummies[i].Location);
-                if (Distance < MinDistance)
-                {
-                    MinDistance = Distance;
-                    DummyIndex = i;
-                }
-                else
-                {
-                    break;
-                }
-            }
-        }
-        if (DummyIndex > -1)
-        {
-            InterpolateDummy(FlakShell(Dummies[DummyIndex]));
-            Client.DestroyDummy(class'FlakCannon', DummyIndex);
-        }
+        InterpolateDummy(Shell);
+        Shell.Destroy();
     }
 }
 

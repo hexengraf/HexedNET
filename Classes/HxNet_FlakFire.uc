@@ -7,33 +7,35 @@ function DoFireEffect()
 {
     DoBaseFireEffect();
 }
-function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir, optional int Index)
+function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
+                                         Vector Start,
+                                         Rotator Dir,
+                                         optional int Index)
 {
-    local HxNet_FlakChunkDummy Dummy;
-    local HxNet_FlakChunk P;
+    local FlakChunk P;
 
     if (Level.NetMode == NM_Client)
     {
         ProjectileClass = class'HxNet_FlakChunkDummy';
-        Dummy = HxNet_FlakChunkDummy(SpawnProjectile(Start, Dir));
+        P = FlakChunk(SpawnProjectile(Start, Dir));
         ProjectileClass = default.ProjectileClass;
-        if (Dummy != None)
+        if (P != None)
         {
-            Dummy.Index = Index;
-            Dummy.Bounces = RandomizeBounces();
+            HxNet_FlakChunkDummy(P).WeaponInfo = WeaponInfo;
+            P.Bounces = RandomizeBounces(WeaponInfo.Generator);
         }
-        return Client.TrackDummy(Dummy, class'FlakCannon');
+        return WeaponInfo.TrackProjectile(P, Index);
     }
     if (WantsPingCompensation())
     {
         ProjectileClass = class'HxNet_FlakChunk';
-        P = HxNet_FlakChunk(SpawnProjectile(Start, Dir));
+        P = FlakChunk(SpawnProjectile(Start, Dir));
         ProjectileClass = default.ProjectileClass;
         if (P != None)
         {
-            P.Client = Client;
-            P.Index = Index;
-            P.Bounces = RandomizeBounces();
+            HxNet_FlakChunk(P).Client = Client;
+            HxNet_FlakChunk(P).Index = Index;
+            P.Bounces = RandomizeBounces(WeaponInfo.Generator);
             HexedNET.ForwardBouncingProjectile(Weapon, P, Client.GetProjectilePing() + ServerDelay);
         }
         return P;
@@ -41,11 +43,11 @@ function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir, optional int
     return SpawnProjectile(Start, Dir);
 }
 
-final function int RandomizeBounces()
+final function int RandomizeBounces(HxRandomGenerator Generator)
 {
     local float R;
 
-    R = Client.GetRandomFloat();
+    R = Generator.RandFloat();
     if (R > 0.75)
     {
         return 2;
@@ -59,4 +61,5 @@ final function int RandomizeBounces()
 
 defaultproperties
 {
+    WeaponClass=class'FlakCannon'
 }

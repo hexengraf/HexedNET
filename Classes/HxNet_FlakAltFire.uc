@@ -8,7 +8,10 @@ function DoFireEffect()
     DoBaseFireEffect();
 }
 
-function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir, optional int Index)
+function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
+                                         Vector Start,
+                                         Rotator Dir,
+                                         optional int Index)
 {
     local Projectile P;
 
@@ -17,7 +20,11 @@ function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir, optional int
         ProjectileClass = class'HxNet_FlakShellDummy';
         P = SpawnProjectile(Start, Dir);
         ProjectileClass = default.ProjectileClass;
-        return Client.TrackDummy(P, class'FlakCannon');
+        if (P != None)
+        {
+            HxNet_FlakShellDummy(P).WeaponInfo = WeaponInfo;
+        }
+        return WeaponInfo.TrackProjectile(P, Index);
     }
     if (WantsPingCompensation())
     {
@@ -36,4 +43,5 @@ function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir, optional int
 
 defaultproperties
 {
+    WeaponClass=class'FlakCannon'
 }

@@ -53,39 +53,16 @@ simulated function PostNetBeginPlay()
 
 simulated function SearchDummyProjectile()
 {
-    local array<Projectile> Dummies;
-    local float MinDistance;
-    local float Distance;
-    local int DummyIndex;
-    local int i;
+    local HxNTWeaponInfo WeaponInfo;
+    local RocketProj Rocket;
 
-    Dummies = Client.GetDummies(class'RocketLauncher');
-    if (Dummies.Length > 0)
+    WeaponInfo = Client.GetWeaponInfo(class'RocketLauncher');
+    Rocket = RocketProj(WeaponInfo.MatchProjectileFull(
+        Location, class'HxNet_SeekingRocketProjDummy', Index));
+    if (Rocket != None)
     {
-        DummyIndex = -1;
-        MinDistance = MaxInt;
-        for (i = 0; i < Dummies.Length; ++i)
-        {
-            if (HxNet_SeekingRocketProjDummy(Dummies[i]) != None
-                && HxNet_SeekingRocketProjDummy(Dummies[i]).Index == Index)
-            {
-                Distance = VSize(Location - Dummies[i].Location);
-                if (Distance < MinDistance)
-                {
-                    MinDistance = Distance;
-                    DummyIndex = i;
-                }
-                else
-                {
-                    break;
-                }
-            }
-        }
-        if (DummyIndex > -1)
-        {
-            InterpolateDummy(RocketProj(Dummies[DummyIndex]));
-            Client.DestroyDummy(class'RocketLauncher', DummyIndex);
-        }
+        InterpolateDummy(Rocket);
+        Rocket.Destroy();
     }
 }
 

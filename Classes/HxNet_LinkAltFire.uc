@@ -8,7 +8,10 @@ function DoFireEffect()
     DoBaseFireEffect();
 }
 
-function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir, optional int Index)
+function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
+                                         Vector Start,
+                                         Rotator Dir,
+                                         optional int Index)
 {
     local Projectile P;
     local float DeltaTime;
@@ -18,7 +21,11 @@ function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir, optional int
         ProjectileClass = class'HxNet_LinkProjectileDummy';
         P = SpawnProjectile(Start, Dir);
         ProjectileClass = default.ProjectileClass;
-        return Client.TrackDummy(P, class'LinkGun');
+        if (P != None)
+        {
+            HxNet_LinkProjectileDummy(P).WeaponInfo = WeaponInfo;
+        }
+        return WeaponInfo.TrackProjectile(P, Index);
     }
     if (WantsPingCompensation())
     {
@@ -52,4 +59,5 @@ function Projectile SpawnProjectile(Vector Start, Rotator Dir)
 
 defaultproperties
 {
+    WeaponClass=class'LinkGun'
 }

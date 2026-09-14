@@ -27,24 +27,15 @@ simulated function PostNetBeginPlay()
 
 simulated function SearchDummyProjectile()
 {
-    local array<Projectile> Dummies;
-    local float Distance;
-    local int i;
+    local HxNTWeaponInfo WeaponInfo;
+    local ShockProjectile Core;
 
-    Dummies = Client.GetDummies(class'ShockRifle');
-    if (Dummies.Length > 0)
+    WeaponInfo = Client.GetWeaponInfo(class'ShockRifle');
+    Core = ShockProjectile(WeaponInfo.MatchProjectile(Location));
+    if (Core != None)
     {
-        Distance = VSize(Location - Dummies[0].Location);
-        for (i = 1; i < Dummies.Length; ++i)
-        {
-            if (VSize(Location - Dummies[i].Location) > Distance)
-            {
-                break;
-            }
-        }
-        --i;
-        InterpolateDummy(ShockProjectile(Dummies[i]));
-        Client.DestroyDummy(class'ShockRifle', i);
+        InterpolateDummy(Core);
+        Core.Destroy();
     }
 }
 

@@ -5,6 +5,7 @@ var private Vector BASStart;
 var private Rotator BASAim;
 var private float ProjectileDelayTimer;
 var private bool bBoostedAimSynchronization;
+var private const class<Weapon> WeaponClass;
 
 function PreBeginPlay()
 {
@@ -112,6 +113,7 @@ function GetProjectileStartAndDirection(out Vector Start,
 
 function DoBaseFireEffect()
 {
+    local HxNTWeaponInfo WeaponInfo;
     local Vector Start;
     local Vector X;
     local Rotator Dir;
@@ -119,8 +121,9 @@ function DoBaseFireEffect()
     local int SpawnCount;
     local int i;
 
-    if (class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
+    if (WantsPingCompensation())
     {
+        WeaponInfo = Client.GetWeaponInfo(WeaponClass);
         Instigator.MakeNoise(1.0);
         GetProjectileStartAndDirection(Start, Dir);
         SpawnCount = Max(1, ProjPerFire * int(Load));
@@ -130,10 +133,10 @@ function DoBaseFireEffect()
                 X = Vector(Dir);
                 for (i = 0; i < SpawnCount; i++)
                 {
-                    Dir.Yaw = Spread * (Client.GetRandomFloat() - 0.5);
-                    Dir.Pitch = Spread * (Client.GetRandomFloat() - 0.5);
-                    Dir.Roll = Spread * (Client.GetRandomFloat() - 0.5);
-                    SpawnHexedProjectile(Start, Rotator(X >> Dir), i);
+                    Dir.Yaw = Spread * (WeaponInfo.Generator.RandFloat() - 0.5);
+                    Dir.Pitch = Spread * (WeaponInfo.Generator.RandFloat() - 0.5);
+                    Dir.Roll = Spread * (WeaponInfo.Generator.RandFloat() - 0.5);
+                    SpawnHexedProjectile(WeaponInfo, Start, Rotator(X >> Dir), i);
                 }
                 break;
             case SS_Line:
@@ -143,11 +146,11 @@ function DoBaseFireEffect()
                     X.X = Cos(Theta);
                     X.Y = Sin(Theta);
                     X.Z = 0.0;
-                    SpawnHexedProjectile(Start, Rotator(X >> Dir), i);
+                    SpawnHexedProjectile(WeaponInfo, Start, Rotator(X >> Dir), i);
                 }
                 break;
             default:
-                SpawnHexedProjectile(Start, Dir);
+                SpawnHexedProjectile(WeaponInfo, Start, Dir);
                 break;
         }
     }

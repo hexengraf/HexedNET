@@ -1,14 +1,8 @@
 class HxNTClient extends HxClientReplicationInfo;
 
-struct HxWeaponDummies
+struct HxWeaponGroup
 {
-    var class<Weapon> WeaponClass;
-    var array<Projectile> Dummies;
-};
-
-struct HxDummyGroup
-{
-    var array<HxWeaponDummies> Weapons;
+    var array<HxNTWeaponInfo> Weapons;
 };
 
 // BallLauncher's InventoryGroup is 15
@@ -28,16 +22,11 @@ var private bool bPingCompensation;
 var private float PingInterval;
 var private float PingSmoothing;
 var private bool bClientUpdated;
-var private float ServerUpdateRequested[3];
-var private float RandomFloats[128];
-var private int NextRandomFloat;
-var private HxDummyGroup DummyGroups[WEAPON_GROUP_COUNT];
+var private HxWeaponGroup Groups[WEAPON_GROUP_COUNT];
+var private HxRandomGeneratorAlt Seeder;
 
 replication
 {
-    reliable if (Role == ROLE_Authority)
-        RandomFloats;
-
     unreliable if (Role == ROLE_Authority)
         ClientRequestPing,
         ClientUpdatePing;
@@ -51,13 +40,13 @@ replication
     reliable if (Role < ROLE_Authority)
         ServerSetPingCompensation,
         ServerSetPingFrequency,
-        ServerSetPingSmoothingFactor;
+        ServerSetPingSmoothing;
 }
 
 simulated event PostBeginPlay()
 {
     Super.PostBeginPlay();
-    PopulateRandomFloats();
+    Seeder = new(Self) class'HxRandomGeneratorAlt';
 }
 
 function SetupServer(HxMutator Mutator)
@@ -70,12 +59,11 @@ simulated function SetupClient(HxClientManager Manager)
 {
     Super.SetupClient(Manager);
     NetConfig = HxNetcodeConfig(Configs[0]);
-    bPingCompensation = NetConfig.bPingCompensation && Level.NetMode != NM_ListenServer;
     if (Level.NetMode == NM_Client)
     {
-        ServerSetPingSmoothingFactor(NetConfig.PingSmoothing);
+        ServerSetPingSmoothing(NetConfig.PingSmoothing);
         ServerSetPingFrequency(NetConfig.PingFrequency);
-        ServerSetPingCompensation(bPingCompensation);
+        UpdatePingCompensation();
     }
     if (Manager.IsFirstRun())
     {
@@ -103,24 +91,6 @@ simulated function Tick(float DeltaTime)
         if (PlayerOwner != None)
         {
             FixWeaponInstigator(PlayerOwner);
-        }
-        if (ServerUpdateRequested[0] > 0
-            && Level.TimeSeconds - ServerUpdateRequested[0] > Level.TimeDilation)
-        {
-            ServerSetPingCompensation(bPingCompensation);
-            ServerUpdateRequested[0] = 0;
-        }
-        if (ServerUpdateRequested[1] > 0
-            && Level.TimeSeconds - ServerUpdateRequested[1] > Level.TimeDilation)
-        {
-            ServerSetPingFrequency(NetConfig.PingFrequency);
-            ServerUpdateRequested[1] = 0;
-        }
-        if (ServerUpdateRequested[2] > 0
-            && Level.TimeSeconds - ServerUpdateRequested[2] > Level.TimeDilation)
-        {
-            ServerSetPingSmoothingFactor(NetConfig.PingSmoothing);
-            ServerUpdateRequested[2] = 0;
         }
         if (TickCount < WARMUP_COUNT)
         {
@@ -175,17 +145,18 @@ simulated function SetProjectileCompensationLimit(coerce float Value)
     ProjectileCompensationLimit = Value / 1000;
 }
 
-function ServerSetPingCompensation(bool bEnable)
+function ServerSetPingCompensation(bool bEnable, int Seed)
 {
     bPingCompensation = bEnable;
-    if (!bEnable)
+    if (bEnable)
     {
-        Disable('Timer');
+        SetTimer(PingInterval, true);
+        Seeder.SetSeed(Seed);
+        RefreshSeeds();
     }
     else
     {
-        Enable('Timer');
-        SetTimer(PingInterval, true);
+        SetTimer(0, false);
     }
 }
 
@@ -202,10 +173,9 @@ function ServerSetPingFrequency(float Frequency)
     }
 }
 
-function ServerSetPingSmoothingFactor(float Factor)
+function ServerSetPingSmoothing(float Factor)
 {
-    PingSmoothing = FClamp(
-        Factor, float(ConfigClasses[0].default.Properties[2].LowerLimit), 1.0);
+    PingSmoothing = FClamp(Factor, float(ConfigClasses[0].default.Properties[2].LowerLimit), 1.0);
 }
 
 simulated function NotifyServerPropertiesReady()
@@ -226,13 +196,29 @@ simulated function NotifyUserPropertyChanged(HxConfig Config, int Index, string 
     switch (Config.Properties[Index].Name)
     {
         case "bPingCompensation":
-            bPingCompensation = NetConfig.bPingCompensation && Level.NetMode != NM_ListenServer;
+            UpdatePingCompensation();
+            break;
+        case "PingFrequency":
+            ServerSetPingFrequency(NetConfig.PingFrequency);
+            break;
+        case "PingSmoothing":
+            ServerSetPingSmoothing(NetConfig.PingSmoothing);
             break;
     }
-    if (ServerUpdateRequested[Index] == 0)
+}
+
+simulated function UpdatePingCompensation()
+{
+    local int Seed;
+
+    bPingCompensation = NetConfig.bPingCompensation && Level.NetMode != NM_ListenServer;
+    if (bPingCompensation)
     {
-        ServerUpdateRequested[Index] = Level.TimeSeconds;
+        Seed = Rand(MaxInt);
+        Seeder.SetSeed(Seed);
+        RefreshSeeds();
     }
+    ServerSetPingCompensation(bPingCompensation, Seed);
 }
 
 simulated function ClientSetAllowMultiHit(bool bEnable)
@@ -277,96 +263,39 @@ simulated function bool IsAcceptableBAS(Weapon W, Vector BASStart, Rotator BASAi
     return true;
 }
 
-simulated function Projectile TrackDummy(Projectile Dummy, class<Weapon> WeaponClass)
+simulated function HxNTWeaponInfo GetWeaponInfo(class<Weapon> WeaponClass)
 {
     local int GroupIndex;
-    local int WeaponIndex;
-    local int Index;
-
-    if (Dummy != None)
-    {
-        GroupIndex = WeaponClass.default.InventoryGroup;
-        WeaponIndex = FindWeaponIndex(WeaponClass, GroupIndex);
-        Index = DummyGroups[GroupIndex].Weapons[WeaponIndex].Dummies.Length;
-        DummyGroups[GroupIndex].Weapons[WeaponIndex].Dummies.Insert(Index, 1);
-        DummyGroups[GroupIndex].Weapons[WeaponIndex].Dummies[Index] = Dummy;
-    }
-    return Dummy;
-}
-
-simulated function DestroyDummy(class<Weapon> WeaponClass, int Index)
-{
-    local int GroupIndex;
-    local int WeaponIndex;
-
-    GroupIndex = WeaponClass.default.InventoryGroup;
-    WeaponIndex = FindWeaponIndex(WeaponClass, GroupIndex);
-    DummyGroups[GroupIndex].Weapons[WeaponIndex].Dummies[Index].bNoFX = true;
-    DummyGroups[GroupIndex].Weapons[WeaponIndex].Dummies[Index].Destroy();
-    DummyGroups[GroupIndex].Weapons[WeaponIndex].Dummies.Remove(Index, 1);
-}
-
-simulated function array<Projectile> GetDummies(class<Weapon> WeaponClass)
-{
-    local int GroupIndex;
-    local int WeaponIndex;
     local int i;
 
     GroupIndex = WeaponClass.default.InventoryGroup;
-    WeaponIndex = FindWeaponIndex(WeaponClass, GroupIndex);
-    for (i = DummyGroups[GroupIndex].Weapons[WeaponIndex].Dummies.Length - 1; i >= 0; --i)
+    for (i = 0; i < Groups[GroupIndex].Weapons.Length; ++i)
     {
-        if (DummyGroups[GroupIndex].Weapons[WeaponIndex].Dummies[i] == None)
+        if (Groups[GroupIndex].Weapons[i].WeaponClass == WeaponClass)
         {
-            DummyGroups[GroupIndex].Weapons[WeaponIndex].Dummies.Remove(i, 1);
+            return Groups[GroupIndex].Weapons[i];
         }
     }
-    return DummyGroups[GroupIndex].Weapons[WeaponIndex].Dummies;
+    Groups[GroupIndex].Weapons.Insert(i, 1);
+    Groups[GroupIndex].Weapons[i] = new(Self) class'HxNTWeaponInfo';
+    Groups[GroupIndex].Weapons[i].WeaponClass = WeaponClass;
+    Groups[GroupIndex].Weapons[i].Generator = new(Self) class'HxRandomGenerator';
+    Groups[GroupIndex].Weapons[i].RefreshSeed(Seeder);
+    return Groups[GroupIndex].Weapons[i];
 }
 
-simulated function int FindWeaponIndex(class<Weapon> WeaponClass, int GroupIndex)
+simulated function RefreshSeeds()
 {
     local int i;
+    local int j;
 
-    for (i = 0; i < DummyGroups[GroupIndex].Weapons.Length; ++i)
+    for (i = 0; i < WEAPON_GROUP_COUNT; ++i)
     {
-        if (DummyGroups[GroupIndex].Weapons[i].WeaponClass == WeaponClass)
+        for (j = 0; j < Groups[i].Weapons.Length; ++j)
         {
-            return i;
+            Groups[i].Weapons[j].RefreshSeed(Seeder);
         }
     }
-    DummyGroups[GroupIndex].Weapons.Insert(i, 1);
-    DummyGroups[GroupIndex].Weapons[i].WeaponClass = WeaponClass;
-    return i;
-}
-
-function PopulateRandomFloats()
-{
-    local int i;
-
-    for (i = 0; i < ArrayCount(RandomFloats); ++i)
-    {
-        RandomFloats[i] = FRand();
-    }
-}
-
-function ReplaceRandomFloat()
-{
-    RandomFLoats[NextRandomFloat] = FRand();
-}
-
-simulated function float GetRandomFloat()
-{
-    local float Result;
-
-    if (!WantsPingCompensation())
-    {
-        return FRand();
-    }
-    Result = RandomFLoats[NextRandomFloat];
-    ReplaceRandomFloat();
-    NextRandomFloat = (NextRandomFloat + 1) % ArrayCount(RandomFLoats);
-    return Result;
 }
 
 // TODO: do we really need this?

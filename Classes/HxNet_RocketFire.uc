@@ -8,29 +8,42 @@ function DoFireEffect()
     DoBaseFireEffect();
 }
 
-function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir, optional int Index)
+function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
+                                         Vector Start,
+                                         Rotator Dir,
+                                         optional int Index)
 {
     local Projectile P;
 
     if (Level.NetMode == NM_Client)
     {
         P = SpawnIndexedProjectile(
-            Start, Dir, Index, class'HxNet_RocketProjDummy', class'HxNet_SeekingRocketProjDummy');
-        return Client.TrackDummy(P, class'RocketLauncher');
+            Start, Dir, class'HxNet_RocketProjDummy', class'HxNet_SeekingRocketProjDummy');
+        if (HxNet_RocketProjDummy(P) != None)
+        {
+            HxNet_RocketProjDummy(P).WeaponInfo = WeaponInfo;
+        }
+        else if (HxNet_SeekingRocketProjDummy(P) != None)
+        {
+            HxNet_SeekingRocketProjDummy(P).WeaponInfo = WeaponInfo;
+        }
+        return WeaponInfo.TrackProjectile(P, Index);
     }
     if (WantsPingCompensation())
     {
         P = SpawnIndexedProjectile(
-            Start, Dir, Index, class'HxNet_RocketProj', class'HxNet_SeekingRocketProj');
+            Start, Dir, class'HxNet_RocketProj', class'HxNet_SeekingRocketProj');
         if (P != None)
         {
             if (HxNet_RocketProj(P) != None)
             {
                 HxNet_RocketProj(P).Client = Client;
+                HxNet_RocketProj(P).Index = Index;
             }
             else
             {
                 HxNet_SeekingRocketProj(P).Client = Client;
+                HxNet_SeekingRocketProj(P).Index = Index;
             }
             HexedNET.ForwardLinearProjectile(Weapon, P, Client.GetProjectilePing() + ServerDelay);
         }
@@ -41,22 +54,21 @@ function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir, optional int
 
 function RocketProj SpawnIndexedProjectile(Vector Start,
                                            Rotator Dir,
-                                           int Index,
                                            class<RocketProj> RocketClass,
                                            class<SeekingRocketProj> SeekingRocketClass)
 {
     local RocketProj P;
 
-    P = class'HxNet_RocketLauncher'.static.SpawnHexedProjectile(
+    P = class'HxNet_RocketLauncher'.static.StaticSpawnProjectile(
                 RocketLauncher(Weapon), Start, Dir, RocketClass, SeekingRocketClass);
     if (P != None)
     {
         P.Damage *= DamageAtten;
-        P.SetPropertyText("Index", string(Index));
     }
     return P;
 }
 
 DefaultProperties
 {
+    WeaponClass=class'RocketLauncher'
 }
