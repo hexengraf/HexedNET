@@ -20,41 +20,41 @@ simulated function PostNetBeginPlay()
     Super.PostNetBeginPlay();
     if (Level.NetMode == NM_Client && Client != None && Client.WantsPingCompensation())
     {
-        SearchDummyProjectile();
+        SearchPredictedProjectile();
     }
 }
 
-simulated function SearchDummyProjectile()
+simulated function SearchPredictedProjectile()
 {
     local HxNTWeaponInfo WeaponInfo;
     local FlakShell Shell;
 
     WeaponInfo = Client.GetWeaponInfo(class'FlakCannon');
-    Shell = FlakShell(WeaponInfo.MatchProjectileClass(Location, class'HxNet_FlakShellDummy'));
+    Shell = FlakShell(WeaponInfo.MatchProjectileClass(Location, class'HxNet_FlakShellPredicted'));
     if (Shell != None)
     {
-        InterpolateDummy(Shell);
+        InterpolatePredicted(Shell);
         Shell.Destroy();
     }
 }
 
-simulated function InterpolateDummy(FlakShell Dummy)
+simulated function InterpolatePredicted(FlakShell Predicted)
 {
-    if (Dummy != None)
+    if (Predicted != None)
     {
         if (Trail != None)
         {
             Trail.mRegen = false;
         }
-        if (Dummy.Trail != None)
+        if (Predicted.Trail != None)
         {
-            Trail = Dummy.Trail;
+            Trail = Predicted.Trail;
             Trail.SetOwner(Self);
-            Dummy.Trail = None;
+            Predicted.Trail = None;
         }
         bInterpolate = true;
-        InterpolationOffset = Location - Dummy.Location;
-        DoSetLocation(Dummy.Location);
+        InterpolationOffset = Location - Predicted.Location;
+        DoSetLocation(Predicted.Location);
     }
 }
 

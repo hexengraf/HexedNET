@@ -16,12 +16,12 @@ function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
 
     if (Level.NetMode == NM_Client)
     {
-        ProjectileClass = class'HxNet_FlakChunkDummy';
+        ProjectileClass = class'HxNet_FlakChunkPredicted';
         P = FlakChunk(SpawnProjectile(Start, Dir));
         ProjectileClass = default.ProjectileClass;
         if (P != None)
         {
-            HxNet_FlakChunkDummy(P).WeaponInfo = WeaponInfo;
+            HxNet_FlakChunkPredicted(P).WeaponInfo = WeaponInfo;
             P.Bounces = RandomizeBounces(WeaponInfo.Generator);
         }
         return WeaponInfo.TrackProjectile(P, Index);

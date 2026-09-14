@@ -20,11 +20,11 @@ simulated function PostNetBeginPlay()
     Super.PostNetBeginPlay();
     if (Level.NetMode == NM_Client && Client != None && Client.WantsPingCompensation())
     {
-        SearchDummyProjectile();
+        SearchPredictedProjectile();
     }
 }
 
-simulated function SearchDummyProjectile()
+simulated function SearchPredictedProjectile()
 {
     local HxNTWeaponInfo WeaponInfo;
     local BioGlob Glob;
@@ -33,29 +33,29 @@ simulated function SearchDummyProjectile()
     Glob = BioGlob(WeaponInfo.MatchProjectile(Location));
     if (Glob != None)
     {
-        InterpolateDummy(Glob);
+        InterpolatePredicted(Glob);
         Glob.Destroy();
     }
 }
 
 // TODO: is there a way to interpolate flying globs without risking to bury them inside walls?
-simulated function InterpolateDummy(BioGlob Dummy)
+simulated function InterpolatePredicted(BioGlob Predicted)
 {
     local name Animation;
     local float Frame;
     local float Rate;
 
-    if (Dummy != None && Dummy.IsInState('OnGround') && IsInState('OnGround'))
+    if (Predicted != None && Predicted.IsInState('OnGround') && IsInState('OnGround'))
     {
-        if (Dummy.IsAnimating())
+        if (Predicted.IsAnimating())
         {
-            Dummy.GetAnimParams(0, Animation, Frame, Rate);
+            Predicted.GetAnimParams(0, Animation, Frame, Rate);
             PlayAnim(Animation, Rate);
             SetAnimFrame(Frame);
         }
         bInterpolate = true;
-        InterpolationOffset = Location - Dummy.Location;
-        DoSetLocation(Dummy.Location);
+        InterpolationOffset = Location - Predicted.Location;
+        DoSetLocation(Predicted.Location);
     }
 }
 

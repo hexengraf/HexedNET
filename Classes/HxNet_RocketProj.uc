@@ -23,7 +23,7 @@ simulated function PostNetBeginPlay()
     Super(Projectile).PostNetBeginPlay();
     if (Level.NetMode == NM_Client && Client != None && Client.WantsPingCompensation())
     {
-        SearchDummyProjectile();
+        SearchPredictedProjectile();
     }
     if (FlockIndex != 0)
     {
@@ -54,29 +54,29 @@ simulated function PostNetBeginPlay()
     }
 }
 
-simulated function SearchDummyProjectile()
+simulated function SearchPredictedProjectile()
 {
     local HxNTWeaponInfo WeaponInfo;
     local RocketProj Rocket;
 
     WeaponInfo = Client.GetWeaponInfo(class'RocketLauncher');
     Rocket = RocketProj(WeaponInfo.MatchProjectileFull(
-        Location, class'HxNet_RocketProjDummy', Index));
+        Location, class'HxNet_RocketProjPredicted', Index));
     if (Rocket != None)
     {
-        InterpolateDummy(Rocket);
+        InterpolatePredicted(Rocket);
         Rocket.Destroy();
     }
 }
 
-simulated function InterpolateDummy(RocketProj Dummy)
+simulated function InterpolatePredicted(RocketProj Predicted)
 {
-    if (Dummy != None)
+    if (Predicted != None)
     {
-        ApplyDummyEffects(Self, Dummy);
+        ApplyPredictedEffects(Self, Predicted);
         bInterpolate = true;
-        InterpolationOffset = Location - Dummy.Location;
-        DoSetLocation(Dummy.Location);
+        InterpolationOffset = Location - Predicted.Location;
+        DoSetLocation(Predicted.Location);
     }
 }
 
@@ -127,27 +127,27 @@ simulated function DoSetLocation(Vector NewLocation)
     SetLocation(NewLocation);
 }
 
-static function ApplyDummyEffects(RocketProj P, RocketProj Dummy)
+static function ApplyPredictedEffects(RocketProj P, RocketProj Predicted)
 {
     if (P.SmokeTrail != None)
     {
         P.SmokeTrail.mRegen = false;
     }
-    if (Dummy.SmokeTrail != None)
+    if (Predicted.SmokeTrail != None)
     {
-        P.SmokeTrail = Dummy.SmokeTrail;
+        P.SmokeTrail = Predicted.SmokeTrail;
         P.SmokeTrail.SetOwner(P);
-        Dummy.SmokeTrail = None;
+        Predicted.SmokeTrail = None;
     }
     if (P.Corona != None)
     {
         P.Corona.Destroy();
     }
-    if (Dummy.Corona != None)
+    if (Predicted.Corona != None)
     {
-        P.Corona = Dummy.Corona;
+        P.Corona = Predicted.Corona;
         P.Corona.SetOwner(P);
-        Dummy.Corona = None;
+        Predicted.Corona = None;
     }
 }
 

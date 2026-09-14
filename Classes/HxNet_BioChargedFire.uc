@@ -17,12 +17,12 @@ function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
 
     if (Level.NetMode == NM_Client)
     {
-        ProjectileClass = class'HxNet_BioGlobDummy';
+        ProjectileClass = class'HxNet_BioGlobPredicted';
         P = SpawnProjectile(Start, Dir);
         ProjectileClass = default.ProjectileClass;
         if (P != None)
         {
-            HxNet_BioGlobDummy(P).WeaponInfo = WeaponInfo;
+            HxNet_BioGlobPredicted(P).WeaponInfo = WeaponInfo;
         }
         return WeaponInfo.TrackProjectile(P, Index);
     }

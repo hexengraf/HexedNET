@@ -1,4 +1,4 @@
-class HxNet_RocketProjDummy extends RocketProj;
+class HxNet_RocketProjPredicted extends RocketProj;
 
 var HxNTWeaponInfo WeaponInfo;
 var bool bRemoved;

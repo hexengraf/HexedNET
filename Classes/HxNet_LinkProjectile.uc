@@ -20,11 +20,11 @@ simulated function PostNetBeginPlay()
     Super.PostNetBeginPlay();
     if (Level.NetMode == NM_Client && Client != None && Client.WantsPingCompensation())
     {
-        SearchDummyProjectile();
+        SearchPredictedProjectile();
     }
 }
 
-simulated function SearchDummyProjectile()
+simulated function SearchPredictedProjectile()
 {
     local HxNTWeaponInfo WeaponInfo;
     local LinkProjectile Proj;
@@ -33,28 +33,28 @@ simulated function SearchDummyProjectile()
     Proj = LinkProjectile(WeaponInfo.MatchProjectile(Location));
     if (Proj != None)
     {
-        InterpolateDummy(Proj);
+        InterpolatePredicted(Proj);
         Proj.Destroy();
     }
 }
 
-simulated function InterpolateDummy(LinkProjectile Dummy)
+simulated function InterpolatePredicted(LinkProjectile Predicted)
 {
-    if (Dummy != None)
+    if (Predicted != None)
     {
         if (Trail != None)
         {
             Trail.Destroy();
         }
-        if (Dummy.Trail != None)
+        if (Predicted.Trail != None)
         {
-            Trail = Dummy.Trail;
+            Trail = Predicted.Trail;
             Trail.SetOwner(Self);
-            Dummy.Trail = None;
+            Predicted.Trail = None;
         }
         bInterpolate = true;
-        InterpolationOffset = Location - Dummy.Location;
-        DoSetLocation(Dummy.Location);
+        InterpolationOffset = Location - Predicted.Location;
+        DoSetLocation(Predicted.Location);
     }
 }
 

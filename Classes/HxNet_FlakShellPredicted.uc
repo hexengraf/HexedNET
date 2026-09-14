@@ -1,4 +1,4 @@
-class HxNet_ShockProjectileDummy extends ShockProjectile;
+class HxNet_FlakShellPredicted extends FlakShell;
 
 var HxNTWeaponInfo WeaponInfo;
 var bool bRemoved;
@@ -12,7 +12,12 @@ simulated event Destroyed()
     Super.Destroyed();
 }
 
+simulated function Explode(Vector HitLocation, Vector HitNormal)
+{
+    Destroy();
+}
+
 defaultproperties
 {
-    bCollideActors=false
+    bNetTemporary=false
 }

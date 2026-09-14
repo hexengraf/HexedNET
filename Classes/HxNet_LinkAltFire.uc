@@ -18,12 +18,12 @@ function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
 
     if (Level.NetMode == NM_Client)
     {
-        ProjectileClass = class'HxNet_LinkProjectileDummy';
+        ProjectileClass = class'HxNet_LinkProjectilePredicted';
         P = SpawnProjectile(Start, Dir);
         ProjectileClass = default.ProjectileClass;
         if (P != None)
         {
-            HxNet_LinkProjectileDummy(P).WeaponInfo = WeaponInfo;
+            HxNet_LinkProjectilePredicted(P).WeaponInfo = WeaponInfo;
         }
         return WeaponInfo.TrackProjectile(P, Index);
     }

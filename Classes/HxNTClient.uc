@@ -241,7 +241,7 @@ simulated function bool WantsPingCompensation()
     return bPingCompensation && AveragePing > 0;
 }
 
-simulated function bool ShouldSpawnDummyProjectile()
+simulated function bool ShouldSpawnPredictedProjectile()
 {
     return AveragePing > (AverageDeltaTime * 1.5);
 }

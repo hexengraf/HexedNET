@@ -1,4 +1,4 @@
-class HxNet_BioGlobDummy extends BioGlob;
+class HxNet_ShockProjectilePredicted extends ShockProjectile;
 
 var HxNTWeaponInfo WeaponInfo;
 var bool bRemoved;
@@ -12,16 +12,7 @@ simulated event Destroyed()
     Super.Destroyed();
 }
 
-function BlowUp(Vector HitLocation)
-{
-    Destroy();
-}
-
-singular function SplashGlobs(int NumGloblings)
-{
-}
-
 defaultproperties
 {
-    bNetTemporary=false
+    bCollideActors=false
 }

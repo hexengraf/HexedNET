@@ -21,11 +21,11 @@ simulated function PostNetBeginPlay()
     Super.PostNetBeginPlay();
     if (Level.NetMode == NM_Client && Client != None && Client.WantsPingCompensation())
     {
-        SearchDummyProjectile();
+        SearchPredictedProjectile();
     }
 }
 
-simulated function SearchDummyProjectile()
+simulated function SearchPredictedProjectile()
 {
     local HxNTWeaponInfo WeaponInfo;
     local ShockProjectile Core;
@@ -34,28 +34,28 @@ simulated function SearchDummyProjectile()
     Core = ShockProjectile(WeaponInfo.MatchProjectile(Location));
     if (Core != None)
     {
-        InterpolateDummy(Core);
+        InterpolatePredicted(Core);
         Core.Destroy();
     }
 }
 
-simulated function InterpolateDummy(ShockProjectile Dummy)
+simulated function InterpolatePredicted(ShockProjectile Predicted)
 {
-    if (Dummy != None)
+    if (Predicted != None)
     {
-        if (Dummy.ShockBallEffect != None)
+        if (Predicted.ShockBallEffect != None)
         {
             ShockBallEffect.Destroy();
-            ShockBallEffect = Dummy.ShockBallEffect;
+            ShockBallEffect = Predicted.ShockBallEffect;
             ShockBallEffect.SetBase(None);
             ShockBallEffect.SetOwner(Self);
             ShockBallEffect.SetLocation(Location);
             ShockBallEffect.SetBase(Self);
-            Dummy.ShockBallEffect = None;
+            Predicted.ShockBallEffect = None;
         }
         bInterpolate = true;
-        InterpolationOffset = Location - Dummy.Location;
-        DoSetLocation(Dummy.Location);
+        InterpolationOffset = Location - Predicted.Location;
+        DoSetLocation(Predicted.Location);
     }
 }
 

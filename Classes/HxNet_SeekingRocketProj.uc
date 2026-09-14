@@ -23,7 +23,7 @@ simulated function PostNetBeginPlay()
     Super(Projectile).PostNetBeginPlay();
     if (Level.NetMode == NM_Client && Client != None && Client.WantsPingCompensation())
     {
-        SearchDummyProjectile();
+        SearchPredictedProjectile();
     }
     if (FlockIndex != 0 && Flock[1] == None)
     {
@@ -51,29 +51,29 @@ simulated function PostNetBeginPlay()
     SetTimer(0.1, true);
 }
 
-simulated function SearchDummyProjectile()
+simulated function SearchPredictedProjectile()
 {
     local HxNTWeaponInfo WeaponInfo;
     local RocketProj Rocket;
 
     WeaponInfo = Client.GetWeaponInfo(class'RocketLauncher');
     Rocket = RocketProj(WeaponInfo.MatchProjectileFull(
-        Location, class'HxNet_SeekingRocketProjDummy', Index));
+        Location, class'HxNet_SeekingRocketProjPredicted', Index));
     if (Rocket != None)
     {
-        InterpolateDummy(Rocket);
+        InterpolatePredicted(Rocket);
         Rocket.Destroy();
     }
 }
 
-simulated function InterpolateDummy(RocketProj Dummy)
+simulated function InterpolatePredicted(RocketProj Predicted)
 {
-    if (Dummy != None)
+    if (Predicted != None)
     {
-        class'HxNet_RocketProj'.static.ApplyDummyEffects(Self, Dummy);
+        class'HxNet_RocketProj'.static.ApplyPredictedEffects(Self, Predicted);
         bInterpolate = true;
-        InterpolationOffset = Location - Dummy.Location;
-        DoSetLocation(Dummy.Location);
+        InterpolationOffset = Location - Predicted.Location;
+        DoSetLocation(Predicted.Location);
     }
 }
 

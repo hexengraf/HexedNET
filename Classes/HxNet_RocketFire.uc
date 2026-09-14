@@ -18,14 +18,14 @@ function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
     if (Level.NetMode == NM_Client)
     {
         P = SpawnIndexedProjectile(
-            Start, Dir, class'HxNet_RocketProjDummy', class'HxNet_SeekingRocketProjDummy');
-        if (HxNet_RocketProjDummy(P) != None)
+            Start, Dir, class'HxNet_RocketProjPredicted', class'HxNet_SeekingRocketProjPredicted');
+        if (HxNet_RocketProjPredicted(P) != None)
         {
-            HxNet_RocketProjDummy(P).WeaponInfo = WeaponInfo;
+            HxNet_RocketProjPredicted(P).WeaponInfo = WeaponInfo;
         }
-        else if (HxNet_SeekingRocketProjDummy(P) != None)
+        else if (HxNet_SeekingRocketProjPredicted(P) != None)
         {
-            HxNet_SeekingRocketProjDummy(P).WeaponInfo = WeaponInfo;
+            HxNet_SeekingRocketProjPredicted(P).WeaponInfo = WeaponInfo;
         }
         return WeaponInfo.TrackProjectile(P, Index);
     }

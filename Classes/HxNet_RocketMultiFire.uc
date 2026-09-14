@@ -38,8 +38,8 @@ function DoFireEffect()
     }
     else
     {
-        RocketClass = class'HxNet_RocketProjDummy';
-        SeekingRocketClass = class'HxNet_SeekingRocketProjDummy';
+        RocketClass = class'HxNet_RocketProjPredicted';
+        SeekingRocketClass = class'HxNet_SeekingRocketProjPredicted';
     }
     Instigator.MakeNoise(1.0);
     GetProjectileStartAndDirection(Start, Aim, X, Y, Z);
@@ -84,13 +84,13 @@ function DoFireEffect()
     {
         for (p = 0; p < SpawnCount; ++p)
         {
-            if (HxNet_RocketProjDummy(FiredRockets[p]) != None)
+            if (HxNet_RocketProjPredicted(FiredRockets[p]) != None)
             {
-                HxNet_RocketProjDummy(FiredRockets[p]).WeaponInfo = WeaponInfo;
+                HxNet_RocketProjPredicted(FiredRockets[p]).WeaponInfo = WeaponInfo;
             }
-            else if (HxNet_SeekingRocketProjDummy(FiredRockets[p]) != None)
+            else if (HxNet_SeekingRocketProjPredicted(FiredRockets[p]) != None)
             {
-                HxNet_SeekingRocketProjDummy(FiredRockets[p]).WeaponInfo = WeaponInfo;
+                HxNet_SeekingRocketProjPredicted(FiredRockets[p]).WeaponInfo = WeaponInfo;
             }
             WeaponInfo.TrackProjectile(FiredRockets[p], p);
         }
@@ -123,14 +123,14 @@ function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
     if (Level.NetMode == NM_Client)
     {
         P = SpawnIndexedProjectile(
-            Start, Dir, class'HxNet_RocketProjDummy', class'HxNet_SeekingRocketProjDummy');
-        if (HxNet_RocketProjDummy(P) != None)
+            Start, Dir, class'HxNet_RocketProjPredicted', class'HxNet_SeekingRocketProjPredicted');
+        if (HxNet_RocketProjPredicted(P) != None)
         {
-            HxNet_RocketProjDummy(P).WeaponInfo = WeaponInfo;
+            HxNet_RocketProjPredicted(P).WeaponInfo = WeaponInfo;
         }
-        else if (HxNet_SeekingRocketProjDummy(P) != None)
+        else if (HxNet_SeekingRocketProjPredicted(P) != None)
         {
-            HxNet_SeekingRocketProjDummy(P).WeaponInfo = WeaponInfo;
+            HxNet_SeekingRocketProjPredicted(P).WeaponInfo = WeaponInfo;
         }
         return WeaponInfo.TrackProjectile(P, Index);
     }

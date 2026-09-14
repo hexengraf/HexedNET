@@ -1,4 +1,4 @@
-class HxNet_FlakChunkDummy extends FlakChunk;
+class HxNet_FlakChunkPredicted extends FlakChunk;
 
 var HxNTWeaponInfo WeaponInfo;
 var bool bRemoved;

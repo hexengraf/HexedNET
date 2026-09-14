@@ -1,4 +1,4 @@
-class HxNet_LinkProjectileDummy extends LinkProjectile;
+class HxNet_BioGlobPredicted extends BioGlob;
 
 var HxNTWeaponInfo WeaponInfo;
 var bool bRemoved;
@@ -10,6 +10,15 @@ simulated event Destroyed()
         WeaponInfo.RemoveProjectile(Self);
     }
     Super.Destroyed();
+}
+
+function BlowUp(Vector HitLocation)
+{
+    Destroy();
+}
+
+singular function SplashGlobs(int NumGloblings)
+{
 }
 
 defaultproperties
