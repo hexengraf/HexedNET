@@ -1,6 +1,13 @@
 class MutHexedNET extends HxMutator
     config(HexedMutators);
 
+struct HxNTClassOverride
+{
+    var class<Weapon> TargetClass;
+    var class<Weapon> BASClass;
+    var array<class<WeaponFire> > FireModeClass;
+};
+
 const MIN_TIMESTEP = 0.0165;
 const WARMUP_COUNT = 10;
 const AVG_DELTA_RATIO = 0.3;
@@ -11,10 +18,7 @@ var config int ProjectileCompensationLimit;
 var config bool bRubberbandingFix;
 var config bool bLinkMeshes;
 
-var const private class<Weapon> WeaponClasses[12];
-var const private class<Weapon> NewNetWeaponClasses[12];
-var const private class<WeaponFire> WeaponFireClasses[2];
-var const private class<WeaponFire> NewNetWeaponFireClasses[2];
+var const private array<HxNTClassOverride> ClassOverrides;
 var private PawnCollisionCopy PCC;
 var private array<HxNTProjectileTracker> ProjectileTrackers;
 var private float AverageDeltaTime;
@@ -26,7 +30,7 @@ event PostBeginPlay()
     Super.PostBeginPlay();
     if (!bDeleteMe && !bPendingDelete)
     {
-        ApplyNewNetWeaponsOnMutators();
+        ApplyClassOverridesToMutators();
         if (bRubberbandingFix)
         {
             Level.Game.PlayerControllerClassName = string(class'HxNTPlayer');
@@ -54,48 +58,12 @@ function bool MutatorIsAllowed()
     return Super.MutatorIsAllowed() && Level.NetMode != NM_Standalone;
 }
 
-function ApplyNewNetWeaponsOnMutators()
-{
-    local Mutator M;
-
-    for (M = Level.Game.BaseMutator; M != None; M = M.NextMutator)
-    {
-        if (M.DefaultWeaponName != "")
-        {
-            ApplyNewNetWeapons(M);
-        }
-    }
-}
-
-function ApplyNewNetWeapons(Mutator M)
-{
-    local int i;
-
-    for (i = 0; i < ArrayCount(WeaponClasses); ++i)
-    {
-        if (M.DefaultWeaponName ~= string(WeaponClasses[i]))
-        {
-            M.DefaultWeaponName = string(NewNetWeaponClasses[i]);
-            if (M.DefaultWeapon != None)
-            {
-                M.DefaultWeapon = class<Weapon>(
-                    DynamicLoadObject(M.DefaultWeaponName, class'Class'));
-            }
-            if (MutInstaGib(M) != None)
-            {
-                MutInstaGib(M).WeaponName = NewNetWeaponClasses[i].Name;
-                MutInstaGib(M).WeaponString = M.DefaultWeaponName;
-            }
-        }
-    }
-}
-
 function AddMutator(Mutator M)
 {
     Super.AddMutator(M);
     if (M.DefaultWeaponName != "")
     {
-        ApplyNewNetWeapons(M);
+        ApplyClassOverridesToMutator(M);
     }
 }
 
@@ -133,73 +101,27 @@ function DriverLeftVehicle(Vehicle V, Pawn P)
     Super.DriverLeftVehicle(V, P);
 }
 
-function ListPawns()
-{
-    local PawnCollisionCopy PCC2;
-
-    for (PCC2 = PCC; PCC2 != None; PCC2 = PCC2.Next)
-    {
-       PCC2.Identify();
-    }
-}
-
 function bool CheckReplacement(Actor Other, out byte bSuperRelevant)
 {
-    local WeaponLocker L;
-    local int i;
-    local int j;
-
     if (xPawn(Other) != None)
     {
         SpawnPawnTracker(xPawn(Other));
     }
-    if (Weapon(Other) != None)
+    else if (Weapon(Other) != None)
     {
-        for (i = 0; i < ArrayCount(Weapon(Other).FireModeClass); ++i)
-        {
-            for (j = 0; j < ArrayCount(WeaponFireClasses); ++j)
-            {
-                if (Weapon(Other).FireModeClass[i] == WeaponFireClasses[j])
-                {
-                    Weapon(Other).FireModeClass[i] = NewNetWeaponFireClasses[j];
-                    break;
-                }
-            }
-        }
+        ApplyClassOverridesToWeapon(Weapon(Other));
     }
     else if (xWeaponBase(Other) != None)
     {
-        for (i = 0; i < ArrayCount(WeaponClasses); ++i)
-        {
-            if (xWeaponBase(Other).WeaponType == WeaponClasses[i])
-            {
-                xWeaponBase(Other).WeaponType = NewNetWeaponClasses[i];
-            }
-        }
+        ApplyClassOverridesToWeaponBase(xWeaponBase(Other));
     }
     else if (WeaponPickup(Other) != None)
     {
-        for (i = 0; i < ArrayCount(WeaponClasses); ++i)
-        {
-            if (WeaponPickup(Other).InventoryType == WeaponClasses[i])
-            {
-                WeaponPickup(Other).InventoryType = NewNetWeaponClasses[i];
-            }
-        }
+        ApplyClassOverridesToWeaponPickup(WeaponPickup(Other));
     }
     else if (WeaponLocker(Other) != None)
     {
-        L = WeaponLocker(Other);
-        for (i = 0; i < ArrayCount(WeaponClasses); ++i)
-        {
-            for (j = 0; j < L.Weapons.Length; ++j)
-            {
-                if (L.Weapons[j].WeaponClass == WeaponClasses[i])
-                {
-                    L.Weapons[j].WeaponClass = NewNetWeaponClasses[i];
-                }
-            }
-        }
+        ApplyClassOverridesToWeaponLocker(WeaponLocker(Other));
     }
     return Super.CheckReplacement(Other, bSuperRelevant);
 }
@@ -209,11 +131,15 @@ function string GetInventoryClassOverride(string InventoryClassName)
     local int i;
 
     InventoryClassName = Super.GetInventoryClassOverride(InventoryClassName);
-    for (i = 0; i < ArrayCount(WeaponClasses); ++i)
+    for (i = 0; i < ClassOverrides.Length; ++i)
     {
-        if (InventoryClassName ~= string(WeaponClasses[i]))
+        if (InventoryClassName ~= string(ClassOverrides[i].TargetClass))
         {
-            return string(NewNetWeaponClasses[i]);
+            if (ClassOverrides[i].BASClass != None)
+            {
+                return string(ClassOverrides[i].BASClass);
+            }
+            break;
         }
     }
     return InventoryClassName;
@@ -571,6 +497,122 @@ function ForwardBouncingProjectile(Weapon W, Projectile P, float DeltaTime)
     }
 }
 
+function ApplyClassOverridesToMutators()
+{
+    local Mutator M;
+
+    for (M = Level.Game.BaseMutator; M != None; M = M.NextMutator)
+    {
+        if (M.DefaultWeaponName != "")
+        {
+            ApplyClassOverridesToMutator(M);
+        }
+    }
+}
+
+function ApplyClassOverridesToMutator(Mutator M)
+{
+    local int i;
+
+    for (i = 0; i < ClassOverrides.Length; ++i)
+    {
+        if (M.DefaultWeaponName ~= string(ClassOverrides[i].TargetClass))
+        {
+            if (ClassOverrides[i].BASClass != None)
+            {
+                M.DefaultWeaponName = string(ClassOverrides[i].BASClass);
+                if (M.DefaultWeapon != None)
+                {
+                    M.DefaultWeapon = class<Weapon>(
+                        DynamicLoadObject(M.DefaultWeaponName, class'Class'));
+                }
+                if (MutInstaGib(M) != None)
+                {
+                    MutInstaGib(M).WeaponName = ClassOverrides[i].BASClass.Name;
+                    MutInstaGib(M).WeaponString = M.DefaultWeaponName;
+                }
+            }
+            break;
+        }
+    }
+}
+
+function ApplyClassOverridesToWeapon(Weapon W)
+{
+    local int i;
+    local int j;
+
+    for (i = 0; i < ClassOverrides.Length; ++i)
+    {
+        if (W.Class == ClassOverrides[i].TargetClass)
+        {
+            for (j = 0; j < ClassOverrides[i].FireModeClass.Length; ++j)
+            {
+                if (ClassOverrides[i].FireModeClass[j] != None)
+                {
+                    W.FireModeClass[j] = ClassOverrides[i].FireModeClass[j];
+                }
+            }
+            break;
+        }
+    }
+}
+
+function ApplyClassOverridesToWeaponBase(xWeaponBase B)
+{
+    local int i;
+
+    for (i = 0; i < ClassOverrides.Length; ++i)
+    {
+        if (B.WeaponType == ClassOverrides[i].TargetClass)
+        {
+            if (ClassOverrides[i].BASClass != None)
+            {
+                B.WeaponType = ClassOverrides[i].BASClass;
+            }
+            break;
+        }
+    }
+}
+
+function ApplyClassOverridesToWeaponPickup(WeaponPickup P)
+{
+    local int i;
+
+    for (i = 0; i < ClassOverrides.Length; ++i)
+    {
+        if (P.InventoryType == ClassOverrides[i].TargetClass)
+        {
+            if (ClassOverrides[i].BASClass != None)
+            {
+                P.InventoryType = ClassOverrides[i].BASClass;
+            }
+            break;
+        }
+    }
+}
+
+function ApplyClassOverridesToWeaponLocker(WeaponLocker L)
+{
+    local int i;
+    local int j;
+
+    for (i = 0; i < L.Weapons.Length; ++i)
+    {
+        for (j = 0; j < ClassOverrides.Length; ++j)
+        {
+            if (L.Weapons[i].WeaponClass == ClassOverrides[j].TargetClass)
+            {
+                if (ClassOverrides[j].BASClass != None)
+                {
+                    L.Weapons[i].WeaponClass = ClassOverrides[j].BASClass;
+                }
+                break;
+            }
+        }
+    }
+}
+
 final function float NormalizePing(float Ping)
 {
     return FClamp(Ping, 0.0, GetCompensationLimit());
@@ -679,7 +721,6 @@ static final function Vector GetClearance(Vector HitNormal,
     return Direction * (Clearance / Ratio);
 }
 
-
 defaultproperties
 {
     FriendlyName="HexedNET %TAG%"
@@ -692,45 +733,26 @@ defaultproperties
     Properties(3)=(Name="bRubberbandingFix",Type=HX_PROPERTY_Bool)
     Properties(4)=(Name="bLinkMeshes",Type=HX_PROPERTY_Bool)
     DisplayInfo(0)=(Caption="Maximum Ping Frequency",Hint="Maximum frequency to send pings (pings/second).",bMPOnly=true,bAdvanced=true)
-    DisplayInfo(1)=(Caption="Ping Compensation Limit",Hint="Global ping compensation limit (in milliseconds) applied to all weapon types.",Step="10",bMPOnly=true,bAdvanced=true)
+    DisplayInfo(1)=(Caption="Ping Compensation Limit",Hint="Global ping compensation limit (in milliseconds) applied to all weapons.",Step="10",bMPOnly=true,bAdvanced=true)
     DisplayInfo(2)=(Caption="Projectile Compensation Limit",Hint="Ping compensation limit (in milliseconds) applied to projectiles.",Step="10",bMPOnly=true,bAdvanced=true)
     DisplayInfo(3)=(Caption="Backport Rubberbanding Fix",Hint="Backport OldUnreal's rubberbanding fix. Applied on restart/map change.",bMPOnly=true,bAdvanced=true)
     DisplayInfo(4)=(Caption="Link Meshes",Hint="Link meshes for collision detection. Disable this if experiencing crashes.",bMPOnly=true,bAdvanced=true)
-
-    // configs
+    ClassOverrides(0)=(TargetClass=class'AssaultRifle',BASClass=class'HxNet_AssaultRifle',FireModeClass=(class'HxNet_AssaultFire',class'HxNet_AssaultGrenade'))
+    ClassOverrides(1)=(TargetClass=class'BioRifle',BASClass=class'HxNet_BioRifle',FireModeClass=(class'HxNet_BioFire',class'HxNet_BioChargedFire'))
+    ClassOverrides(2)=(TargetClass=class'ShockRifle',BASClass=class'HxNet_ShockRifle',FireModeClass=(class'HxNet_ShockBeamFire',class'HxNet_ShockProjFire'))
+    ClassOverrides(3)=(TargetClass=class'LinkGun',BASClass=class'HxNet_LinkGun',FireModeClass=(class'HxNet_LinkAltFire',class'HxNet_LinkFire'))
+    ClassOverrides(4)=(TargetClass=class'MiniGun',FireModeClass=(class'HxNet_MiniGunFire',class'HxNet_MiniGunAltFire'))
+    ClassOverrides(5)=(TargetClass=class'FlakCannon',BASClass=class'HxNet_FlakCannon',FireModeClass=(class'HxNet_FlakFire',class'HxNet_FlakAltFire'))
+    ClassOverrides(6)=(TargetClass=class'RocketLauncher',BASClass=class'HxNet_RocketLauncher',FireModeClass=(class'HxNet_RocketFire',class'HxNet_RocketMultiFire'))
+    ClassOverrides(7)=(TargetClass=class'SniperRifle',BASClass=class'HxNet_SniperRifle',FireModeClass=(class'HxNet_SniperFire'))
+    ClassOverrides(8)=(TargetClass=class'ClassicSniperRifle',BASClass=class'HxNet_ClassicSniperRifle',FireModeClass=(class'HxNet_ClassicSniperFire'))
+    ClassOverrides(9)=(TargetClass=class'SuperShockRifle',BASClass=class'HxNet_SuperShockRifle',FireModeClass=(class'HxNet_SuperShockBeamFire',class'HxNet_SuperShockBeamFire'))
+    ClassOverrides(10)=(TargetClass=class'ZoomSuperShockRifle',BASClass=class'HxNet_ZoomSuperShockRifle',FireModeClass=(class'HxNet_ZoomSuperShockBeamFire'))
+    ClassOverrides(11)=(TargetClass=class'HxSuperShockRifle',BASClass=class'HxNet_HxSuperShockRifle',FireModeClass=(class'HxNet_SuperShockBeamFire',class'HxNet_SuperShockBeamFire'))
+    ClassOverrides(12)=(TargetClass=class'HxZoomSuperShockRifle',BASClass=class'HxNet_HxZoomSuperShockRifle',FireModeClass=(class'HxNet_ZoomSuperShockBeamFire'))
     MaxPingFrequency=10.0
-    PingCompensationLimit=350
-    ProjectileCompensationLimit=75
+    PingCompensationLimit=330
+    ProjectileCompensationLimit=132
     bRubberbandingFix=false
     bLinkMeshes=true
-    //original weapons
-    WeaponClasses(0)=class'AssaultRifle'
-    WeaponClasses(1)=class'BioRifle'
-    WeaponClasses(2)=class'ShockRifle'
-    WeaponClasses(3)=class'LinkGun'
-    WeaponClasses(4)=class'FlakCannon'
-    WeaponClasses(5)=class'RocketLauncher'
-    WeaponClasses(6)=class'SniperRifle'
-    WeaponClasses(7)=class'ClassicSniperRifle'
-    WeaponClasses(8)=class'SuperShockRifle'
-    WeaponClasses(9)=class'ZoomSuperShockRifle'
-    WeaponClasses(10)=class'HxSuperShockRifle'
-    WeaponClasses(11)=class'HxZoomSuperShockRifle'
-    // replaced NewNet classes
-    NewNetWeaponClasses(0)=class'HxNet_AssaultRifle'
-    NewNetWeaponClasses(1)=class'HxNet_BioRifle'
-    NewNetWeaponClasses(2)=class'HxNet_ShockRifle'
-    NewNetWeaponClasses(3)=class'HxNet_LinkGun'
-    NewNetWeaponClasses(4)=class'HxNet_FlakCannon'
-    NewNetWeaponClasses(5)=class'HxNet_RocketLauncher'
-    NewNetWeaponClasses(6)=class'HxNet_SniperRifle'
-    NewNetWeaponClasses(7)=class'HxNet_ClassicSniperRifle'
-    NewNetWeaponClasses(8)=class'HxNet_SuperShockRifle'
-    NewNetWeaponClasses(9)=class'HxNet_ZoomSuperShockRifle'
-    NewNetWeaponClasses(10)=class'HxNet_HxSuperShockRifle'
-    NewNetWeaponClasses(11)=class'HxNet_HxZoomSuperShockRifle'
-    WeaponFireClasses(0)=class'MiniGunFire'
-    WeaponFireClasses(1)=class'MiniGunAltFire'
-    NewNetWeaponFireClasses(0)=class'HxNet_MiniGunFire'
-    NewNetWeaponFireClasses(1)=class'HxNet_MiniGunAltFire'
 }

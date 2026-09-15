@@ -91,5 +91,5 @@ simulated function bool WantsStartFireBAS(int Mode)
 
 defaultproperties
 {
-    FireModeClass(0) = class'HxNet_SniperFire'
+    FireModeClass(0)=class'HxNet_SniperFire'
 }
