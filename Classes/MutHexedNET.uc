@@ -223,7 +223,6 @@ function Rewind(float DeltaTime)
 {
     local int i;
 
-    DeltaTime = FMin(DeltaTime, GetDeltaTimeLimit());
     if (PCC != None)
     {
         PCC.Rewind(DeltaTime);
@@ -572,9 +571,14 @@ function ForwardBouncingProjectile(Weapon W, Projectile P, float DeltaTime)
     }
 }
 
-final function float GetDeltaTimeLimit()
+final function float NormalizePing(float Ping)
 {
-    return PingCompensationLimit / 1000.0;
+    return FClamp(Ping, 0.0, GetCompensationLimit());
+}
+
+final function float GetCompensationLimit()
+{
+    return PingCompensationLimit / (Level.TimeDilation * 1000.0);
 }
 
 static final function bool IsPredicted(Actor A)

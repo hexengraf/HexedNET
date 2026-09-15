@@ -23,7 +23,6 @@ var Pawn CopiedPawn;
 
 var private MutHexedNET HexedNET;
 var private array<PawnHistoryElement> Snapshots;
-var private float MaxDeltaTime;
 var private float DefaultCollisionRadius;
 var private float DefaultCollisionHeight;
 var private float CrouchRadius;
@@ -34,7 +33,6 @@ function PostBeginPlay()
 {
     Super.PostBeginPlay();
     HexedNET = MutHexedNET(Owner);
-    MaxDeltaTime = HexedNET.GetDeltaTimeLimit();
 }
 
 // Set up the collision properties of our copy
@@ -260,7 +258,7 @@ function Tick(float DeltaTime)
 
     if (CopiedPawn != None)
     {
-        OldestTimestamp = Level.TimeSeconds - MaxDeltaTime;
+        OldestTimestamp = Level.TimeSeconds - HexedNET.GetCompensationLimit();
         while (Snapshots.Length > 0 && Snapshots[0].Timestamp < OldestTimestamp)
         {
             Snapshots.Remove(0, 1);
@@ -354,5 +352,4 @@ defaultproperties
     bHidden=true
     bOnlyDirtyReplication=true
     bSkipActorPropertyReplication=true
-    MaxDeltaTime=0.35
 }

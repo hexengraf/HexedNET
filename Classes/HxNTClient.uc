@@ -117,7 +117,7 @@ function ServerPing(float Timestamp, float ClientAverageDeltaTime)
 {
     local float NewPing;
 
-    NewPing = Level.TimeSeconds - Timestamp;
+    NewPing = MutHexedNET(MutatorOwner).NormalizePing(Level.TimeSeconds - Timestamp);
     if (PingCount < WARMUP_COUNT)
     {
         PingCount++;
@@ -142,7 +142,7 @@ function SetServerProperty(int Index, string Value)
 
 simulated function SetProjectileCompensationLimit(coerce float Value)
 {
-    ProjectileCompensationLimit = Value / 1000;
+    ProjectileCompensationLimit = Value / (Level.TimeDilation * 1000.0);
 }
 
 function ServerSetPingCompensation(bool bEnable, int Seed)
@@ -238,7 +238,7 @@ simulated function float GetProjectileDelay()
 
 simulated function bool WantsPingCompensation()
 {
-    return bPingCompensation && AveragePing > 0;
+    return bPingCompensation && AveragePing > AverageDeltaTime;
 }
 
 simulated function bool ShouldSpawnPredictedProjectile()
