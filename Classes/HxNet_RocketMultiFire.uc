@@ -102,10 +102,12 @@ function DoFireEffect()
             if (HxNet_RocketProj(FiredRockets[p]) != None)
             {
                 HxNet_RocketProj(FiredRockets[p]).Client = Client;
+                HxNet_RocketProj(FiredRockets[p]).Index = p;
             }
             else if (HxNet_SeekingRocketProj(FiredRockets[p]) != None)
             {
                 HxNet_SeekingRocketProj(FiredRockets[p]).Client = Client;
+                HxNet_SeekingRocketProj(FiredRockets[p]).Index = p;
             }
         }
         HexedNET.ForwardLinearProjectiles(

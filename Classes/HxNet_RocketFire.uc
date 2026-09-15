@@ -68,7 +68,7 @@ function RocketProj SpawnIndexedProjectile(Vector Start,
     return P;
 }
 
-DefaultProperties
+defaultproperties
 {
     WeaponClass=class'RocketLauncher'
 }

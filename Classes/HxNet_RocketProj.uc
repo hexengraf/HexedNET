@@ -28,10 +28,7 @@ simulated function PostNetBeginPlay()
     if (FlockIndex != 0)
     {
         SetTimer(0.1, true);
-        if (Flock[1] == None)
-        {
-            PopulateFlock(Self);
-        }
+        PopulateFlock();
     }
     if (Level.NetMode != NM_DedicatedServer)
     {
@@ -127,6 +124,45 @@ simulated function DoSetLocation(Vector NewLocation)
     SetLocation(NewLocation);
 }
 
+simulated function PopulateFlock()
+{
+    local HxNet_RocketProj R;
+    local int i;
+
+    if (Flock[1] == None)
+    {
+        foreach DynamicActors(class'HxNet_RocketProj', R)
+        {
+            if (R != Self && R.FlockIndex == Self.FlockIndex)
+            {
+                SetDeterministicFlock(R);
+                R.SetDeterministicFlock(Self);
+                ++i;
+                if (i == 2)
+                {
+                    break;
+                }
+            }
+        }
+    }
+}
+
+simulated function SetDeterministicFlock(HxNet_RocketProj P)
+{
+    switch (Index)
+    {
+        case 0:
+            Flock[P.Index - 1] = P;
+            break;
+        case 1:
+            Flock[Max(0, P.Index - 1)] = P;
+            break;
+        case 2:
+            Flock[P.Index] = P;
+            break;
+    }
+}
+
 static function ApplyPredictedEffects(RocketProj P, RocketProj Predicted)
 {
     if (P.SmokeTrail != None)
@@ -148,33 +184,6 @@ static function ApplyPredictedEffects(RocketProj P, RocketProj Predicted)
         P.Corona = Predicted.Corona;
         P.Corona.SetOwner(P);
         Predicted.Corona = None;
-    }
-}
-
-static simulated function PopulateFlock(RocketProj P)
-{
-    local RocketProj R;
-    local int i;
-
-    foreach P.DynamicActors(class'RocketProj', R)
-    {
-        if (R.FlockIndex == P.FlockIndex && R.Class == P.Class)
-        {
-            P.Flock[i] = R;
-            if (R.Flock[0] == None)
-            {
-                R.Flock[0] = P;
-            }
-            else if (R.Flock[0] != P)
-            {
-                R.Flock[1] = P;
-            }
-            ++i;
-            if (i == 2)
-            {
-                break;
-            }
-        }
     }
 }
 

@@ -27,7 +27,7 @@ simulated function PostNetBeginPlay()
     }
     if (FlockIndex != 0 && Flock[1] == None)
     {
-        class'HxNet_RocketProj'.static.PopulateFlock(Self);
+        PopulateFlock();
     }
     if (Level.NetMode != NM_DedicatedServer)
     {
@@ -122,6 +122,42 @@ simulated function DoMove(Vector Offset)
 simulated function DoSetLocation(Vector NewLocation)
 {
     SetLocation(NewLocation);
+}
+
+simulated function PopulateFlock()
+{
+    local HxNet_SeekingRocketProj R;
+    local int i;
+
+    foreach DynamicActors(class'HxNet_SeekingRocketProj', R)
+    {
+        if (R != Self && R.FlockIndex == Self.FlockIndex)
+        {
+            SetDeterministicFlock(R);
+            R.SetDeterministicFlock(Self);
+            ++i;
+            if (i == 2)
+            {
+                break;
+            }
+        }
+    }
+}
+
+simulated function SetDeterministicFlock(HxNet_SeekingRocketProj P)
+{
+    switch (Index)
+    {
+        case 0:
+            Flock[P.Index - 1] = P;
+            break;
+        case 1:
+            Flock[Max(0, P.Index - 1)] = P;
+            break;
+        case 2:
+            Flock[P.Index] = P;
+            break;
+    }
 }
 
 defaultproperties
