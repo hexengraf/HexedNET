@@ -350,34 +350,38 @@ function ForwardLinearProjectile(Weapon W, Projectile P, float DeltaTime)
     local Vector HitLocation;
     local Vector HitNormal;
     local Actor Hit;
-    local float Counter;
+    local float RemainingTime;
     local float TimeStep;
+    local float Counter;
 
     DisableCollision(P);
     Extent = P.GetCollisionExtent();
-    while (DeltaTime > 0)
+    RemainingTime = DeltaTime;
+    while (RemainingTime > 0.0)
     {
-        TimeStep = FMin(ForwardTimestep, DeltaTime);
-        DeltaTime -= TimeStep;
+        TimeStep = FMin(ForwardTimestep, RemainingTime);
+        RemainingTime -= TimeStep;
         Counter += TimeStep;
         Start = P.Location;
         P.AutonomousPhysics(TimeStep);
-        Rewind(DeltaTime);
+        Rewind(RemainingTime);
         Hit = RewoundTrace(W, HitLocation, HitNormal, P.Location, Start, Extent);
         if (Hit != None)
         {
             P.SetLocation(HitLocation);
             break;
         }
-        if (P.TimerRate > 0 && Counter >= P.TimerRate)
+        if (ForwardProjectileTimer(P, TimeStep, Counter))
         {
-            P.Timer();
-            Counter = 0;
             Extent = P.GetCollisionExtent();
         }
     }
     UndoRewind();
-    RestoreCollision(P);
+    if (P != None && !P.bDeleteMe)
+    {
+        ForwardProjectileLifeSpan(P, DeltaTime, Counter);
+        RestoreCollision(P);
+    }
 }
 
 function ForwardLinearProjectiles(Weapon W, array<Projectile> Projectiles, float DeltaTime)
@@ -387,12 +391,14 @@ function ForwardLinearProjectiles(Weapon W, array<Projectile> Projectiles, float
     local Vector HitLocation;
     local Vector HitNormal;
     local Actor Hit;
-    local float Counter;
+    local float RemainingTime;
     local float TimeStep;
+    local array<float> Counters;
     local array<byte> Done;
     local int i;
 
     Done.Length = Projectiles.Length;
+    Counters.Length = Projectiles.Length;
     for (i = 0; i < Projectiles.Length; ++i)
     {
         if (Projectiles[i] != None)
@@ -400,11 +406,11 @@ function ForwardLinearProjectiles(Weapon W, array<Projectile> Projectiles, float
             DisableCollision(Projectiles[i]);
         }
     }
-    while (DeltaTime > 0)
+    RemainingTime = DeltaTime;
+    while (RemainingTime > 0.0)
     {
-        TimeStep = FMin(ForwardTimestep, DeltaTime);
-        DeltaTime -= TimeStep;
-        Counter += TimeStep;
+        TimeStep = FMin(ForwardTimestep, RemainingTime);
+        RemainingTime -= TimeStep;
         for (i = 0; i < Projectiles.Length; ++i)
         {
             if (Done[i] == 1 || Projectiles[i] == None)
@@ -414,7 +420,7 @@ function ForwardLinearProjectiles(Weapon W, array<Projectile> Projectiles, float
             Extent = Projectiles[i].GetCollisionExtent();
             Start = Projectiles[i].Location;
             Projectiles[i].AutonomousPhysics(TimeStep);
-            Rewind(DeltaTime);
+            Rewind(RemainingTime);
             Hit = RewoundTrace(W, HitLocation, HitNormal, Projectiles[i].Location, Start, Extent);
             if (Hit != None)
             {
@@ -428,20 +434,19 @@ function ForwardLinearProjectiles(Weapon W, array<Projectile> Projectiles, float
         }
         for (i = 0; i < Projectiles.Length; ++i)
         {
-            if (Done[i] == 0 && Projectiles[i].TimerRate > 0
-                && Counter >= Projectiles[i].TimerRate)
+            if (Done[i] == 0)
             {
-                Projectiles[i].Timer();
-                Counter = 0;
+                ForwardProjectileTimer(Projectiles[i], TimeStep, Counters[i]);
             }
         }
     }
     UndoRewind();
     for (i = 0; i < Projectiles.Length; ++i)
     {
-        if (Projectiles[i] != None)
+        if (Projectiles[i] != None && !Projectiles[i].bDeleteMe)
         {
             RestoreCollision(Projectiles[i]);
+            ForwardProjectileLifeSpan(Projectiles[i], DeltaTime, Counters[i]);
         }
     }
 }
@@ -456,18 +461,20 @@ function ForwardFallingProjectile(Weapon W, Projectile P, float DeltaTime, optio
     local Actor Hit;
     local Vector HitLocation;
     local Vector HitNormal;
-    local float Counter;
+    local float RemainingTime;
     local float TimeStep;
+    local float Counter;
 
     DisableCollision(P);
     Extent = P.GetCollisionExtent();
-    while (DeltaTime > 0)
+    RemainingTime = DeltaTime;
+    while (RemainingTime > 0.0)
     {
-        TimeStep = FMin(ForwardTimestep, DeltaTime);
-        DeltaTime -= TimeStep;
+        TimeStep = FMin(ForwardTimestep, RemainingTime);
+        RemainingTime -= TimeStep;
         Start = P.Location;
         P.AutonomousPhysics(TimeStep);
-        Rewind(DeltaTime);
+        Rewind(RemainingTime);
         Hit = RewoundTrace(W, HitLocation, HitNormal, P.Location, Start, Extent);
         if (Hit != None && P.bSwitchToZeroCollision
             && SwitchToZeroCollision(W, Hit, Start, HitLocation))
@@ -482,18 +489,17 @@ function ForwardFallingProjectile(Weapon W, Projectile P, float DeltaTime, optio
             P.SetLocation(HitLocation);
             break;
         }
-        if (P.TimerRate > 0 && Counter >= P.TimerRate)
+        if (ForwardProjectileTimer(P, TimeStep, Counter))
         {
-            P.Timer();
-            Counter = 0;
             Extent = P.GetCollisionExtent();
         }
     }
     UndoRewind();
-    RestoreCollision(P);
-    if (bSticky && Hit != None && !Hit.IsA('Pawn') && !Hit.IsA('Projectile'))
+    if (P != None && !P.bDeleteMe)
     {
-        if (P != None && !P.bDeleteMe)
+        RestoreCollision(P);
+        ForwardProjectileLifeSpan(P, DeltaTime, Counter);
+        if (bSticky && Hit != None && !Hit.IsA('Pawn') && !Hit.IsA('Projectile'))
         {
             P.HitWall(HitNormal, Hit);
         }
@@ -508,20 +514,22 @@ function ForwardBouncingProjectile(Weapon W, Projectile P, float DeltaTime)
     local Actor Hit;
     local Vector HitLocation;
     local Vector HitNormal;
+    local float RemainingTime;
     local float TimeStep;
+    local float Counter;
     local bool bHitInstigator;
 
-    P.SetPropertyText("bForwarded", "true");
     DisableCollision(P);
     Extent = P.GetCollisionExtent();
-    while (DeltaTime > 0)
+    RemainingTime = DeltaTime;
+    while (RemainingTime > 0.0)
     {
-        TimeStep = FMin(ForwardTimestep, DeltaTime);
-        DeltaTime -= TimeStep;
+        TimeStep = FMin(ForwardTimestep, RemainingTime);
+        RemainingTime -= TimeStep;
         Start = P.Location;
         PreviousVelocity = P.Velocity;
         P.AutonomousPhysics(TimeStep);
-        Rewind(DeltaTime);
+        Rewind(RemainingTime);
         Hit = RewoundTrace(W, HitLocation, HitNormal, P.Location, Start, Extent, bHitInstigator);
         if (Hit != None)
         {
@@ -548,9 +556,17 @@ function ForwardBouncingProjectile(Weapon W, Projectile P, float DeltaTime)
             }
             bHitInstigator = true;
         }
+        if (ForwardProjectileTimer(P, TimeStep, Counter))
+        {
+            Extent = P.GetCollisionExtent();
+        }
     }
     UndoRewind();
-    RestoreCollision(P);
+    if (P != None && !P.bDeleteMe)
+    {
+        ForwardProjectileLifeSpan(P, DeltaTime, Counter);
+        RestoreCollision(P);
+    }
 }
 
 final function float GetDeltaTimeLimit()
@@ -578,6 +594,42 @@ static final function RestoreCollision(Actor A)
     }
 }
 
+static final function ForwardProjectileLifeSpan(Projectile P, float DeltaTime, float Counter)
+{
+    // TODO: This right here is one of the arguments for forwarding only half ping.
+    // We subtract half ping from the life-span instead of full ping because the server did a full
+    // ping forward + the natural delay of half ping for the projectile to reach the client.
+    // So we're effectively forwarding space by full ping and time by half ping.
+    DeltaTime = DeltaTime / 2.0;
+    if (P.LifeSpan > 0.0)
+    {
+        P.LifeSpan = FMax(FMin(0.05, P.LifeSpan), P.LifeSpan - DeltaTime);
+    }
+    if (P.TimerRate > 0.0 && !P.bTimerLoop)
+    {
+        P.SetTimer(P.TimerRate - Counter, false);
+    }
+}
+
+static final function bool ForwardProjectileTimer(Projectile P, float TimeStep, out float Counter)
+{
+    if (P.TimerRate > 0.0)
+    {
+        Counter += TimeStep;
+        if (Counter >= P.TimerRate)
+        {
+            P.Timer();
+            Counter = 0.0;
+            if (!P.bTimerLoop || P.TimerRate == 0.0)
+            {
+                P.SetTimer(0.0, false);
+            }
+            return true;
+        }
+    }
+    return false;
+}
+
 static final function bool SwitchToZeroCollision(Weapon W, Actor Hit, Vector Start, Vector End)
 {
     local Actor OtherHit;
@@ -591,7 +643,7 @@ static final function bool SwitchToZeroCollision(Weapon W, Actor Hit, Vector Sta
     {
         return false;
     }
-    Range = Normal(Start - End) * 100;
+    Range = Normal(Start - End) * 100.0;
     OtherHit = W.Trace(HitLocation, HitNormal, Start + Range, End, true);
     if (OtherHit == None)
     {

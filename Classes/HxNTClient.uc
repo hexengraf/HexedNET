@@ -46,7 +46,7 @@ replication
 simulated event PostBeginPlay()
 {
     Super.PostBeginPlay();
-    Seeder = new(Self) class'HxRandomGeneratorAlt';
+    Seeder = HxRandomGeneratorAlt(Level.ObjectPool.AllocateObject(class'HxRandomGeneratorAlt'));
 }
 
 function SetupServer(HxMutator Mutator)
@@ -277,9 +277,11 @@ simulated function HxNTWeaponInfo GetWeaponInfo(class<Weapon> WeaponClass)
         }
     }
     Groups[GroupIndex].Weapons.Insert(i, 1);
-    Groups[GroupIndex].Weapons[i] = new(Self) class'HxNTWeaponInfo';
+    Groups[GroupIndex].Weapons[i] = HxNTWeaponInfo(
+        Level.ObjectPool.AllocateObject(class'HxNTWeaponInfo'));
     Groups[GroupIndex].Weapons[i].WeaponClass = WeaponClass;
-    Groups[GroupIndex].Weapons[i].Generator = new(Self) class'HxRandomGenerator';
+    Groups[GroupIndex].Weapons[i].Generator = HxRandomGenerator(
+        Level.ObjectPool.AllocateObject(class'HxRandomGenerator'));
     Groups[GroupIndex].Weapons[i].RefreshSeed(Seeder);
     return Groups[GroupIndex].Weapons[i];
 }
@@ -296,6 +298,29 @@ simulated function RefreshSeeds()
             Groups[i].Weapons[j].RefreshSeed(Seeder);
         }
     }
+}
+
+simulated event Destroyed()
+{
+    local int i;
+    local int j;
+
+    for (i = 0; i < WEAPON_GROUP_COUNT; ++i)
+    {
+        for (j = 0; j < Groups[i].Weapons.Length; ++j)
+        {
+            if (Groups[i].Weapons[j] != None)
+            {
+                if (Groups[i].Weapons[j].Generator != None)
+                {
+                    Level.ObjectPool.FreeObject(Groups[i].Weapons[j].Generator);
+                }
+                Level.ObjectPool.FreeObject(Groups[i].Weapons[j]);
+            }
+        }
+    }
+    Level.ObjectPool.FreeObject(Seeder);
+    Super.Destroyed();
 }
 
 // TODO: do we really need this?

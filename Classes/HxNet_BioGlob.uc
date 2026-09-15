@@ -1,7 +1,6 @@
 class HxNet_BioGlob extends BioGlob;
 
 var HxNTClient Client;
-var private HxNTProjectileTracker Tracker;
 var private Vector InterpolationOffset;
 var private float InterpolationPeriod;
 var private bool bInterpolate;

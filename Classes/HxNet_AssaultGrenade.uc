@@ -1,97 +1,116 @@
 class HxNet_AssaultGrenade extends AssaultGrenade
     DependsOn(HxNTWeapon);
 
-var float ServerDelay;
-var private MutHexedNET HexedNET;
-var private HxNTClient Client;
-var private Vector BASStart;
-var private Rotator BASAim;
-var private bool bBoostedAimSynchronization;
+#include Classes\Include\HxNTBaseProjectileFire.uci
 
-function PreBeginPlay()
+function DoFireEffect()
 {
-    Super.PreBeginPlay();
-    class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
-}
-
-function bool WantsPingCompensation()
-{
-    return class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
-        && Client.WantsPingCompensation();
-}
-
-function ApplyBAS(HxNTWeapon.HxBAS BAS)
-{
-    if (class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
-    {
-        class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
-        bBoostedAimSynchronization = Client.IsAcceptableBAS(Weapon, BASStart, BASAim);
-    }
-}
-
-function GetProjectileStartAndDirection(out Vector Start, out Rotator Dir)
-{
+    local Vector Start;
+    local Rotator Dir;
     local Vector HitLocation;
     local Vector HitNormal;
     local Vector X;
     local Vector Y;
     local Vector Z;
 
-    if (bBoostedAimSynchronization)
+    if (WantsPingCompensation())
     {
-        bBoostedAimSynchronization = false;
-        Dir = BASAim;
-    }
-    else
-    {
-        BASStart = Instigator.Location + Instigator.EyePosition();
-        if (Instigator.Controller != None)
+        Instigator.MakeNoise(1.0);
+        if (bBoostedAimSynchronization)
         {
-            BASAim = Instigator.Controller.Rotation;
+            bBoostedAimSynchronization = false;
+            Dir = BASAim;
         }
         else
         {
-            BASAim = Instigator.Rotation;
+            BASStart = Instigator.Location + Instigator.EyePosition();
+            if (Instigator.Controller != None)
+            {
+                BASAim = Instigator.Controller.Rotation;
+            }
+            else
+            {
+                BASAim = Instigator.Rotation;
+            }
+            Dir = AdjustAim(Start, AimError);
         }
-        Dir = AdjustAim(Start, AimError);
-    }
-    GetAxes(BASAim, X, Y, Z);
-    Start = BASStart + X * ProjSpawnOffset.X;
-    if (AssaultRifle(Weapon).bDualMode)
-    {
-        AssaultRifle(Weapon).bFireLeft = !AssaultRifle(Weapon).bFireLeft;
-        if (AssaultRifle(Weapon).bFireLeft)
+        GetAxes(BASAim, X, Y, Z);
+        Start = BASStart + X * ProjSpawnOffset.X;
+        if (AssaultRifle(Weapon).bDualMode)
         {
-            Y *= -1;
+            AssaultRifle(Weapon).bFireLeft = !AssaultRifle(Weapon).bFireLeft;
+            if (AssaultRifle(Weapon).bFireLeft)
+            {
+                Y *= -1;
+            }
         }
+        if (!Weapon.WeaponCentered())
+        {
+            Start = Start + Weapon.Hand * Y * ProjSpawnOffset.Y + Z * ProjSpawnOffset.Z;
+        }
+        if (Weapon.Trace(HitLocation, HitNormal, Start, BASStart, false) != None)
+        {
+            Start = HitLocation;
+        }
+        SpawnHexedProjectile(Client.GetWeaponInfo(WeaponClass), Start, Dir);
     }
-    if (!Weapon.WeaponCentered())
+    else
     {
-        Start = Start + Weapon.Hand * Y * ProjSpawnOffset.Y + Z * ProjSpawnOffset.Z;
-    }
-    if (Weapon.Trace(HitLocation, HitNormal, Start, BASStart, false) != None)
-    {
-        Start = HitLocation;
+        Super.DoFireEffect();
     }
 }
 
-// TODO: any sane way to show client-side immediate grenade? Randomized rotation inside Grenade
-// causes trajectory changes, so client and server might _greatly_ differ.
-function DoFireEffect()
+function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
+                                         Vector Start,
+                                         Rotator Dir,
+                                         optional int Index)
 {
-    local Projectile P;
-    local Vector Start;
-    local Rotator Dir;
+    local Grenade G;
 
-    Instigator.MakeNoise(1.0);
-    GetProjectileStartAndDirection(Start, Dir);
-    P = SpawnProjectile(Start, Dir);
-    if (P != None && WantsPingCompensation())
+    if (Level.NetMode == NM_Client)
     {
-        HexedNET.ForwardBouncingProjectile(Weapon, P, Client.GetProjectilePing() + ServerDelay);
+        G = Weapon.Spawn(class'HxNet_GrenadePredicted', instigator,, Start, Dir);
+        if (G != None)
+        {
+            HxNet_GrenadePredicted(G).WeaponInfo = WeaponInfo;
+            HxNet_GrenadePredicted(G).SpawnRandomGenerator(WeaponInfo.Generator.RandInt());
+            WeaponInfo.TrackProjectile(G);
+            UpdateSpeedAndDamage(G, Dir);
+        }
     }
+    else
+    {
+        G = Weapon.Spawn(class'HxNet_Grenade', instigator,, Start, Dir);
+        if (G != None)
+        {
+            HxNet_Grenade(G).Client = Client;
+            HxNet_Grenade(G).SpawnRandomGenerator(WeaponInfo.Generator.RandInt());
+            UpdateSpeedAndDamage(G, Dir);
+            HexedNET.ForwardBouncingProjectile(Weapon, G, Client.GetProjectilePing() + ServerDelay);
+            if (G != None && G.bTimerSet && G.TimerRate > 0)
+            {
+                G.ExplodeTimer = G.TimerRate;
+            }
+        }
+    }
+    return G;
+}
+
+function UpdateSpeedAndDamage(Grenade G, Rotator Dir)
+{
+    local Vector X;
+    local Vector Y;
+    local Vector Z;
+
+    GetAxes(Dir, X, Y, Z);
+    G.Speed = mHoldSpeedMin + HoldTime * mHoldSpeedGainPerSec;
+    G.Speed = FClamp(G.Speed, mHoldSpeedMin, mHoldSpeedMax);
+    G.Speed = (X dot Instigator.Velocity) + G.Speed;
+    G.Velocity = G.Speed * Vector(Dir);
+    G.Damage *= DamageAtten;
 }
 
 defaultproperties
 {
+    WeaponClass=class'AssaultRifle'
 }
