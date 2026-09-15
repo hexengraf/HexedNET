@@ -99,21 +99,6 @@ function AddMutator(Mutator M)
     }
 }
 
-function ModifyPlayer(Pawn Other)
-{
-    if (PCC == None)
-    {
-        PCC = Spawn(class'PawnCollisionCopy', Self);
-        PCC.SetPawn(Other);
-    }
-    else
-    {
-        PCC.AddPawnToList(Other);
-    }
-    PCC = PCC.RemoveOldPawns();
-    Super.ModifyPlayer(Other);
-}
-
 function DriverEnteredVehicle(Vehicle V, Pawn P)
 {
     local PawnCollisionCopy C;
@@ -164,6 +149,10 @@ function bool CheckReplacement(Actor Other, out byte bSuperRelevant)
     local int i;
     local int j;
 
+    if (xPawn(Other) != None)
+    {
+        SpawnPawnTracker(xPawn(Other));
+    }
     if (Weapon(Other) != None)
     {
         for (i = 0; i < ArrayCount(Weapon(Other).FireModeClass); ++i)
@@ -271,6 +260,20 @@ function UndoRewind()
             ProjectileTrackers[i].UndoRewind();
         }
     }
+}
+
+function SpawnPawnTracker(Pawn P)
+{
+    if (PCC == None)
+    {
+        PCC = Spawn(class'PawnCollisionCopy', Self);
+        PCC.SetPawn(P);
+    }
+    else
+    {
+        PCC.AddPawnToList(P);
+    }
+    PCC = PCC.RemoveOldPawns();
 }
 
 function RemoveProjectileTracker(HxNTProjectileTracker Tracker)

@@ -42,8 +42,10 @@ var Pawn CopiedPawn;
 var private MutHexedNET HexedNET;
 var private array<PawnHistoryElement> Snapshots;
 var private float MaxDeltaTime;
-var private float CrouchHeight;
+var private float DefaultCollisionRadius;
+var private float DefaultCollisionHeight;
 var private float CrouchRadius;
+var private float CrouchHeight;
 var private bool bCrouched;
 
 function PostBeginPlay()
@@ -63,6 +65,8 @@ function SetPawn(Pawn Other)
         return;
     }
     CopiedPawn = Other;
+    DefaultCollisionRadius = CopiedPawn.default.CollisionRadius;
+    DefaultCollisionHeight = CopiedPawn.default.CollisionHeight;
     CrouchHeight = CopiedPawn.CrouchHeight;
     CrouchRadius = CopiedPawn.CrouchRadius;
     bUseCylinderCollision = CopiedPawn.bUseCylinderCollision;
@@ -116,7 +120,7 @@ function GoToPawn()
             }
             else if (bCrouched && !CopiedPawn.bIsCrouched)
             {
-                SetCollisionSize(default.CollisionRadius, default.CollisionHeight);
+                SetCollisionSize(DefaultCollisionRadius, DefaultCollisionHeight);
                 bCrouched = false;
             }
         }
@@ -156,7 +160,7 @@ function RewindPawn(float DeltaTime)
             }
             else if (bCrouched && (!Snapshots[Up].bCrouched || !Snapshots[Lo].bCrouched))
             {
-                SetCollisionSize(default.CollisionRadius, default.CollisionHeight);
+                SetCollisionSize(DefaultCollisionRadius, DefaultCollisionHeight);
                 bCrouched = false;
             }
         }
@@ -175,7 +179,7 @@ function RewindPawn(float DeltaTime)
         }
         else if (CopiedPawn.IsA('xPawn'))
         {
-            SetCollisionSize(default.CollisionRadius, default.CollisionHeight);
+            SetCollisionSize(DefaultCollisionRadius, DefaultCollisionHeight);
         }
         else if (bUseCylinderCollision)
         {
@@ -355,7 +359,6 @@ defaultproperties
 {
     RemoteRole=ROLE_None
     Physics=PHYS_None
-    // Don't collide with ANYTHING but the traces if we can avoid it
     bCollideActors=false
     bCollideWorld=false
     bBlockActors=false
@@ -369,11 +372,5 @@ defaultproperties
     bHidden=true
     bOnlyDirtyReplication=true
     bSkipActorPropertyReplication=true
-    // Direct copies from xPawn
-    CollisionRadius=25.000000
-    CollisionHeight=44.000000
-    CrouchHeight=29.000000
-    CrouchRadius=25.000000
-
     MaxDeltaTime=0.35
 }
