@@ -1,14 +1,4 @@
-//-----------------------------------------------------------
-//   This class acts simulated collision for the copied
-//   pawn, for use in lag compensated firing.
-//   This is used mostly so we don't have to worry about screwing
-//   with the physics of the actual pawn when moving about.
-//
-//
-//  *    IF YOU AREN'T DOING A TRACE ON THIS COPY,
-//   MAKE ABSOLUTELY SURE ITS COLLISION IS TURNED OFF */
-//-----------------------------------------------------------
-class PawnCollisionCopy extends Actor;
+class HxNTPawnTracker extends Actor;
 
 struct PawnHistoryElement
 {
@@ -18,9 +8,7 @@ struct PawnHistoryElement
     var bool bCrouched;
 };
 
-var PawnCollisionCopy Next;
-var Pawn CopiedPawn;
-
+var Pawn Tracked;
 var private MutHexedNET HexedNET;
 var private array<PawnHistoryElement> Snapshots;
 var private float DefaultCollisionRadius;
@@ -35,70 +23,67 @@ function PostBeginPlay()
     HexedNET = MutHexedNET(Owner);
 }
 
-// Set up the collision properties of our copy
-function SetPawn(Pawn Other)
+function SetTracked(Pawn P)
 {
-    if (Other == None)
+    if (P == None)
     {
-        Warn("PawnCopy spawned without proper Other");
-        // Destroy();
+        Warn("PawnCopy spawned without proper pawn");
         return;
     }
-    CopiedPawn = Other;
-    DefaultCollisionRadius = CopiedPawn.default.CollisionRadius;
-    DefaultCollisionHeight = CopiedPawn.default.CollisionHeight;
-    CrouchHeight = CopiedPawn.CrouchHeight;
-    CrouchRadius = CopiedPawn.CrouchRadius;
-    bUseCylinderCollision = CopiedPawn.bUseCylinderCollision;
-    bCrouched = CopiedPawn.bIsCrouched;
-    // If we cant use simple collisions, set up the mesh
+    Tracked = P;
+    bUseCylinderCollision = Tracked.bUseCylinderCollision;
+    DefaultCollisionRadius = Tracked.default.CollisionRadius;
+    DefaultCollisionHeight = Tracked.default.CollisionHeight;
+    CrouchHeight = Tracked.CrouchHeight;
+    CrouchRadius = Tracked.CrouchRadius;
+    bCrouched = Tracked.bIsCrouched;
     if (!bUseCylinderCollision)
     {
-        // snarf LinkMesh is causing crashes, works ok without it
         if (HexedNET.bLinkMeshes)
         {
+            // Comments from WSUTComp:
+            // snarf: LinkMesh is causing crashes, works ok without it
             // This is required for high pingers to be able to hit vehicles properly;
             // cylinders don't work - Calypto
-            LinkMesh(CopiedPawn.Mesh);
+            LinkMesh(Tracked.Mesh);
         }
         // for weapon pawn, we need the vehicle's collision radius, not the turret
-        if(ONSWeaponPawn(CopiedPawn) != None)
+        if(ONSWeaponPawn(Tracked) != None)
         {
             // Check if the VehicleBase actually exists before accessing its properties
-            if (ONSWeaponPawn(CopiedPawn).VehicleBase != None)
+            if (ONSWeaponPawn(Tracked).VehicleBase != None)
             {
                 SetCollisionSize(
-                    ONSWeaponPawn(CopiedPawn).VehicleBase.CollisionRadius,
-                    ONSWeaponPawn(CopiedPawn).VehicleBase.CollisionHeight);
+                    ONSWeaponPawn(Tracked).VehicleBase.CollisionRadius,
+                    ONSWeaponPawn(Tracked).VehicleBase.CollisionHeight);
             }
             else
             {
                 // Fallback to the turret's own collision if VehicleBase is missing
-                SetCollisionSize(CopiedPawn.CollisionRadius, CopiedPawn.CollisionHeight);
+                SetCollisionSize(Tracked.CollisionRadius, Tracked.CollisionHeight);
             }
         }
     }
     else
     {
-        SetCollisionSize(CopiedPawn.CollisionRadius, CopiedPawn.CollisionHeight);
+        SetCollisionSize(Tracked.CollisionRadius, Tracked.CollisionHeight);
     }
 }
 
-// What happens if its not an xpawn and its changing shapes?
 function GoToPawn()
 {
-    if (CopiedPawn != None)
+    if (Tracked != None)
     {
-        SetLocation(CopiedPawn.Location);
-        SetCollisionSize(CopiedPawn.CollisionRadius, CopiedPawn.CollisionHeight);
+        SetLocation(Tracked.Location);
+        SetCollisionSize(Tracked.CollisionRadius, Tracked.CollisionHeight);
         if (bUseCylinderCollision)
         {
-            if (!bCrouched && CopiedPawn.bIsCrouched)
+            if (!bCrouched && Tracked.bIsCrouched)
             {
                 SetCollisionSize(CrouchRadius, CrouchHeight);
                 bCrouched = true;
             }
-            else if (bCrouched && !CopiedPawn.bIsCrouched)
+            else if (bCrouched && !Tracked.bIsCrouched)
             {
                 SetCollisionSize(DefaultCollisionRadius, DefaultCollisionHeight);
                 bCrouched = false;
@@ -108,15 +93,14 @@ function GoToPawn()
     }
 }
 
-// What happens if its not an xpawn and its changing shapes?
-function RewindPawn(float DeltaTime)
+function Rewind(float DeltaTime)
 {
     local float TargetTimestamp;
     local float Alpha;
     local int Lo;
     local int Up;
 
-    if (CopiedPawn == None || CopiedPawn.DrivenVehicle != None)
+    if (Tracked == None || Tracked.DrivenVehicle != None)
     {
        return;
     }
@@ -157,76 +141,43 @@ function RewindPawn(float DeltaTime)
         {
             SetCollisionSize(CrouchRadius, CrouchHeight);
         }
-        else if (CopiedPawn.IsA('xPawn'))
+        else if (Tracked.IsA('xPawn'))
         {
             SetCollisionSize(DefaultCollisionRadius, DefaultCollisionHeight);
         }
         else if (bUseCylinderCollision)
         {
-            SetCollisionSize(CopiedPawn.CollisionRadius, CopiedPawn.CollisionHeight);
+            SetCollisionSize(Tracked.CollisionRadius, Tracked.CollisionHeight);
         }
         SetLocation(Snapshots[Lo].Location);
         SetRotation(Snapshots[Lo].Rotation);
     }
+    // More comments from WSUTComp:
     // Without LinkMesh enabled, this logic will not let you hit the vehicle if the main seat is
     // occupied (if gunner then works fine) - Calypto
     // Do not enable collision for passenger seats to prevent the phantom cylinder shield
     // A vehicle attached to another vehicle is a passenger seat
-    if (CopiedPawn.bCollideActors
-        && (!CopiedPawn.IsA('Vehicle') || CopiedPawn.Base == None
-            || !CopiedPawn.Base.IsA('Vehicle')))
+    if (Tracked.bCollideActors
+        && (!Tracked.IsA('Vehicle') || Tracked.Base == None || !Tracked.Base.IsA('Vehicle')))
     {
         // Enable collision for infantry and main vehicles
         SetCollision(true);
     }
 }
 
-function TurnOffCollision()
+function UndoRewind()
 {
     SetCollision(false);
 }
 
-function AddPawnToList(Pawn Other)
-{
-    if (Next == None)
-    {
-        Next = Spawn(class'PawnCollisionCopy', HexedNET);
-        Next.SetPawn(Other);
-    }
-    else
-    {
-       Next.AddPawnToList(Other);
-    }
-}
-
-// Remove old pawns, returns what Next should be for the caller PawnCollisionCopies
-function PawnCollisionCopy RemoveOldPawns()
-{
-    if (CopiedPawn == None)
-    {
-        Destroy();
-        if (Next != None)
-        {
-            return Next.RemoveOldPawns();
-        }
-        return None;
-    }
-    if (Next != None)
-    {
-        Next = Next.RemoveOldPawns();
-    }
-    return Self;
-}
-
-// damage the copied pawn, NOT THIS
 event TakeDamage(int Damage,
                  Pawn EventInstigator,
                  Vector HitLocation,
                  Vector Momentum,
                  class<DamageType> DamageType)
 {
-    // TODO: could some code be simplified by redirecting damage to CopiedPawn here?
-    Warn("Pawn collision copy should never take damage");
+    // TODO: could some code be simplified by redirecting damage to Pawn here?
+    Warn("Pawn tracker should never take damage");
 }
 
 event Destroyed()
@@ -235,28 +186,12 @@ event Destroyed()
     Super.Destroyed();
 }
 
-function Identify()
-{
-    if (CopiedPawn == None)
-    {
-        Log("PCC: No pawn");
-    }
-    else if (CopiedPawn.PlayerReplicationInfo != None)
-    {
-        Log("PCC: Pawn"@CopiedPawn.PlayerReplicationInfo.PlayerName);
-    }
-    else
-    {
-        Log("PCC: Unnamed Pawn");
-    }
-}
-
 function Tick(float DeltaTime)
 {
     local float OldestTimestamp;
     local int i;
 
-    if (CopiedPawn != None)
+    if (Tracked != None)
     {
         OldestTimestamp = Level.TimeSeconds - HexedNET.GetCompensationLimit();
         while (Snapshots.Length > 0 && Snapshots[0].Timestamp < OldestTimestamp)
@@ -266,39 +201,19 @@ function Tick(float DeltaTime)
         i = Snapshots.Length;
         Snapshots.Length = i + 1;
         Snapshots[i].Timestamp = Level.TimeSeconds;
-        Snapshots[i].Location = CopiedPawn.Location;
-        Snapshots[i].Rotation = CopiedPawn.Rotation;
-        Snapshots[i].bCrouched = CopiedPawn.bIsCrouched;
-    }
-}
-
-function Rewind(float delta)
-{
-    local PawnCollisionCopy PCC;
-
-    for (PCC = Self; PCC != None; PCC = PCC.Next)
-    {
-        PCC.RewindPawn(Delta);
-    }
-}
-
-function UndoRewind()
-{
-    local PawnCollisionCopy PCC;
-
-    for (PCC = Self; PCC != None; PCC = PCC.Next)
-    {
-        PCC.TurnOffCollision();
+        Snapshots[i].Location = Tracked.Location;
+        Snapshots[i].Rotation = Tracked.Rotation;
+        Snapshots[i].bCrouched = Tracked.bIsCrouched;
     }
 }
 
 // TODO: what about self-inflicted splash damage if target is close?
 // By updating to collide in the current target location (instead of past location),
 // players might wrongfully avoid self-inflicted splash damage.
-function Vector GetPresentHitLocation(Vector HitLocation)
+final function Vector GetPresentHitLocation(Vector HitLocation)
 {
     // TODO: handle crouching differences
-    return HitLocation + CopiedPawn.Location - Location;
+    return HitLocation + Tracked.Location - Location;
 }
 
 final function int FindLowerBound(float Timestamp)

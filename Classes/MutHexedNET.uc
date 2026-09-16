@@ -19,7 +19,8 @@ var config bool bRubberbandingFix;
 var config bool bLinkMeshes;
 
 var const private array<HxNTClassOverride> ClassOverrides;
-var private PawnCollisionCopy PCC;
+var private array<HxNTPawnTracker> PawnTrackers;
+var private HxNTPawnTracker PCC;
 var private array<HxNTProjectileTracker> ProjectileTrackers;
 var private float AverageDeltaTime;
 var private float ForwardTimestep;
@@ -69,34 +70,24 @@ function AddMutator(Mutator M)
 
 function DriverEnteredVehicle(Vehicle V, Pawn P)
 {
-    local PawnCollisionCopy C;
+    local HxNTPawnTracker Tracker;
 
-    C = PCC;
-    while (C != None)
+    Tracker = FindPawnTracker(P);
+    if (Tracker != None)
     {
-        if (C.CopiedPawn == P)
-        {
-            C.SetPawn(V);
-            break;
-        }
-        C = C.Next;
+        Tracker.SetTracked(V);
     }
     Super.DriverEnteredVehicle(V, P);
 }
 
 function DriverLeftVehicle(Vehicle V, Pawn P)
 {
-    local PawnCollisionCopy C;
+    local HxNTPawnTracker Tracker;
 
-    C = PCC;
-    while (C != None)
+    Tracker = FindPawnTracker(V);
+    if (Tracker != None)
     {
-        if (C.CopiedPawn == V)
-        {
-            C.SetPawn(P);
-            break;
-        }
-        C = C.Next;
+        Tracker.SetTracked(P);
     }
     Super.DriverLeftVehicle(V, P);
 }
@@ -149,9 +140,17 @@ function Rewind(float DeltaTime)
 {
     local int i;
 
-    if (PCC != None)
+    for (i = PawnTrackers.Length - 1; i >= 0; --i)
     {
-        PCC.Rewind(DeltaTime);
+        if (PawnTrackers[i].Tracked == None)
+        {
+            PawnTrackers[i].Destroy();
+            PawnTrackers.Remove(i, 1);
+        }
+        else
+        {
+            PawnTrackers[i].Rewind(DeltaTime);
+        }
     }
     for (i = ProjectileTrackers.Length - 1; i >= 0; --i)
     {
@@ -170,9 +169,17 @@ function UndoRewind()
 {
     local int i;
 
-    if (PCC != None)
+    for (i = PawnTrackers.Length - 1; i >= 0; --i)
     {
-        PCC.UndoRewind();
+        if (PawnTrackers[i].Tracked == None)
+        {
+            PawnTrackers[i].Destroy();
+            PawnTrackers.Remove(i, 1);
+        }
+        else
+        {
+            PawnTrackers[i].UndoRewind();
+        }
     }
     for (i = ProjectileTrackers.Length - 1; i >= 0; --i)
     {
@@ -189,28 +196,38 @@ function UndoRewind()
 
 function SpawnPawnTracker(Pawn P)
 {
-    if (PCC == None)
-    {
-        PCC = Spawn(class'PawnCollisionCopy', Self);
-        PCC.SetPawn(P);
-    }
-    else
-    {
-        PCC.AddPawnToList(P);
-    }
-    PCC = PCC.RemoveOldPawns();
+    local int i;
+
+    i = PawnTrackers.Length;
+    PawnTrackers[i] = Spawn(class'HxNTPawnTracker', Self);
+    PawnTrackers[i].SetTracked(P);
+    PrunePawnTrackers();
 }
 
-function RemoveProjectileTracker(HxNTProjectileTracker Tracker)
+function HxNTPawnTracker FindPawnTracker(Pawn P)
 {
     local int i;
 
-    for (i = 0; i < ProjectileTrackers.Length; ++i)
+    for (i = 0; i < PawnTrackers.Length; ++i)
     {
-        if (ProjectileTrackers[i] == Tracker)
+        if (P == PawnTrackers[i].Tracked)
         {
-            ProjectileTrackers.Remove(i, 1);
-            break;
+            return PawnTrackers[i];
+        }
+    }
+    return None;
+}
+
+function PrunePawnTrackers()
+{
+    local int i;
+
+    for (i = PawnTrackers.Length - 1; i >= 0; --i)
+    {
+        if (PawnTrackers[i].Tracked == None)
+        {
+            PawnTrackers[i].Destroy();
+            PawnTrackers.Remove(i, 1);
         }
     }
 }
@@ -224,6 +241,20 @@ function RegisterShockProjectile(HxNet_ShockProjectile P)
         Tracker = Spawn(class'HxNTProjectileTracker', Self);
         P.SetTracker(Tracker);
         ProjectileTrackers[ProjectileTrackers.Length] = Tracker;
+    }
+}
+
+function RemoveProjectileTracker(HxNTProjectileTracker Tracker)
+{
+    local int i;
+
+    for (i = 0; i < ProjectileTrackers.Length; ++i)
+    {
+        if (ProjectileTrackers[i] == Tracker)
+        {
+            ProjectileTrackers.Remove(i, 1);
+            break;
+        }
     }
 }
 
@@ -241,13 +272,13 @@ function Actor RewoundTrace(Weapon Weapon,
 
     foreach TraceActors(class'Actor', Hit, HitLocation, HitNormal, End, Start, Extent)
     {
-        if (Hit.IsA('PawnCollisionCopy'))
+        if (Hit.IsA('HxNTPawnTracker'))
         {
-            Pawn = PawnCollisionCopy(Hit).CopiedPawn;
+            Pawn = HxNTPawnTracker(Hit).Tracked;
             if (Pawn != None && (bHitInstigator || Pawn != Weapon.Instigator))
             {
                 PastLocation = HitLocation;
-                HitLocation = PawnCollisionCopy(Hit).GetPresentHitLocation(HitLocation);
+                HitLocation = HxNTPawnTracker(Hit).GetPresentHitLocation(HitLocation);
                 Hit = Pawn;
                 break;
             }
