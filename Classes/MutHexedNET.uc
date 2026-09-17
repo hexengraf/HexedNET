@@ -772,6 +772,8 @@ defaultproperties
     DisplayInfo(3)=(Caption="Backport Rubberbanding Fix",Hint="Backport OldUnreal's rubberbanding fix. Applied on restart/map change.",bMPOnly=true,bAdvanced=true)
     DisplayInfo(4)=(Caption="Link Meshes",Hint="Link meshes for collision detection. Disable this if experiencing crashes.",bMPOnly=true,bAdvanced=true)
     ClassOverrides(0)=(TargetClass=class'AssaultRifle',BASClass=class'HxNet_AssaultRifle',FireModeClass=(class'HxNet_AssaultFire',class'HxNet_AssaultGrenade'))
+    ConfigClasses(0)=class'HxNetcodeConfig'
+    UIPriority=64
     ClassOverrides(1)=(TargetClass=class'BioRifle',BASClass=class'HxNet_BioRifle',FireModeClass=(class'HxNet_BioFire',class'HxNet_BioChargedFire'))
     ClassOverrides(2)=(TargetClass=class'ShockRifle',BASClass=class'HxNet_ShockRifle',FireModeClass=(class'HxNet_ShockBeamFire',class'HxNet_ShockProjFire'))
     ClassOverrides(3)=(TargetClass=class'LinkGun',BASClass=class'HxNet_LinkGun',FireModeClass=(class'HxNet_LinkAltFire',class'HxNet_LinkFire'))
