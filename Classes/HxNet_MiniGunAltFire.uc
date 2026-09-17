@@ -23,7 +23,8 @@ function DoTrace(Vector Start, Rotator Dir)
     }
     else
     {
-        class'HxNTWeapon'.static.InstantFireTrace(HexedNET, Self, Start, Dir, Client.AveragePing);
+        class'HxNTWeapon'.static.InstantFireTrace(
+            HexedNET, Self, Start, Dir, Client.GetCompensationTime());
     }
 }
 

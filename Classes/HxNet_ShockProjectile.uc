@@ -53,6 +53,14 @@ simulated function InterpolatePredicted(ShockProjectile Predicted)
             ShockBallEffect.SetBase(Self);
             Predicted.ShockBallEffect = None;
         }
+        if (Predicted.TimerRate > 0)
+        {
+            SetTimer(Predicted.TimerRate - Predicted.TimerCounter, false);
+        }
+        else
+        {
+            SetCollisionSize(Predicted.CollisionRadius, Predicted.CollisionHeight);
+        }
         bInterpolate = true;
         InterpolationOffset = Location - Predicted.Location;
         DoSetLocation(Predicted.Location);
@@ -166,5 +174,5 @@ function SetTracker(HxNTProjectileTracker T)
 
 defaultproperties
 {
-    InterpolationPeriod=0.15
+    InterpolationPeriod=0.30
 }

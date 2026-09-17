@@ -13,7 +13,7 @@ const WARMUP_COUNT = 10;
 const AVG_DELTA_RATIO = 0.3;
 
 var config float MaxPingFrequency;
-var config int PingCompensationLimit;
+var config int LagCompensationLimit;
 var config int ProjectileCompensationLimit;
 var config bool bRubberbandingFix;
 var config bool bLinkMeshes;
@@ -22,8 +22,8 @@ var const private array<HxNTClassOverride> ClassOverrides;
 var private array<HxNTPawnTracker> PawnTrackers;
 var private HxNTPawnTracker PCC;
 var private array<HxNTProjectileTracker> ProjectileTrackers;
-var private float AverageDeltaTime;
-var private float ForwardTimestep;
+var private float AvgDeltaTime;
+var private float ForwardTimeStep;
 var private int TickCount;
 
 event PostBeginPlay()
@@ -44,14 +44,14 @@ function Tick(float DeltaTime)
     Super.Tick(DeltaTime);
     if (TickCount < WARMUP_COUNT)
     {
-        TickCount++;
-        AverageDeltaTime += (DeltaTime - AverageDeltaTime) / TickCount;
+        ++TickCount;
+        AvgDeltaTime = AvgDeltaTime + (DeltaTime - AvgDeltaTime) / TickCount;
     }
     else
     {
-        AverageDeltaTime += (DeltaTime - AverageDeltaTime) * AVG_DELTA_RATIO;
+        AvgDeltaTime = AvgDeltaTime + (DeltaTime - AvgDeltaTime) * AVG_DELTA_RATIO;
     }
-    ForwardTimestep = FMax(MIN_TIMESTEP, AverageDeltaTime);
+    ForwardTimeStep = FMax(MIN_TIMESTEP, AvgDeltaTime);
 }
 
 function bool MutatorIsAllowed()
@@ -136,7 +136,7 @@ function string GetInventoryClassOverride(string InventoryClassName)
     return InventoryClassName;
 }
 
-function Rewind(float DeltaTime)
+function Rewind(float CompensationTime)
 {
     local int i;
 
@@ -149,7 +149,7 @@ function Rewind(float DeltaTime)
         }
         else
         {
-            PawnTrackers[i].Rewind(DeltaTime);
+            PawnTrackers[i].Rewind(CompensationTime);
         }
     }
     for (i = ProjectileTrackers.Length - 1; i >= 0; --i)
@@ -160,7 +160,7 @@ function Rewind(float DeltaTime)
         }
         else
         {
-            ProjectileTrackers[i].Rewind(DeltaTime);
+            ProjectileTrackers[i].Rewind(CompensationTime);
         }
     }
 }
@@ -302,7 +302,7 @@ function Actor RewoundTrace(Weapon Weapon,
 }
 
 // TODO: handle bSwitchToZeroCollision
-function ForwardLinearProjectile(Weapon W, Projectile P, float DeltaTime)
+function ForwardLinearProjectile(Weapon W, Projectile P, float CompensationTime)
 {
     local Vector Extent;
     local Vector Start;
@@ -315,10 +315,10 @@ function ForwardLinearProjectile(Weapon W, Projectile P, float DeltaTime)
 
     DisableCollision(P);
     Extent = P.GetCollisionExtent();
-    RemainingTime = DeltaTime;
+    RemainingTime = CompensationTime;
     while (RemainingTime > 0.0)
     {
-        TimeStep = FMin(ForwardTimestep, RemainingTime);
+        TimeStep = FMin(ForwardTimeStep, RemainingTime);
         RemainingTime -= TimeStep;
         Counter += TimeStep;
         Start = P.Location;
@@ -338,12 +338,12 @@ function ForwardLinearProjectile(Weapon W, Projectile P, float DeltaTime)
     UndoRewind();
     if (P != None && !P.bDeleteMe)
     {
-        ForwardProjectileLifeSpan(P, DeltaTime, Counter);
+        ForwardProjectileLifeSpan(P, CompensationTime, Counter);
         RestoreCollision(P);
     }
 }
 
-function ForwardLinearProjectiles(Weapon W, array<Projectile> Projectiles, float DeltaTime)
+function ForwardLinearProjectiles(Weapon W, array<Projectile> Projectiles, float CompensationTime)
 {
     local Vector Extent;
     local Vector Start;
@@ -365,10 +365,10 @@ function ForwardLinearProjectiles(Weapon W, array<Projectile> Projectiles, float
             DisableCollision(Projectiles[i]);
         }
     }
-    RemainingTime = DeltaTime;
+    RemainingTime = CompensationTime;
     while (RemainingTime > 0.0)
     {
-        TimeStep = FMin(ForwardTimestep, RemainingTime);
+        TimeStep = FMin(ForwardTimeStep, RemainingTime);
         RemainingTime -= TimeStep;
         for (i = 0; i < Projectiles.Length; ++i)
         {
@@ -405,7 +405,7 @@ function ForwardLinearProjectiles(Weapon W, array<Projectile> Projectiles, float
         if (Projectiles[i] != None && !Projectiles[i].bDeleteMe)
         {
             RestoreCollision(Projectiles[i]);
-            ForwardProjectileLifeSpan(Projectiles[i], DeltaTime, Counters[i]);
+            ForwardProjectileLifeSpan(Projectiles[i], CompensationTime, Counters[i]);
         }
     }
 }
@@ -413,7 +413,10 @@ function ForwardLinearProjectiles(Weapon W, array<Projectile> Projectiles, float
 // TODO: find a clean way to fix sliding on walls if hit is right outside the extrapolation range.
 // Stupid native code uses the remaining movement delta to calculate a sliding movement instead of
 // checking the Velocity vector (which would be zeroed out by HitWall).
-function ForwardFallingProjectile(Weapon W, Projectile P, float DeltaTime, optional bool bSticky)
+function ForwardFallingProjectile(Weapon W,
+                                  Projectile P,
+                                  float CompensationTime,
+                                  optional bool bSticky)
 {
     local Vector Extent;
     local Vector Start;
@@ -426,10 +429,10 @@ function ForwardFallingProjectile(Weapon W, Projectile P, float DeltaTime, optio
 
     DisableCollision(P);
     Extent = P.GetCollisionExtent();
-    RemainingTime = DeltaTime;
+    RemainingTime = CompensationTime;
     while (RemainingTime > 0.0)
     {
-        TimeStep = FMin(ForwardTimestep, RemainingTime);
+        TimeStep = FMin(ForwardTimeStep, RemainingTime);
         RemainingTime -= TimeStep;
         Start = P.Location;
         P.AutonomousPhysics(TimeStep);
@@ -457,7 +460,7 @@ function ForwardFallingProjectile(Weapon W, Projectile P, float DeltaTime, optio
     if (P != None && !P.bDeleteMe)
     {
         RestoreCollision(P);
-        ForwardProjectileLifeSpan(P, DeltaTime, Counter);
+        ForwardProjectileLifeSpan(P, CompensationTime, Counter);
         if (bSticky && Hit != None && !Hit.IsA('Pawn') && !Hit.IsA('Projectile'))
         {
             P.HitWall(HitNormal, Hit);
@@ -465,7 +468,7 @@ function ForwardFallingProjectile(Weapon W, Projectile P, float DeltaTime, optio
     }
 }
 
-function ForwardBouncingProjectile(Weapon W, Projectile P, float DeltaTime)
+function ForwardBouncingProjectile(Weapon W, Projectile P, float CompensationTime)
 {
     local Vector Extent;
     local Vector Start;
@@ -480,10 +483,10 @@ function ForwardBouncingProjectile(Weapon W, Projectile P, float DeltaTime)
 
     DisableCollision(P);
     Extent = P.GetCollisionExtent();
-    RemainingTime = DeltaTime;
+    RemainingTime = CompensationTime;
     while (RemainingTime > 0.0)
     {
-        TimeStep = FMin(ForwardTimestep, RemainingTime);
+        TimeStep = FMin(ForwardTimeStep, RemainingTime);
         RemainingTime -= TimeStep;
         Start = P.Location;
         PreviousVelocity = P.Velocity;
@@ -523,7 +526,7 @@ function ForwardBouncingProjectile(Weapon W, Projectile P, float DeltaTime)
     UndoRewind();
     if (P != None && !P.bDeleteMe)
     {
-        ForwardProjectileLifeSpan(P, DeltaTime, Counter);
+        ForwardProjectileLifeSpan(P, CompensationTime, Counter);
         RestoreCollision(P);
     }
 }
@@ -651,7 +654,7 @@ final function float NormalizePing(float Ping)
 
 final function float GetCompensationLimit()
 {
-    return PingCompensationLimit / (Level.TimeDilation * 1000.0);
+    return LagCompensationLimit / (Level.TimeDilation * 1000.0);
 }
 
 static final function bool IsPredicted(Actor A)
@@ -674,16 +677,16 @@ static final function RestoreCollision(Actor A)
     }
 }
 
-static final function ForwardProjectileLifeSpan(Projectile P, float DeltaTime, float Counter)
+static final function ForwardProjectileLifeSpan(Projectile P, float CompensationTime, float Counter)
 {
     // TODO: This right here is one of the arguments for forwarding only half ping.
     // We subtract half ping from the life-span instead of full ping because the server did a full
     // ping forward + the natural delay of half ping for the projectile to reach the client.
     // So we're effectively forwarding space by full ping and time by half ping.
-    DeltaTime = DeltaTime / 2.0;
+    CompensationTime = CompensationTime / 2.0;
     if (P.LifeSpan > 0.0)
     {
-        P.LifeSpan = FMax(FMin(0.05, P.LifeSpan), P.LifeSpan - DeltaTime);
+        P.LifeSpan = FMax(FMin(0.05, P.LifeSpan), P.LifeSpan - CompensationTime);
     }
     if (P.TimerRate > 0.0 && !P.bTimerLoop)
     {
@@ -755,17 +758,17 @@ static final function Vector GetClearance(Vector HitNormal,
 defaultproperties
 {
     FriendlyName="HexedNET %TAG%"
-    Description="Modified version of UTComp's enhanced netcode (ping compensation)."
+    Description="Provides lag compensation for official weapons."
     bAddToServerPackages=true
     CRIClass=class'HxNTClient'
-    Properties(0)=(Name="MaxPingFrequency",Type=HX_PROPERTY_Float,LowerLimit="0.2",UpperLimit="20.0")
-    Properties(1)=(Name="PingCompensationLimit",Type=HX_PROPERTY_Int,LowerLimit="50",UpperLimit="999")
+    Properties(0)=(Name="MaxPingFrequency",Type=HX_PROPERTY_Float,LowerLimit="0.2",UpperLimit="10.0")
+    Properties(1)=(Name="LagCompensationLimit",Type=HX_PROPERTY_Int,LowerLimit="50",UpperLimit="999")
     Properties(2)=(Name="ProjectileCompensationLimit",Type=HX_PROPERTY_Int,LowerLimit="50",UpperLimit="999")
     Properties(3)=(Name="bRubberbandingFix",Type=HX_PROPERTY_Bool)
     Properties(4)=(Name="bLinkMeshes",Type=HX_PROPERTY_Bool)
     DisplayInfo(0)=(Caption="Maximum Ping Frequency",Hint="Maximum frequency to send pings (pings/second).",bMPOnly=true,bAdvanced=true)
-    DisplayInfo(1)=(Caption="Ping Compensation Limit",Hint="Global ping compensation limit (in milliseconds) applied to all weapons.",Step="10",bMPOnly=true,bAdvanced=true)
-    DisplayInfo(2)=(Caption="Projectile Compensation Limit",Hint="Ping compensation limit (in milliseconds) applied to projectiles.",Step="10",bMPOnly=true,bAdvanced=true)
+    DisplayInfo(1)=(Caption="Lag Compensation Limit",Hint="Global lag compensation limit (in milliseconds).",Step="10",bMPOnly=true,bAdvanced=true)
+    DisplayInfo(2)=(Caption="Projectile Compensation Limit",Hint="Projectile-specific lag compensation limit (in milliseconds).",Step="10",bMPOnly=true,bAdvanced=true)
     DisplayInfo(3)=(Caption="Backport Rubberbanding Fix",Hint="Backport OldUnreal's rubberbanding fix. Applied on restart/map change.",bMPOnly=true,bAdvanced=true)
     DisplayInfo(4)=(Caption="Link Meshes",Hint="Link meshes for collision detection. Disable this if experiencing crashes.",bMPOnly=true,bAdvanced=true)
     ClassOverrides(0)=(TargetClass=class'AssaultRifle',BASClass=class'HxNet_AssaultRifle',FireModeClass=(class'HxNet_AssaultFire',class'HxNet_AssaultGrenade'))
@@ -782,7 +785,7 @@ defaultproperties
     ClassOverrides(11)=(TargetClass=class'HxSuperShockRifle',BASClass=class'HxNet_HxSuperShockRifle',FireModeClass=(class'HxNet_SuperShockBeamFire',class'HxNet_SuperShockBeamFire'))
     ClassOverrides(12)=(TargetClass=class'HxZoomSuperShockRifle',BASClass=class'HxNet_HxZoomSuperShockRifle',FireModeClass=(class'HxNet_ZoomSuperShockBeamFire'))
     MaxPingFrequency=10.0
-    PingCompensationLimit=330
+    LagCompensationLimit=330
     ProjectileCompensationLimit=132
     bRubberbandingFix=false
     bLinkMeshes=true

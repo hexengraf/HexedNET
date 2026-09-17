@@ -35,7 +35,7 @@ function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
         {
             HxNet_BioGlob(P).Client = Client;
             HexedNET.ForwardFallingProjectile(
-                Weapon, P, Client.GetProjectilePing() + ServerDelay, true);
+                Weapon, P, Client.GetProjectileCompensationTime() + ServerDelay, true);
         }
         return P;
     }

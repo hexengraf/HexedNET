@@ -93,7 +93,7 @@ function GoToPawn()
     }
 }
 
-function Rewind(float DeltaTime)
+function Rewind(float CompensationTime)
 {
     local float TargetTimestamp;
     local float Alpha;
@@ -104,7 +104,7 @@ function Rewind(float DeltaTime)
     {
        return;
     }
-    TargetTimestamp = Level.TimeSeconds - DeltaTime;
+    TargetTimestamp = Level.TimeSeconds - CompensationTime;
     SetCollision(false);
     if (Snapshots.Length == 0 || Snapshots[Snapshots.Length - 1].Timestamp < TargetTimestamp)
     {

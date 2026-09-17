@@ -14,7 +14,6 @@ function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
                                          optional int Index)
 {
     local Projectile P;
-    local float DeltaTime;
 
     if (Level.NetMode == NM_Client)
     {
@@ -31,12 +30,8 @@ function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
     if (P != None && WantsPingCompensation())
     {
         HxNet_ShockProjectile(P).Client = Client;
-        DeltaTime = Client.GetProjectilePing() + ServerDelay;
-        HexedNET.ForwardLinearProjectile(Weapon, P, DeltaTime);
-        if (P != None)
-        {
-            P.SetTimer(FMax(0, P.TimerRate - DeltaTime), false);
-        }
+        HexedNET.ForwardLinearProjectile(
+            Weapon, P, Client.GetProjectileCompensationTime() + ServerDelay);
     }
     if (HexedNET != None)
     {

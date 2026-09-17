@@ -86,7 +86,7 @@ simulated function ModeTick(float DT)
             X = Vector(Aim);
             EndTrace = StartTrace + TraceRange * X;
         }
-        HexedNET.Rewind(Client.AveragePing);
+        HexedNET.Rewind(Client.GetCompensationTime());
         Other = HexedNET.RewoundTrace(Weapon, HitLocation, HitNormal, EndTrace, StartTrace);
         HexedNET.UndoRewind();
         if (Other != None && Other != Instigator)

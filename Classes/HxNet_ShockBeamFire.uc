@@ -20,6 +20,15 @@ function bool WantsPingCompensation()
         && Client.WantsPingCompensation();
 }
 
+function ApplyBAS(HxNTWeapon.HxBAS BAS)
+{
+    if (class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
+    {
+        class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
+        bBoostedAimSynchronization = Client.IsAcceptableBAS(Weapon, BASStart, BASAim);
+    }
+}
+
 function PlayFiring()
 {
     Super.PlayFiring();
@@ -29,37 +38,24 @@ function PlayFiring()
     }
 }
 
-function ApplyBAS(HxNTWeapon.HxBAS BAS)
+function DoFireEffect()
 {
     local Vector X;
     local Vector Y;
     local Vector Z;
 
-    class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
-    if (class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
-    {
-        class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
-        if (Client.IsAcceptableBAS(Weapon, BASStart, BASAim))
-        {
-            if (PlayerController(Instigator.Controller) != None)
-            {
-                GetAxes(BASAim, X, Y, Z);
-                BASStart += X * class'ShockProjFire'.Default.ProjSpawnOffset.X;
-                if (!Weapon.WeaponCentered())
-                {
-                    BASStart += Weapon.Hand * Y * class'ShockProjFire'.Default.ProjSpawnOffset.Y
-                        + Z * class'ShockProjFire'.Default.ProjSpawnOffset.Z;
-                }
-            }
-            bBoostedAimSynchronization = true;
-        }
-    }
-}
-
-function DoFireEffect()
-{
     if (bBoostedAimSynchronization)
     {
+        if (PlayerController(Instigator.Controller) != None)
+        {
+            GetAxes(BASAim, X, Y, Z);
+            BASStart += X * class'ShockProjFire'.Default.ProjSpawnOffset.X;
+            if (!Weapon.WeaponCentered())
+            {
+                BASStart += Weapon.Hand * Y * class'ShockProjFire'.Default.ProjSpawnOffset.Y
+                    + Z * class'ShockProjFire'.Default.ProjSpawnOffset.Z;
+            }
+        }
         Instigator.MakeNoise(1.0);
         DoTrace(BASStart, BASAim);
         bBoostedAimSynchronization = false;
@@ -94,7 +90,7 @@ function DoTrace(Vector Start, Rotator Dir)
     if (WantsPingCompensation())
     {
         class'HxNTWeapon'.static.InstantFireTrace(
-            HexedNET, Self, Start, Dir, Client.AveragePing + ServerDelay);
+            HexedNET, Self, Start, Dir, Client.GetCompensationTime() + ServerDelay);
     }
     else
     {

@@ -115,7 +115,7 @@ static function InstantFireTrace(MutHexedNET HexedNET,
                                  InstantFire WF,
                                  Vector Start,
                                  Rotator Dir,
-                                 float AveragePing)
+                                 float CompensationTime)
 {
     local Vector X;
     local Vector End;
@@ -138,7 +138,7 @@ static function InstantFireTrace(MutHexedNET HexedNET,
         End = Start + WF.TraceRange * X;
         if (bRewind)
         {
-            HexedNET.Rewind(AveragePing);
+            HexedNET.Rewind(CompensationTime);
             Hit = HexedNET.RewoundTrace(WF.Weapon, HitLocation, HitNormal, End, Start);
             HexedNET.UndoRewind();
             bRewind = false;

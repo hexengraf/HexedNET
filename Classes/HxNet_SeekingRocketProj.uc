@@ -59,6 +59,11 @@ simulated function SearchPredictedProjectile()
     WeaponInfo = Client.GetWeaponInfo(class'RocketLauncher');
     Rocket = RocketProj(WeaponInfo.MatchProjectileFull(
         Location, class'HxNet_SeekingRocketProjPredicted', Index));
+    if (Rocket == None)
+    {
+        Rocket = RocketProj(WeaponInfo.MatchProjectileFull(
+            Location, class'HxNet_RocketProjPredicted', Index));
+    }
     if (Rocket != None)
     {
         InterpolatePredicted(Rocket);

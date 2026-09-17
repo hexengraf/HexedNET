@@ -45,7 +45,7 @@ function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
                 HxNet_SeekingRocketProj(P).Client = Client;
                 HxNet_SeekingRocketProj(P).Index = Index;
             }
-            HexedNET.ForwardLinearProjectile(Weapon, P, Client.GetProjectilePing() + ServerDelay);
+            HexedNET.ForwardLinearProjectile(Weapon, P, Client.GetProjectileCompensationTime() + ServerDelay);
         }
         return P;
     }

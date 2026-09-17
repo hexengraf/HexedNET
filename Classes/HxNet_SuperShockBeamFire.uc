@@ -20,21 +20,21 @@ function bool WantsPingCompensation()
         && Client.WantsPingCompensation();
 }
 
-function PlayFiring()
-{
-    Super.PlayFiring();
-    if (Level.NetMode == NM_Client && WantsPingCompensation() && Instigator.IsLocallyControlled())
-    {
-        DoFireEffect();
-    }
-}
-
 function ApplyBAS(HxNTWeapon.HxBAS BAS)
 {
     if (class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
     {
         class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
         bBoostedAimSynchronization = Client.IsAcceptableBAS(Weapon, BASStart, BASAim);
+    }
+}
+
+function PlayFiring()
+{
+    Super.PlayFiring();
+    if (Level.NetMode == NM_Client && WantsPingCompensation() && Instigator.IsLocallyControlled())
+    {
+        DoFireEffect();
     }
 }
 
@@ -92,7 +92,7 @@ function TracePart(Vector Start, Vector End, Vector X, Rotator Dir, Pawn Ignored
     }
     else if (HexedNET != None)
     {
-        HexedNET.Rewind(Client.AveragePing + ServerDelay);
+        HexedNET.Rewind(Client.GetCompensationTime() + ServerDelay);
         StaticTracePart(HexedNET, Self, Start, End, X, Dir, Ignored);
         HexedNET.UndoRewind();
     }

@@ -86,7 +86,7 @@ function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
             HxNet_Grenade(G).Client = Client;
             HxNet_Grenade(G).SpawnRandomGenerator(WeaponInfo.Generator.RandInt());
             UpdateSpeedAndDamage(G, Dir);
-            HexedNET.ForwardBouncingProjectile(Weapon, G, Client.GetProjectilePing() + ServerDelay);
+            HexedNET.ForwardBouncingProjectile(Weapon, G, Client.GetProjectileCompensationTime() + ServerDelay);
             if (G != None && G.bTimerSet && G.TimerRate > 0)
             {
                 G.ExplodeTimer = G.TimerRate;

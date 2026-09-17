@@ -38,13 +38,14 @@ function StoreRoutePoint()
     RoutePoints[RoutePoints.Length] = Point;
 }
 
-function Rewind(float DeltaTime)
+function Rewind(float CompensationTime)
 {
     local int Index;
 
-    Index = FindLowerBound(Level.TimeSeconds - DeltaTime);
-    DeltaTime = FMax(0, (Level.TimeSeconds - RoutePoints[Index].Timestamp) - DeltaTime);
-    SetLocation(RoutePoints[Index].Location + RoutePoints[Index].Velocity * DeltaTime);
+    Index = FindLowerBound(Level.TimeSeconds - CompensationTime);
+    CompensationTime = FMax(
+        0, (Level.TimeSeconds - RoutePoints[Index].Timestamp) - CompensationTime);
+    SetLocation(RoutePoints[Index].Location + RoutePoints[Index].Velocity * CompensationTime);
     SetCollisionSize(RoutePoints[Index].Radius, RoutePoints[Index].Radius);
     SetCollision(true);
 }

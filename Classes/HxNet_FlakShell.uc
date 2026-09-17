@@ -105,5 +105,5 @@ simulated function DoSetLocation(Vector NewLocation)
 
 defaultproperties
 {
-    InterpolationPeriod=0.15
+    InterpolationPeriod=0.30
 }

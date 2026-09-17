@@ -8,22 +8,23 @@ struct HxWeaponGroup
 // BallLauncher's InventoryGroup is 15
 const WEAPON_GROUP_COUNT = 16;
 const WARMUP_COUNT = 10;
+const PING_INTERVAL_VARIANCE = 0.1;
 const BAS_LOCATION_TOLERANCE = 360;
 const BAS_ANGLE_TOLERANCE = -0.5;
-
-var float AveragePing;
-var float AverageDeltaTime;
-var float ProjectileCompensationLimit;
+const AVG_DELTA_RATIO = 0.3;
 
 var private HxNetcodeConfig NetConfig;
-var private int PingCount;
-var private int TickCount;
-var private bool bPingCompensation;
-var private float PingInterval;
-var private float PingSmoothing;
-var private bool bClientUpdated;
 var private HxWeaponGroup Groups[WEAPON_GROUP_COUNT];
 var private HxRandomGeneratorAlt Seeder;
+var private bool bLagCompensation;
+var private bool bClientUpdated;
+var private int PingCount;
+var private int TickCount;
+var private float AvgPing;
+var private float AvgDeltaTime;
+var private float PingInterval;
+var private float PingSmoothing;
+var private float ProjectileCompensationLimit;
 
 replication
 {
@@ -75,12 +76,12 @@ simulated function SetupClient(HxClientManager Manager)
 
 simulated function ClientRequestPing(float Timestamp)
 {
-    ServerPing(Timestamp, AverageDeltaTime);
+    ServerPing(Timestamp, AvgDeltaTime);
 }
 
 simulated function ClientUpdatePing(float Ping)
 {
-    AveragePing = Ping;
+    AvgPing = Ping;
 }
 
 simulated function Tick(float DeltaTime)
@@ -94,41 +95,46 @@ simulated function Tick(float DeltaTime)
         }
         if (TickCount < WARMUP_COUNT)
         {
-            TickCount++;
-            AverageDeltaTime += (DeltaTime - AverageDeltaTime) / TickCount;
+            ++TickCount;
+            AvgDeltaTime = AvgDeltaTime + (DeltaTime - AvgDeltaTime) / TickCount;
         }
         else
         {
-            AverageDeltaTime += (DeltaTime - AverageDeltaTime) * 0.5;
+            AvgDeltaTime = AvgDeltaTime + (DeltaTime - AvgDeltaTime) * AVG_DELTA_RATIO;
         }
     }
     else if (Level.NetMode == NM_DedicatedServer && !bClientUpdated)
     {
         ClientSetAllowMultiHit(class'ZoomSuperShockBeamFire'.default.bAllowMultiHit);
+        bClientUpdated = true;
     }
 }
 
 event Timer()
 {
-    ClientRequestPing(Level.TimeSeconds);
+    if (bLagCompensation)
+    {
+        ClientRequestPing(Level.TimeSeconds);
+        SetTimer(GetPingInterval(), false);
+    }
 }
 
-function ServerPing(float Timestamp, float ClientAverageDeltaTime)
+function ServerPing(float Timestamp, float ClientAvgDeltaTime)
 {
     local float NewPing;
 
     NewPing = MutHexedNET(MutatorOwner).NormalizePing(Level.TimeSeconds - Timestamp);
     if (PingCount < WARMUP_COUNT)
     {
-        PingCount++;
-        AveragePing += (NewPing - AveragePing) / PingCount;
+        ++PingCount;
+        AvgPing = AvgPing + (NewPing - AvgPing) / PingCount;
     }
     else
     {
-        AveragePing += (NewPing - AveragePing) * PingSmoothing;
+        AvgPing = AvgPing + (NewPing - AvgPing) * PingSmoothing;
     }
-    AverageDeltaTime = ClientAverageDeltaTime;
-    ClientUpdatePing(AveragePing);
+    AvgDeltaTime = ClientAvgDeltaTime;
+    ClientUpdatePing(AvgPing);
 }
 
 function SetServerProperty(int Index, string Value)
@@ -147,35 +153,23 @@ simulated function SetProjectileCompensationLimit(coerce float Value)
 
 function ServerSetPingCompensation(bool bEnable, int Seed)
 {
-    bPingCompensation = bEnable;
+    bLagCompensation = bEnable;
     if (bEnable)
     {
-        SetTimer(PingInterval, true);
-        Seeder.SetSeed(Seed);
-        RefreshSeeds();
-    }
-    else
-    {
-        SetTimer(0, false);
+        SetTimer(GetPingInterval(), false);
+        RefreshSeeds(Seed);
     }
 }
 
-function ServerSetPingFrequency(float Frequency)
+function ServerSetPingFrequency(float NewFrequency)
 {
-    Frequency = FClamp(
-        Frequency,
-        float(ConfigClasses[0].default.Properties[1].LowerLimit),
-        MutHexedNET(MutatorOwner).MaxPingFrequency);
-    PingInterval = Level.TimeDilation / Frequency;
-    if (bPingCompensation)
-    {
-        SetTimer(PingInterval, true);
-    }
+    NewFrequency = FMin(NewFrequency, MutHexedNET(MutatorOwner).MaxPingFrequency);
+    PingInterval = Level.TimeDilation / NewFrequency;
 }
 
-function ServerSetPingSmoothing(float Factor)
+function ServerSetPingSmoothing(float NewPingSmoothing)
 {
-    PingSmoothing = FClamp(Factor, float(ConfigClasses[0].default.Properties[2].LowerLimit), 1.0);
+    PingSmoothing = NewPingSmoothing;
 }
 
 simulated function NotifyServerPropertiesReady()
@@ -195,7 +189,7 @@ simulated function NotifyUserPropertyChanged(HxConfig Config, int Index, string 
 {
     switch (Config.Properties[Index].Name)
     {
-        case "bPingCompensation":
+        case "bLagCompensation":
             UpdatePingCompensation();
             break;
         case "PingFrequency":
@@ -211,14 +205,13 @@ simulated function UpdatePingCompensation()
 {
     local int Seed;
 
-    bPingCompensation = NetConfig.bPingCompensation && Level.NetMode != NM_ListenServer;
-    if (bPingCompensation)
+    bLagCompensation = NetConfig.bLagCompensation && Level.NetMode != NM_ListenServer;
+    if (bLagCompensation)
     {
         Seed = Rand(MaxInt);
-        Seeder.SetSeed(Seed);
-        RefreshSeeds();
+        RefreshSeeds(Seed);
     }
-    ServerSetPingCompensation(bPingCompensation, Seed);
+    ServerSetPingCompensation(bLagCompensation, Seed);
 }
 
 simulated function ClientSetAllowMultiHit(bool bEnable)
@@ -226,27 +219,37 @@ simulated function ClientSetAllowMultiHit(bool bEnable)
     class'HxNet_ZoomSuperShockBeamFire'.default.bServerAllowMultiHit = bEnable;
 }
 
-simulated function float GetProjectilePing()
+simulated final function float GetCompensationTime()
 {
-    return FMin(AveragePing, ProjectileCompensationLimit);
+    return AvgPing;
 }
 
-simulated function float GetProjectileDelay()
+simulated final function float GetProjectileCompensationTime()
 {
-    return AveragePing - ProjectileCompensationLimit;
+    return FMin(AvgPing, ProjectileCompensationLimit);
 }
 
-simulated function bool WantsPingCompensation()
+simulated final function float GetProjectileDelay()
 {
-    return bPingCompensation && AveragePing > AverageDeltaTime;
+    return AvgPing - ProjectileCompensationLimit;
 }
 
-simulated function bool ShouldSpawnPredictedProjectile()
+simulated final function bool WantsPingCompensation()
 {
-    return AveragePing > (AverageDeltaTime * 1.5);
+    return bLagCompensation && AvgPing > AvgDeltaTime;
 }
 
-simulated function bool IsAcceptableBAS(Weapon W, Vector BASStart, Rotator BASAim)
+simulated final function bool ShouldSpawnPredictedProjectile()
+{
+    return AvgPing > (AvgDeltaTime * 1.5);
+}
+
+simulated final function float GetPingInterval()
+{
+    return PingInterval + PingInterval * PING_INTERVAL_VARIANCE * (FRand() - 0.5);
+}
+
+simulated final function bool IsAcceptableBAS(Weapon W, Vector BASStart, Rotator BASAim)
 {
     local Vector Diff;
 
@@ -263,7 +266,7 @@ simulated function bool IsAcceptableBAS(Weapon W, Vector BASStart, Rotator BASAi
     return true;
 }
 
-simulated function HxNTWeaponInfo GetWeaponInfo(class<Weapon> WeaponClass)
+simulated final function HxNTWeaponInfo GetWeaponInfo(class<Weapon> WeaponClass)
 {
     local int GroupIndex;
     local int i;
@@ -286,11 +289,12 @@ simulated function HxNTWeaponInfo GetWeaponInfo(class<Weapon> WeaponClass)
     return Groups[GroupIndex].Weapons[i];
 }
 
-simulated function RefreshSeeds()
+simulated final function RefreshSeeds(int Seed)
 {
     local int i;
     local int j;
 
+    Seeder.SetSeed(Seed);
     for (i = 0; i < WEAPON_GROUP_COUNT; ++i)
     {
         for (j = 0; j < Groups[i].Weapons.Length; ++j)
@@ -338,7 +342,6 @@ defaultproperties
 {
     NetUpdateFrequency=100
     NetPriority=3
-
     MutatorClass=class'MutHexedNET'
     ConfigClasses(0)=class'HxNetcodeConfig'
     Order=64

@@ -61,7 +61,7 @@ function DoTrace(Vector Start, Rotator Dir)
     }
     X = Vector(Dir);
     End = Start + TraceRange * X;
-    HexedNET.Rewind(Client.AveragePing + ServerDelay);
+    HexedNET.Rewind(Client.GetCompensationTime() + ServerDelay);
     Other = HexedNET.RewoundTrace(Weapon, HitLocation, HitNormal, End, Start);
     HexedNET.UndoRewind();
     if (Level.NetMode != NM_Standalone || PlayerController(Instigator.Controller) == None)

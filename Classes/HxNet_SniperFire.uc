@@ -20,21 +20,21 @@ function bool WantsPingCompensation()
         && Client.WantsPingCompensation();
 }
 
-function PlayFiring()
-{
-    Super.PlayFiring();
-    if (Level.NetMode == NM_Client && WantsPingCompensation() && Instigator.IsLocallyControlled())
-    {
-        DoFireEffect();
-    }
-}
-
 function ApplyBAS(HxNTWeapon.HxBAS BAS)
 {
     if (class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
     {
         class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
         bBoostedAimSynchronization = Client.IsAcceptableBAS(Weapon, BASStart, BASAim);
+    }
+}
+
+function PlayFiring()
+{
+    Super.PlayFiring();
+    if (Level.NetMode == NM_Client && WantsPingCompensation() && Instigator.IsLocallyControlled())
+    {
+        DoFireEffect();
     }
 }
 
@@ -99,7 +99,7 @@ function DoTrace(Vector Start, Rotator Dir)
         End = Start + TmpTraceRange * X;
         if (bRewind)
         {
-            HexedNET.Rewind(Client.AveragePing + ServerDelay);
+            HexedNET.Rewind(Client.GetCompensationTime() + ServerDelay);
             Hit = HexedNET.RewoundTrace(Weapon, HitLocation, HitNormal, End, Start);
             HexedNET.UndoRewind();
             TmpHitEmitClass = class'HxNet_NewLightningBolt';

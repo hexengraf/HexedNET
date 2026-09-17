@@ -36,7 +36,7 @@ function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
             HxNet_FlakChunk(P).Client = Client;
             HxNet_FlakChunk(P).Index = Index;
             P.Bounces = RandomizeBounces(WeaponInfo.Generator);
-            HexedNET.ForwardBouncingProjectile(Weapon, P, Client.GetProjectilePing() + ServerDelay);
+            HexedNET.ForwardBouncingProjectile(Weapon, P, Client.GetProjectileCompensationTime() + ServerDelay);
         }
         return P;
     }
