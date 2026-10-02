@@ -6,9 +6,39 @@ var config bool bLagCompensation;
 var config float PingFrequency;
 var config float PingSmoothing;
 
+var private HxNTClient Client;
+
+function ApplyProperty(int Index)
+{
+    if (Client == None)
+    {
+        foreach Level.DynamicActors(class'HxNTClient', Client) break;
+    }
+    if (Client != None)
+    {
+        switch (Properties[Index].Name)
+        {
+            case "bLagCompensation":
+                Client.UpdatePingCompensation(bLagCompensation);
+                break;
+            case "PingFrequency":
+                Client.ServerSetPingFrequency(PingFrequency);
+                break;
+            case "PingSmoothing":
+                Client.ServerSetPingSmoothing(PingSmoothing);
+                break;
+        }
+    }
+}
+
+function Destroy()
+{
+    Client = None;
+    Super.Destroy();
+}
+
 defaultproperties
 {
-    ObjectName="HexedNET"
     Properties(0)=(Name="bLagCompensation",Type=HX_PROPERTY_Bool)
     Properties(1)=(Name="PingFrequency",Type=HX_PROPERTY_Float,LowerLimit="1.0",UpperLimit="10.0")
     Properties(2)=(Name="PingSmoothing",Type=HX_PROPERTY_Float,LowerLimit="0.05",UpperLimit="1.0")

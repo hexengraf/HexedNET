@@ -13,7 +13,6 @@ const BAS_LOCATION_TOLERANCE = 360;
 const BAS_ANGLE_TOLERANCE = -0.5;
 const AVG_DELTA_RATIO = 0.3;
 
-var private HxNetcodeConfig NetConfig;
 var private HxWeaponGroup Groups[WEAPON_GROUP_COUNT];
 var private HxRandomGeneratorAlt Seeder;
 var private bool bLagCompensation;
@@ -53,25 +52,7 @@ simulated event PostBeginPlay()
 function SetupServer(HxMutator Mutator)
 {
     Super.SetupServer(Mutator);
-    SetProjectileCompensationLimit(GetServerProperty("ProjectileCompensationLimit"));
-}
-
-simulated function SetupClient(HxClientManager Manager)
-{
-    Super.SetupClient(Manager);
-    NetConfig = HxNetcodeConfig(Configs[0]);
-    if (Level.NetMode == NM_Client)
-    {
-        ServerSetPingSmoothing(NetConfig.PingSmoothing);
-        ServerSetPingFrequency(NetConfig.PingFrequency);
-        UpdatePingCompensation();
-    }
-    if (Manager.IsFirstRun())
-    {
-        // TODO: remove this in v11
-        NetConfig.ClearConfig();
-        NetConfig.SaveConfig();
-    }
+    SetProjectileCompensationLimit(MutHexedNET(Mutator).ProjectileCompensationLimit);
 }
 
 simulated function ClientRequestPing(float Timestamp)
@@ -137,15 +118,6 @@ function ServerPing(float Timestamp, float ClientAvgDeltaTime)
     ClientUpdatePing(AvgPing);
 }
 
-function SetServerProperty(int Index, string Value)
-{
-    Super.SetServerProperty(Index, Value);
-    if (MutatorClass.default.Properties[Index].Name == "ProjectileCompensationLimit")
-    {
-        SetProjectileCompensationLimit(Value);
-    }
-}
-
 simulated function SetProjectileCompensationLimit(coerce float Value)
 {
     ProjectileCompensationLimit = Value / (Level.TimeDilation * 1000.0);
@@ -172,40 +144,36 @@ function ServerSetPingSmoothing(float NewPingSmoothing)
     PingSmoothing = NewPingSmoothing;
 }
 
-simulated function NotifyServerPropertiesReady()
+simulated function NotifyMutatorInfoReady()
 {
-    SetProjectileCompensationLimit(GetServerProperty("ProjectileCompensationLimit"));
+    local HxNetcodeConfig NetConfig;
+
+    SetProjectileCompensationLimit(MutatorInfo.Get("ProjectileCompensationLimit"));
+    NetConfig = HxNetcodeConfig(FindConfig(class'HxNetcodeConfig'));
+    if (ClientManager.IsFirstRun())
+    {
+        // TODO: remove this in v11
+        NetConfig.ClearConfig();
+        NetConfig.SaveConfig();
+    }
+    ServerSetPingSmoothing(NetConfig.PingSmoothing);
+    ServerSetPingFrequency(NetConfig.PingFrequency);
+    UpdatePingCompensation(NetConfig.bLagCompensation);
 }
 
-simulated function NotifyServerPropertyChanged(int Index, string OldValue)
+simulated function NotifyMutatorPropertyChanged(int Index)
 {
-    if (MutatorClass.default.Properties[Index].Name == "ProjectileCompensationLimit")
+    if (MutatorInfo.GetName(Index) == "ProjectileCompensationLimit")
     {
-        SetProjectileCompensationLimit(GetServerProperty("ProjectileCompensationLimit"));
+        SetProjectileCompensationLimit(MutatorInfo.Get("ProjectileCompensationLimit"));
     }
 }
 
-simulated function NotifyUserPropertyChanged(HxConfig Config, int Index, string OldValue)
-{
-    switch (Config.Properties[Index].Name)
-    {
-        case "bLagCompensation":
-            UpdatePingCompensation();
-            break;
-        case "PingFrequency":
-            ServerSetPingFrequency(NetConfig.PingFrequency);
-            break;
-        case "PingSmoothing":
-            ServerSetPingSmoothing(NetConfig.PingSmoothing);
-            break;
-    }
-}
-
-simulated function UpdatePingCompensation()
+simulated function UpdatePingCompensation(bool bCompensate)
 {
     local int Seed;
 
-    bLagCompensation = NetConfig.bLagCompensation && Level.NetMode != NM_ListenServer;
+    bLagCompensation = bCompensate && Level.NetMode != NM_ListenServer;
     if (bLagCompensation)
     {
         Seed = Rand(MaxInt);

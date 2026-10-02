@@ -39,6 +39,22 @@ event PostBeginPlay()
     }
 }
 
+function SetProperty(int Index, string Value)
+{
+    local HxNTClient Client;
+    local int i;
+
+    Super.SetProperty(Index, Value);
+    if (Properties[Index].Name == "ProjectileCompensationLimit")
+    {
+        for (i = 0; i < Channels.Length; ++i)
+        {
+            Client = HxNTClient(Channels[i].GetClientReplicationInfo(UID));
+            Client.SetProjectileCompensationLimit(Value);
+        }
+    }
+}
+
 function Tick(float DeltaTime)
 {
     Super.Tick(DeltaTime);
@@ -760,7 +776,8 @@ defaultproperties
     FriendlyName="HexedNET %TAG%"
     Description="Provides lag compensation for official weapons."
     bAddToServerPackages=true
-    CRIClass=class'HxNTClient'
+    UniqueObjectName="HexedNET"
+    ClientReplicationInfoClass=class'HxNTClient'
     Properties(0)=(Name="MaxPingFrequency",Type=HX_PROPERTY_Float,LowerLimit="0.2",UpperLimit="10.0")
     Properties(1)=(Name="LagCompensationLimit",Type=HX_PROPERTY_Int,LowerLimit="50",UpperLimit="999")
     Properties(2)=(Name="ProjectileCompensationLimit",Type=HX_PROPERTY_Int,LowerLimit="50",UpperLimit="999")
@@ -771,9 +788,9 @@ defaultproperties
     DisplayInfo(2)=(Caption="Projectile Compensation Limit",Hint="Projectile-specific lag compensation limit (in milliseconds).",Step="10",bMPOnly=true,bAdvanced=true)
     DisplayInfo(3)=(Caption="Backport Rubberbanding Fix",Hint="Backport OldUnreal's rubberbanding fix. Applied on restart/map change.",bMPOnly=true,bAdvanced=true)
     DisplayInfo(4)=(Caption="Link Meshes",Hint="Link meshes for collision detection. Disable this if experiencing crashes.",bMPOnly=true,bAdvanced=true)
-    ClassOverrides(0)=(TargetClass=class'AssaultRifle',BASClass=class'HxNet_AssaultRifle',FireModeClass=(class'HxNet_AssaultFire',class'HxNet_AssaultGrenade'))
     ConfigClasses(0)=class'HxNetcodeConfig'
-    UIPriority=64
+    Priority=64
+    ClassOverrides(0)=(TargetClass=class'AssaultRifle',BASClass=class'HxNet_AssaultRifle',FireModeClass=(class'HxNet_AssaultFire',class'HxNet_AssaultGrenade'))
     ClassOverrides(1)=(TargetClass=class'BioRifle',BASClass=class'HxNet_BioRifle',FireModeClass=(class'HxNet_BioFire',class'HxNet_BioChargedFire'))
     ClassOverrides(2)=(TargetClass=class'ShockRifle',BASClass=class'HxNet_ShockRifle',FireModeClass=(class'HxNet_ShockBeamFire',class'HxNet_ShockProjFire'))
     ClassOverrides(3)=(TargetClass=class'LinkGun',BASClass=class'HxNet_LinkGun',FireModeClass=(class'HxNet_LinkAltFire',class'HxNet_LinkFire'))
