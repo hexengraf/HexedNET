@@ -776,18 +776,18 @@ defaultproperties
     FriendlyName="HexedNET %TAG%"
     Description="Provides lag compensation for official weapons."
     bAddToServerPackages=true
-    UniqueObjectName="HexedNET"
+    QualifiedName="HexedNET"
     ClientReplicationInfoClass=class'HxNTClient'
     Properties(0)=(Name="PingFrequency",Type=HX_PROPERTY_Float,LowerLimit="1.0",UpperLimit="20.0")
     Properties(1)=(Name="LagCompensationLimit",Type=HX_PROPERTY_Int,LowerLimit="50",UpperLimit="999")
     Properties(2)=(Name="ProjectileCompensationLimit",Type=HX_PROPERTY_Int,LowerLimit="50",UpperLimit="999")
     Properties(3)=(Name="bRubberbandingFix",Type=HX_PROPERTY_Bool)
     Properties(4)=(Name="bLinkMeshes",Type=HX_PROPERTY_Bool)
-    DisplayInfo(0)=(Caption="Ping Frequency",Hint="Frequency to send ping packets (pings/second). Lower this value if server connection is saturated.",Step="0.25",bMPOnly=true,bAdvanced=true)
-    DisplayInfo(1)=(Caption="Lag Compensation Limit",Hint="Global lag compensation limit (in milliseconds).",Step="10",bMPOnly=true,bAdvanced=true)
-    DisplayInfo(2)=(Caption="Projectile Compensation Limit",Hint="Projectile-specific lag compensation limit (in milliseconds).",Step="10",bMPOnly=true,bAdvanced=true)
-    DisplayInfo(3)=(Caption="Backport Rubberbanding Fix",Hint="Backport OldUnreal's rubberbanding fix. Applied on restart/map change.",bMPOnly=true,bAdvanced=true)
-    DisplayInfo(4)=(Caption="Link Meshes",Hint="Link meshes for collision detection. Disable this if experiencing crashes.",bMPOnly=true,bAdvanced=true)
+    DisplayInfo(0)=(Caption="Ping Frequency",Hint="Frequency to send ping packets (pings/second). Lower this value if server connection is saturated.",Step="0.25",bMPOnly=true,bAdvanced=true,Verbosity=HX_LVL_Medium)
+    DisplayInfo(1)=(Caption="Lag Compensation Limit",Hint="Global lag compensation limit (in milliseconds).",Step="10",bMPOnly=true,bAdvanced=true,Verbosity=HX_LVL_Medium)
+    DisplayInfo(2)=(Caption="Projectile Compensation Limit",Hint="Projectile-specific lag compensation limit (in milliseconds).",Step="10",bMPOnly=true,bAdvanced=true,Verbosity=HX_LVL_Medium)
+    DisplayInfo(3)=(Caption="Backport Rubberbanding Fix",Hint="Backport OldUnreal's rubberbanding fix. Applied on restart/map change.",bMPOnly=true,bAdvanced=true,Verbosity=HX_LVL_Medium)
+    DisplayInfo(4)=(Caption="Link Meshes",Hint="Link meshes for collision detection. Disable this if experiencing crashes.",bMPOnly=true,bAdvanced=true,Verbosity=HX_LVL_Medium)
     ConfigClasses(0)=class'HxNetcodeConfig'
     Priority=64
     ClassOverrides(0)=(TargetClass=class'AssaultRifle',BASClass=class'HxNet_AssaultRifle',FireModeClass=(class'HxNet_AssaultFire',class'HxNet_AssaultGrenade'))
@@ -803,7 +803,7 @@ defaultproperties
     ClassOverrides(10)=(TargetClass=class'ZoomSuperShockRifle',BASClass=class'HxNet_ZoomSuperShockRifle',FireModeClass=(class'HxNet_ZoomSuperShockBeamFire'))
     ClassOverrides(11)=(TargetClass=class'HxSuperShockRifle',BASClass=class'HxNet_HxSuperShockRifle',FireModeClass=(class'HxNet_SuperShockBeamFire',class'HxNet_SuperShockBeamFire'))
     ClassOverrides(12)=(TargetClass=class'HxZoomSuperShockRifle',BASClass=class'HxNet_HxZoomSuperShockRifle',FireModeClass=(class'HxNet_ZoomSuperShockBeamFire'))
-    PingFrequency=3.0
+    PingFrequency=1.0
     LagCompensationLimit=300
     ProjectileCompensationLimit=125
     bRubberbandingFix=false
