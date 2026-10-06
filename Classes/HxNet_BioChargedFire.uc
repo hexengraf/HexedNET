@@ -46,10 +46,7 @@ function Projectile SpawnProjectile(Vector Start, Rotator Dir)
 {
     local BioGlob Glob;
 
-    if (Level.NetMode != NM_Client)
-    {
-        GotoState('');
-    }
+    GotoState('');
     if (GoopLoad != 0)
     {
         Glob = BioGlob(Weapon.Spawn(ProjectileClass,,, Start, Dir));
