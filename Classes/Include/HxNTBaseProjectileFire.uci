@@ -33,9 +33,7 @@ function PlayFiring()
     local float ProjectileDelay;
 
     Super.PlayFiring();
-    if (Level.NetMode == NM_Client && WantsPingCompensation()
-        && Instigator.IsLocallyControlled()
-        && Client.ShouldSpawnPredictedProjectile())
+    if (Level.NetMode == NM_Client && WantsPingCompensation() && Instigator.IsLocallyControlled())
     {
         ProjectileDelay = Client.GetProjectileDelay();
         if (ProjectileDelay > 0)

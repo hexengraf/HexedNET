@@ -8,39 +8,43 @@ struct HxWeaponGroup
 // BallLauncher's InventoryGroup is 15
 const WEAPON_GROUP_COUNT = 16;
 const WARMUP_COUNT = 10;
+const IGNORE_COUNT = 3;
 const PING_INTERVAL_VARIANCE = 0.1;
 const BAS_LOCATION_TOLERANCE = 360;
 const BAS_ANGLE_TOLERANCE = -0.5;
-const AVG_DELTA_RATIO = 0.3;
+const RTT_TIME_CONSTANT = 6.0;
+const DELTA_TIME_ALPHA = 0.05;
+
+var bool bLagCompensation;
 
 var private HxWeaponGroup Groups[WEAPON_GROUP_COUNT];
 var private HxRandomGeneratorAlt Seeder;
-var private bool bLagCompensation;
 var private bool bClientUpdated;
+var private bool bReceivedPing;
 var private int PingCount;
 var private int TickCount;
-var private float AvgPing;
+var private float LatestTimestamp;
+var private float AvgRTT;
+var private float RTTAlpha;
 var private float AvgDeltaTime;
 var private float PingInterval;
-var private float PingSmoothing;
+var private float LagCompensationLimit;
 var private float ProjectileCompensationLimit;
 
 replication
 {
     unreliable if (Role == ROLE_Authority)
-        ClientRequestPing,
-        ClientUpdatePing;
+        ClientPing;
 
     reliable if (Role == ROLE_Authority)
         ClientSetAllowMultiHit;
 
     unreliable if (Role < ROLE_Authority)
-        ServerPing;
+        ServerPing,
+        ServerUpdateStats;
 
     reliable if (Role < ROLE_Authority)
-        ServerSetPingCompensation,
-        ServerSetPingFrequency,
-        ServerSetPingSmoothing;
+        ServerSetLagCompensation;
 }
 
 simulated event PostBeginPlay()
@@ -49,24 +53,32 @@ simulated event PostBeginPlay()
     Seeder = HxRandomGeneratorAlt(Level.ObjectPool.AllocateObject(class'HxRandomGeneratorAlt'));
 }
 
+simulated function InitializeCompensation()
+{
+    local int Seed;
+
+    bLagCompensation = default.bLagCompensation && Level.NetMode != NM_ListenServer;
+    if (bLagCompensation)
+    {
+        Seed = Rand(MaxInt);
+        RefreshSeeds(Seed);
+        UpdatePingInterval();
+    }
+    ServerSetLagCompensation(bLagCompensation, Seed);
+}
+
+
 function SetupServer(HxMutator Mutator)
 {
     Super.SetupServer(Mutator);
+    SetLagCompensationLimit(MutHexedNET(Mutator).LagCompensationLimit);
     SetProjectileCompensationLimit(MutHexedNET(Mutator).ProjectileCompensationLimit);
-}
-
-simulated function ClientRequestPing(float Timestamp)
-{
-    ServerPing(Timestamp, AvgDeltaTime);
-}
-
-simulated function ClientUpdatePing(float Ping)
-{
-    AvgPing = Ping;
 }
 
 simulated function Tick(float DeltaTime)
 {
+    local float NewRTT;
+
     Super.Tick(DeltaTime);
     if (Level.NetMode == NM_Client)
     {
@@ -74,14 +86,36 @@ simulated function Tick(float DeltaTime)
         {
             FixWeaponInstigator(PlayerOwner);
         }
-        if (TickCount < WARMUP_COUNT)
+        if (bReceivedPing)
         {
-            ++TickCount;
-            AvgDeltaTime = AvgDeltaTime + (DeltaTime - AvgDeltaTime) / TickCount;
-        }
-        else
-        {
-            AvgDeltaTime = AvgDeltaTime + (DeltaTime - AvgDeltaTime) * AVG_DELTA_RATIO;
+            bReceivedPing = false;
+            if (TickCount < WARMUP_COUNT)
+            {
+                ++TickCount;
+                AvgDeltaTime = AvgDeltaTime + (DeltaTime - AvgDeltaTime) / TickCount;
+            }
+            else
+            {
+                AvgDeltaTime = AvgDeltaTime + (DeltaTime - AvgDeltaTime) * DELTA_TIME_ALPHA;
+            }
+            NewRTT = Level.TimeSeconds - LatestTimestamp - (AvgDeltaTime * 0.5);
+            if (PingCount < WARMUP_COUNT)
+            {
+                if (PingCount < IGNORE_COUNT)
+                {
+                    ++PingCount;
+                }
+                else
+                {
+                    ++PingCount;
+                    AvgRTT = AvgRTT + (NewRTT - AvgRTT) / (PingCount - IGNORE_COUNT);
+                }
+            }
+            else
+            {
+                AvgRTT = AvgRTT + (NewRTT - AvgRTT) * RTTAlpha;
+            }
+            ServerUpdateStats(AvgRTT, AvgDeltaTime);
         }
     }
     else if (Level.NetMode == NM_DedicatedServer && !bClientUpdated)
@@ -91,95 +125,84 @@ simulated function Tick(float DeltaTime)
     }
 }
 
-event Timer()
+simulated event Timer()
 {
     if (bLagCompensation)
     {
-        ClientRequestPing(Level.TimeSeconds);
-        SetTimer(GetPingInterval(), false);
-    }
-}
-
-function ServerPing(float Timestamp, float ClientAvgDeltaTime)
-{
-    local float NewPing;
-
-    NewPing = MutHexedNET(MutatorOwner).NormalizePing(Level.TimeSeconds - Timestamp);
-    if (PingCount < WARMUP_COUNT)
-    {
-        ++PingCount;
-        AvgPing = AvgPing + (NewPing - AvgPing) / PingCount;
+        ServerPing(Level.TimeSeconds);
     }
     else
     {
-        AvgPing = AvgPing + (NewPing - AvgPing) * PingSmoothing;
+        SetTimer(0.0, false);
     }
-    AvgDeltaTime = ClientAvgDeltaTime;
-    ClientUpdatePing(AvgPing);
+}
+
+function ServerPing(float Timestamp)
+{
+    ClientPing(MutHexedNET(MutatorOwner).AdjustTimestamp(Timestamp));
+}
+
+simulated function ClientPing(float Timestamp)
+{
+    LatestTimestamp = Timestamp;
+    bReceivedPing = true;
+}
+
+function ServerUpdateStats(float NewAvgRTT, float NewAvgDeltaTime)
+{
+    AvgRTT = NewAvgRTT;
+    AvgDeltaTime = NewAvgDeltaTime;
+}
+
+simulated function UpdatePingInterval()
+{
+    PingInterval = Level.TimeDilation / float(MutatorInfo.Get("PingFrequency"));
+    PingInterval = PingInterval + PingInterval * PING_INTERVAL_VARIANCE * (FRand() - 0.5);
+    RTTAlpha = FClamp(PingInterval / RTT_TIME_CONSTANT, 0.005, 0.5);
+    SetTimer(PingInterval, true);
+}
+
+simulated function SetLagCompensationLimit(coerce float Value)
+{
+    LagCompensationLimit = (Value * Level.TimeDilation) / 1000.0;
 }
 
 simulated function SetProjectileCompensationLimit(coerce float Value)
 {
-    ProjectileCompensationLimit = Value / (Level.TimeDilation * 1000.0);
+    ProjectileCompensationLimit = (Value * Level.TimeDilation) / 1000.0;
 }
 
-function ServerSetPingCompensation(bool bEnable, int Seed)
+function ServerSetLagCompensation(bool bEnable, int Seed)
 {
     bLagCompensation = bEnable;
-    if (bEnable)
+    if (bLagCompensation)
     {
-        SetTimer(GetPingInterval(), false);
         RefreshSeeds(Seed);
     }
-}
-
-function ServerSetPingFrequency(float NewFrequency)
-{
-    NewFrequency = FMin(NewFrequency, MutHexedNET(MutatorOwner).MaxPingFrequency);
-    PingInterval = Level.TimeDilation / NewFrequency;
-}
-
-function ServerSetPingSmoothing(float NewPingSmoothing)
-{
-    PingSmoothing = NewPingSmoothing;
 }
 
 simulated function NotifyMutatorInfoReady()
 {
-    local HxNetcodeConfig NetConfig;
-
+    SetLagCompensationLimit(MutatorInfo.Get("LagCompensationLimit"));
     SetProjectileCompensationLimit(MutatorInfo.Get("ProjectileCompensationLimit"));
-    NetConfig = HxNetcodeConfig(FindConfig(class'HxNetcodeConfig'));
-    if (ClientManager.IsFirstRun())
-    {
-        // TODO: remove this in v11
-        NetConfig.ClearConfig();
-        NetConfig.SaveConfig();
-    }
-    ServerSetPingSmoothing(NetConfig.PingSmoothing);
-    ServerSetPingFrequency(NetConfig.PingFrequency);
-    UpdatePingCompensation(NetConfig.bLagCompensation);
+    InitializeCompensation();
 }
 
 simulated function NotifyMutatorPropertyChanged(int Index)
 {
-    if (MutatorInfo.GetName(Index) == "ProjectileCompensationLimit")
+    switch (MutatorInfo.GetName(Index))
     {
-        SetProjectileCompensationLimit(MutatorInfo.Get("ProjectileCompensationLimit"));
-    }
-}
+        case "PingFrequency":
+            UpdatePingInterval();
+            break;
+        case "LagCompensationLimit":
+            SetLagCompensationLimit(MutatorInfo.Get("LagCompensationLimit"));
+            break;
+        case "ProjectileCompensationLimit":
+            SetProjectileCompensationLimit(MutatorInfo.Get("ProjectileCompensationLimit"));
+            break;
 
-simulated function UpdatePingCompensation(bool bCompensate)
-{
-    local int Seed;
-
-    bLagCompensation = bCompensate && Level.NetMode != NM_ListenServer;
-    if (bLagCompensation)
-    {
-        Seed = Rand(MaxInt);
-        RefreshSeeds(Seed);
     }
-    ServerSetPingCompensation(bLagCompensation, Seed);
 }
 
 simulated function ClientSetAllowMultiHit(bool bEnable)
@@ -189,32 +212,22 @@ simulated function ClientSetAllowMultiHit(bool bEnable)
 
 simulated final function float GetCompensationTime()
 {
-    return AvgPing;
+    return FMin(AvgRTT, LagCompensationLimit);
 }
 
 simulated final function float GetProjectileCompensationTime()
 {
-    return FMin(AvgPing, ProjectileCompensationLimit);
+    return FMin(AvgRTT, ProjectileCompensationLimit);
 }
 
 simulated final function float GetProjectileDelay()
 {
-    return AvgPing - ProjectileCompensationLimit;
+    return AvgRTT - ProjectileCompensationLimit;
 }
 
 simulated final function bool WantsPingCompensation()
 {
-    return bLagCompensation && AvgPing > AvgDeltaTime;
-}
-
-simulated final function bool ShouldSpawnPredictedProjectile()
-{
-    return AvgPing > (AvgDeltaTime * 1.5);
-}
-
-simulated final function float GetPingInterval()
-{
-    return PingInterval + PingInterval * PING_INTERVAL_VARIANCE * (FRand() - 0.5);
+    return bLagCompensation && AvgRTT > (AvgDeltaTime * 1.2);
 }
 
 simulated final function bool IsAcceptableBAS(Weapon W, Vector BASStart, Rotator BASAim)
@@ -308,9 +321,7 @@ static function FixWeaponInstigator(PlayerController PC)
 
 defaultproperties
 {
+    MutatorClass=class'MutHexedNET'
     NetUpdateFrequency=100
     NetPriority=3
-    MutatorClass=class'MutHexedNET'
-    PingInterval=0.7
-    PingSmoothing=0.3
 }

@@ -10,9 +10,9 @@ struct HxNTClassOverride
 
 const MIN_TIMESTEP = 0.0165;
 const WARMUP_COUNT = 10;
-const AVG_DELTA_RATIO = 0.3;
+const DELTA_TIME_ALPHA = 0.02;
 
-var config float MaxPingFrequency;
+var config float PingFrequency;
 var config int LagCompensationLimit;
 var config int ProjectileCompensationLimit;
 var config bool bRubberbandingFix;
@@ -65,7 +65,7 @@ function Tick(float DeltaTime)
     }
     else
     {
-        AvgDeltaTime = AvgDeltaTime + (DeltaTime - AvgDeltaTime) * AVG_DELTA_RATIO;
+        AvgDeltaTime = AvgDeltaTime + (DeltaTime - AvgDeltaTime) * DELTA_TIME_ALPHA;
     }
     ForwardTimeStep = FMax(MIN_TIMESTEP, AvgDeltaTime);
 }
@@ -663,14 +663,14 @@ function ApplyClassOverridesToWeaponLocker(WeaponLocker L)
     }
 }
 
-final function float NormalizePing(float Ping)
+final function float AdjustTimestamp(float Timestamp)
 {
-    return FClamp(Ping, 0.0, GetCompensationLimit());
+    return Timestamp + (AvgDeltaTime * 0.5);
 }
 
 final function float GetCompensationLimit()
 {
-    return LagCompensationLimit / (Level.TimeDilation * 1000.0);
+    return (LagCompensationLimit * Level.TimeDilation) / 1000.0;
 }
 
 static final function bool IsPredicted(Actor A)
@@ -778,12 +778,12 @@ defaultproperties
     bAddToServerPackages=true
     UniqueObjectName="HexedNET"
     ClientReplicationInfoClass=class'HxNTClient'
-    Properties(0)=(Name="MaxPingFrequency",Type=HX_PROPERTY_Float,LowerLimit="0.2",UpperLimit="10.0")
+    Properties(0)=(Name="PingFrequency",Type=HX_PROPERTY_Float,LowerLimit="1.0",UpperLimit="20.0")
     Properties(1)=(Name="LagCompensationLimit",Type=HX_PROPERTY_Int,LowerLimit="50",UpperLimit="999")
     Properties(2)=(Name="ProjectileCompensationLimit",Type=HX_PROPERTY_Int,LowerLimit="50",UpperLimit="999")
     Properties(3)=(Name="bRubberbandingFix",Type=HX_PROPERTY_Bool)
     Properties(4)=(Name="bLinkMeshes",Type=HX_PROPERTY_Bool)
-    DisplayInfo(0)=(Caption="Maximum Ping Frequency",Hint="Maximum frequency to send pings (pings/second).",bMPOnly=true,bAdvanced=true)
+    DisplayInfo(0)=(Caption="Ping Frequency",Hint="Frequency to send ping packets (pings/second). Lower this value if server connection is saturated.",Step="0.25",bMPOnly=true,bAdvanced=true)
     DisplayInfo(1)=(Caption="Lag Compensation Limit",Hint="Global lag compensation limit (in milliseconds).",Step="10",bMPOnly=true,bAdvanced=true)
     DisplayInfo(2)=(Caption="Projectile Compensation Limit",Hint="Projectile-specific lag compensation limit (in milliseconds).",Step="10",bMPOnly=true,bAdvanced=true)
     DisplayInfo(3)=(Caption="Backport Rubberbanding Fix",Hint="Backport OldUnreal's rubberbanding fix. Applied on restart/map change.",bMPOnly=true,bAdvanced=true)
@@ -803,9 +803,9 @@ defaultproperties
     ClassOverrides(10)=(TargetClass=class'ZoomSuperShockRifle',BASClass=class'HxNet_ZoomSuperShockRifle',FireModeClass=(class'HxNet_ZoomSuperShockBeamFire'))
     ClassOverrides(11)=(TargetClass=class'HxSuperShockRifle',BASClass=class'HxNet_HxSuperShockRifle',FireModeClass=(class'HxNet_SuperShockBeamFire',class'HxNet_SuperShockBeamFire'))
     ClassOverrides(12)=(TargetClass=class'HxZoomSuperShockRifle',BASClass=class'HxNet_HxZoomSuperShockRifle',FireModeClass=(class'HxNet_ZoomSuperShockBeamFire'))
-    MaxPingFrequency=10.0
-    LagCompensationLimit=330
-    ProjectileCompensationLimit=132
+    PingFrequency=3.0
+    LagCompensationLimit=300
+    ProjectileCompensationLimit=125
     bRubberbandingFix=false
     bLinkMeshes=true
 }

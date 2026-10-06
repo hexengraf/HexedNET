@@ -3,32 +3,42 @@ class HxNetcodeConfig extends HxConfig
     PerObjectConfig;
 
 var config bool bLagCompensation;
-var config float PingFrequency;
-var config float PingSmoothing;
 
 var private HxNTClient Client;
 
+function InitializeProperties()
+{
+    if (ClientManager.IsFirstRun())
+    {
+        // TODO: remove this in v11
+        ClearConfig();
+        bLagCompensation = default.bLagCompensation;
+        SaveConfig();
+    }
+    class'HxNTClient'.default.bLagCompensation = bLagCompensation;
+}
+
 function ApplyProperty(int Index)
+{
+    switch (Properties[Index].Name)
+    {
+        case "bLagCompensation":
+            class'HxNTClient'.default.bLagCompensation = bLagCompensation;
+            break;
+    }
+    if (HasClient())
+    {
+        Client.InitializeCompensation();
+    }
+}
+
+function bool HasClient()
 {
     if (Client == None)
     {
         foreach Level.DynamicActors(class'HxNTClient', Client) break;
     }
-    if (Client != None)
-    {
-        switch (Properties[Index].Name)
-        {
-            case "bLagCompensation":
-                Client.UpdatePingCompensation(bLagCompensation);
-                break;
-            case "PingFrequency":
-                Client.ServerSetPingFrequency(PingFrequency);
-                break;
-            case "PingSmoothing":
-                Client.ServerSetPingSmoothing(PingSmoothing);
-                break;
-        }
-    }
+    return Client != None;
 }
 
 function Destroy()
@@ -40,12 +50,6 @@ function Destroy()
 defaultproperties
 {
     Properties(0)=(Name="bLagCompensation",Type=HX_PROPERTY_Bool)
-    Properties(1)=(Name="PingFrequency",Type=HX_PROPERTY_Float,LowerLimit="1.0",UpperLimit="10.0")
-    Properties(2)=(Name="PingSmoothing",Type=HX_PROPERTY_Float,LowerLimit="0.05",UpperLimit="1.0")
     DisplayInfo(0)=(Caption="Enable Lag Compensation",Hint="Enable lag compensation.")
-    DisplayInfo(1)=(Caption="Ping Frequency",Hint="Frequency to send pings (pings/second).",Step="0.25",bAdvanced=true)
-    DisplayInfo(2)=(Caption="Ping Smoothing Factor",Hint="Factor to smooth out ping spikes from the average. Use low values for high smoothing (1.0 disables averaging completely).",Step="0.05",bAdvanced=true)
     bLagCompensation=true
-    PingFrequency=2.0
-    PingSmoothing=0.1
 }
