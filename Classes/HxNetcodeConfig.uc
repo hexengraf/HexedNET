@@ -20,16 +20,35 @@ function InitializeProperties()
 
 function ApplyProperty(int Index)
 {
-    switch (Properties[Index].Name)
+    switch (Index)
     {
-        case "bLagCompensation":
+        case 0:
             class'HxNTClient'.default.bLagCompensation = bLagCompensation;
+            ClientManager.RefreshConfigurationMenu();
             break;
     }
     if (HasClient())
     {
         Client.InitializeCompensation();
     }
+}
+
+function bool ShouldShowStatus(int Index)
+{
+    return bLagCompensation && HasClient();
+}
+
+function string GetStatus(int Index)
+{
+    if (HasClient())
+    {
+        switch (Index)
+        {
+            case 0:
+                return string(Client.GetAveragePing());
+        }
+    }
+    return "";
 }
 
 function bool HasClient()
@@ -51,5 +70,6 @@ defaultproperties
 {
     Properties(0)=(Name="bLagCompensation",Type=HX_PROPERTY_Bool)
     DisplayInfo(0)=(Caption="Enable Lag Compensation",Hint="Enable lag compensation.")
+    StatusInfo(0)=(Caption="Average Ping")
     bLagCompensation=true
 }

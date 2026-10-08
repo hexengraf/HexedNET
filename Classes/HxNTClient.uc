@@ -12,7 +12,7 @@ const IGNORE_COUNT = 3;
 const PING_INTERVAL_VARIANCE = 0.1;
 const BAS_LOCATION_TOLERANCE = 360;
 const BAS_ANGLE_TOLERANCE = -0.5;
-const RTT_TIME_CONSTANT = 6.0;
+const RTT_TIME_CONSTANT = 8.0;
 const DELTA_TIME_ALPHA = 0.05;
 
 var bool bLagCompensation;
@@ -208,6 +208,11 @@ simulated function NotifyMutatorPropertyChanged(int Index)
 simulated function ClientSetAllowMultiHit(bool bEnable)
 {
     class'HxNet_ZoomSuperShockBeamFire'.default.bServerAllowMultiHit = bEnable;
+}
+
+simulated final function float GetAveragePing()
+{
+    return (FMax(0.0, AvgRTT) / Level.TimeDilation) * 1000;
 }
 
 simulated final function float GetCompensationTime()
