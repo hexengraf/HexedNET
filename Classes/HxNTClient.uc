@@ -222,7 +222,7 @@ simulated final function float GetCompensationTime()
 
 simulated final function float GetProjectileCompensationTime()
 {
-    return FMin(AvgRTT, ProjectileCompensationLimit);
+    return FMin(FMax(0.0, AvgRTT - AvgDeltaTime), ProjectileCompensationLimit);
 }
 
 simulated final function float GetProjectileDelay()
