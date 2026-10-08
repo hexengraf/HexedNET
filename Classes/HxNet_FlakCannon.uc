@@ -58,7 +58,7 @@ simulated event ClientStartFire(int Mode)
                 HxNet_FlakAltFire(FireMode[Mode]).ApplyBAS(BAS);
             }
             ServerStartFireBAS(Mode, BAS);
-            StopFireTime[Mode] = 3;
+            StopFireTime[Mode] = 2;
         }
     }
     else

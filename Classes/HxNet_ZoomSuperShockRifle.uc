@@ -51,7 +51,7 @@ simulated event ClientStartFire(int Mode)
             BAS = class'HxNTWeapon'.static.EncodeBAS(Self, Mode, true);
             HxNet_ZoomSuperShockBeamFire(FireMode[Mode]).ApplyBAS(BAS);
             ServerStartFireBAS(Mode, BAS);
-            StopFireTime[Mode] = 3;
+            StopFireTime[Mode] = 2;
         }
     }
     else

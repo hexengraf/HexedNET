@@ -63,7 +63,7 @@ simulated event ClientStartFire(int Mode)
             BAS = class'HxNTWeapon'.static.EncodeBAS(Self, Mode);
             HxNet_AssaultFire(FireMode[Mode]).ApplyBAS(BAS);
             ServerStartFireBAS(Mode, BAS);
-            StopFireTime[Mode] = 3;
+            StopFireTime[Mode] = 2;
         }
     }
     else

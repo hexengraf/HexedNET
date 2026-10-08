@@ -64,6 +64,10 @@ static function bool ValidateClient(LevelInfo Level,
 
 static final function CheckStopFire(Weapon W, out int StopFireTime, out int AltStopFireTime)
 {
+    if (W.Level.Role == ROLE_Authority)
+    {
+        return;
+    }
     if (StopFireTime > 0)
     {
         --StopFireTime;
