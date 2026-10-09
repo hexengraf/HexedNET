@@ -8,12 +8,11 @@ struct HxWeaponGroup
 // BallLauncher's InventoryGroup is 15
 const WEAPON_GROUP_COUNT = 16;
 const WARMUP_COUNT = 10;
-const IGNORE_COUNT = 3;
 const PING_INTERVAL_VARIANCE = 0.1;
 const BAS_LOCATION_TOLERANCE = 360;
 const BAS_ANGLE_TOLERANCE = -0.5;
-const RTT_TIME_CONSTANT = 8.0;
-const DELTA_TIME_ALPHA = 0.05;
+const RTT_TIME_CONSTANT = 10.0;
+const DELTA_TIME_ALPHA = 0.008;
 
 var bool bLagCompensation;
 
@@ -101,15 +100,8 @@ simulated function Tick(float DeltaTime)
             NewRTT = Level.TimeSeconds - LatestTimestamp - (AvgDeltaTime * 0.5);
             if (PingCount < WARMUP_COUNT)
             {
-                if (PingCount < IGNORE_COUNT)
-                {
-                    ++PingCount;
-                }
-                else
-                {
-                    ++PingCount;
-                    AvgRTT = AvgRTT + (NewRTT - AvgRTT) / (PingCount - IGNORE_COUNT);
-                }
+                ++PingCount;
+                AvgRTT = AvgRTT + (NewRTT - AvgRTT) / PingCount;
             }
             else
             {
@@ -212,7 +204,7 @@ simulated function ClientSetAllowMultiHit(bool bEnable)
 
 simulated final function float GetAveragePing()
 {
-    return (FMax(0.0, AvgRTT) / Level.TimeDilation) * 1000;
+    return (FMax(0.0, AvgRTT) / Level.TimeDilation);
 }
 
 simulated final function float GetCompensationTime()

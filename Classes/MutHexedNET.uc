@@ -10,7 +10,7 @@ struct HxNTClassOverride
 
 const MIN_TIMESTEP = 0.0165;
 const WARMUP_COUNT = 10;
-const DELTA_TIME_ALPHA = 0.02;
+const DELTA_TIME_ALPHA = 0.008;
 
 var config float PingFrequency;
 var config int LagCompensationLimit;
@@ -778,7 +778,7 @@ defaultproperties
     bAddToServerPackages=true
     QualifiedName="HexedNET"
     ClientReplicationInfoClass=class'HxNTClient'
-    Properties(0)=(Name="PingFrequency",Type=HX_PROPERTY_Float,LowerLimit="1.0",UpperLimit="20.0")
+    Properties(0)=(Name="PingFrequency",Type=HX_PROPERTY_Float,LowerLimit="0.5",UpperLimit="20.0")
     Properties(1)=(Name="LagCompensationLimit",Type=HX_PROPERTY_Int,LowerLimit="50",UpperLimit="999")
     Properties(2)=(Name="ProjectileCompensationLimit",Type=HX_PROPERTY_Int,LowerLimit="50",UpperLimit="999")
     Properties(3)=(Name="bRubberbandingFix",Type=HX_PROPERTY_Bool)
@@ -803,7 +803,7 @@ defaultproperties
     ClassOverrides(10)=(TargetClass=class'ZoomSuperShockRifle',BASClass=class'HxNet_ZoomSuperShockRifle',FireModeClass=(class'HxNet_ZoomSuperShockBeamFire'))
     ClassOverrides(11)=(TargetClass=class'HxSuperShockRifle',BASClass=class'HxNet_HxSuperShockRifle',FireModeClass=(class'HxNet_SuperShockBeamFire',class'HxNet_SuperShockBeamFire'))
     ClassOverrides(12)=(TargetClass=class'HxZoomSuperShockRifle',BASClass=class'HxNet_HxZoomSuperShockRifle',FireModeClass=(class'HxNet_ZoomSuperShockBeamFire'))
-    PingFrequency=1.0
+    PingFrequency=2.0
     LagCompensationLimit=300
     ProjectileCompensationLimit=125
     bRubberbandingFix=false

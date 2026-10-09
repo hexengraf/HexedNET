@@ -3,6 +3,7 @@ class HxNetcodeConfig extends HxConfig
     PerObjectConfig;
 
 var config bool bLagCompensation;
+var localized const string  MillisecondsSuffix;
 
 var private HxNTClient Client;
 
@@ -45,7 +46,7 @@ function string GetStatus(int Index)
         switch (Index)
         {
             case 0:
-                return string(Client.GetAveragePing());
+                return int(Round(Client.GetAveragePing() * 1000))$MillisecondsSuffix;
         }
     }
     return "";
@@ -72,4 +73,5 @@ defaultproperties
     DisplayInfo(0)=(Caption="Enable Lag Compensation",Hint="Enable lag compensation.")
     StatusInfo(0)=(Caption="Average Ping")
     bLagCompensation=true
+    MillisecondsSuffix=" ms"
 }
