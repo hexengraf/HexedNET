@@ -111,7 +111,12 @@ simulated function bool StartFire(int Mode)
             FireMode[Mode].NextFireTime -= ServerDelay + 0.001;
             HxNet_RocketFire(FireMode[Mode]).ServerDelay = ServerDelay;
         }
-        return true;
+        if (Role < ROLE_Authority)
+        {
+            FireMode[Mode].bIsFiring =
+                FireMode[Mode].NextFireTime <= Level.TimeSeconds + FireMode[Mode].PreFireTime;
+        }
+        return FireMode[Mode].bIsFiring;
     }
     return false;
 }
@@ -135,11 +140,9 @@ static function RocketProj StaticSpawnProjectile(RocketLauncher Weapon,
 
 simulated function bool WantsStopFireBAS(int Mode)
 {
-    // TODO: why applying on stop fire sometimes causes stale BAS to be consumed?
-    // return HxNet_RocketMultiFire(FireMode[Mode]) != None
-    //     && HxNet_RocketMultiFire(FireMode[Mode]).Load < 3
-    //     && HxNet_RocketMultiFire(FireMode[Mode]).WantsPingCompensation();
-    return false;
+    return HxNet_RocketMultiFire(FireMode[Mode]) != None
+        && HxNet_RocketMultiFire(FireMode[Mode]).Load < 3
+        && HxNet_RocketMultiFire(FireMode[Mode]).WantsPingCompensation();
 }
 
 simulated function bool WantsStartFireBAS(int Mode)

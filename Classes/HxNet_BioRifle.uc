@@ -99,7 +99,12 @@ simulated function bool StartFire(int Mode)
             FireMode[Mode].NextFireTime -= ServerDelay + 0.001;
             HxNet_BioFire(FireMode[Mode]).ServerDelay = ServerDelay;
         }
-        return true;
+        if (Role < ROLE_Authority)
+        {
+            FireMode[Mode].bIsFiring =
+                FireMode[Mode].NextFireTime <= Level.TimeSeconds + FireMode[Mode].PreFireTime;
+        }
+        return FireMode[Mode].bIsFiring;
     }
     return false;
 }

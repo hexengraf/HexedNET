@@ -99,7 +99,12 @@ simulated function bool StartFire(int Mode)
                 HxNet_FlakAltFire(FireMode[Mode]).ServerDelay = ServerDelay;
             }
         }
-        return true;
+        if (Role < ROLE_Authority)
+        {
+            FireMode[Mode].bIsFiring =
+                FireMode[Mode].NextFireTime <= Level.TimeSeconds + FireMode[Mode].PreFireTime;
+        }
+        return FireMode[Mode].bIsFiring;
     }
     return false;
 }
