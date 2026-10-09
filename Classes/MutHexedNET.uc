@@ -399,12 +399,12 @@ function ForwardLinearProjectiles(Weapon W, array<Projectile> Projectiles, float
             Hit = RewoundTrace(W, HitLocation, HitNormal, Projectiles[i].Location, Start, Extent);
             if (Hit != None)
             {
-                Projectiles[i].SetLocation(HitLocation);
-                Done[i] = 1;
                 if (Projectiles[i].IsA('RocketProj'))
                 {
                     class'HxNet_RocketProj'.static.RemoveFromFlock(RocketProj(Projectiles[i]));
                 }
+                Projectiles[i].SetLocation(HitLocation);
+                Done[i] = 1;
             }
         }
         for (i = 0; i < Projectiles.Length; ++i)
