@@ -352,7 +352,7 @@ function ForwardLinearProjectile(Weapon W, Projectile P, float CompensationTime)
         }
     }
     UndoRewind();
-    if (P != None && !P.bDeleteMe)
+    if (P != None)
     {
         ForwardProjectileLifeSpan(P, CompensationTime, Counter);
         RestoreCollision(P);
@@ -418,10 +418,10 @@ function ForwardLinearProjectiles(Weapon W, array<Projectile> Projectiles, float
     UndoRewind();
     for (i = 0; i < Projectiles.Length; ++i)
     {
-        if (Projectiles[i] != None && !Projectiles[i].bDeleteMe)
+        if (Projectiles[i] != None)
         {
-            RestoreCollision(Projectiles[i]);
             ForwardProjectileLifeSpan(Projectiles[i], CompensationTime, Counters[i]);
+            RestoreCollision(Projectiles[i]);
         }
     }
 }
@@ -473,11 +473,11 @@ function ForwardFallingProjectile(Weapon W,
         }
     }
     UndoRewind();
-    if (P != None && !P.bDeleteMe)
+    if (P != None)
     {
-        RestoreCollision(P);
         ForwardProjectileLifeSpan(P, CompensationTime, Counter);
-        if (bSticky && Hit != None && !Hit.IsA('Pawn') && !Hit.IsA('Projectile'))
+        RestoreCollision(P);
+        if (P != None && bSticky && Hit != None && !Hit.IsA('Pawn') && !Hit.IsA('Projectile'))
         {
             P.HitWall(HitNormal, Hit);
         }
@@ -540,10 +540,10 @@ function ForwardBouncingProjectile(Weapon W, Projectile P, float CompensationTim
         }
     }
     UndoRewind();
-    if (P != None && !P.bDeleteMe)
+    if (P != None)
     {
-        ForwardProjectileLifeSpan(P, CompensationTime, Counter);
         RestoreCollision(P);
+        ForwardProjectileLifeSpan(P, CompensationTime, Counter);
     }
 }
 
