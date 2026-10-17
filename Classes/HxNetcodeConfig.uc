@@ -34,6 +34,19 @@ function ApplyProperty(int Index)
     }
 }
 
+function bool ResetProperty(int Index)
+{
+    switch (Index)
+    {
+        case 0:
+            bLagCompensation = default.bLagCompensation;
+            class'HxNTClient'.default.bLagCompensation = bLagCompensation;
+            ClientManager.RefreshConfigurationMenu();
+            return true;
+    }
+    return false;
+}
+
 function bool ShouldShowStatus(int Index)
 {
     return bLagCompensation && HasClient();
