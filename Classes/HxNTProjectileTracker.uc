@@ -10,10 +10,20 @@ struct HxRoutePoint
 
 var private Projectile Tracked;
 var private array<HxRoutePoint> RoutePoints;
+var private float LastTimestamp;
+
+event Tick(float DeltaTime)
+{
+    if (Tracked != None)
+    {
+        LastTimestamp = Level.TimeSeconds;
+    }
+}
 
 function SetTracked(Projectile P)
 {
     Tracked = P;
+    SetOwner(Tracked);
     StoreRoutePoint();
 }
 
@@ -42,6 +52,7 @@ function Rewind(float CompensationTime)
 {
     local int Index;
 
+    CompensationTime = CompensationTime - (Level.TimeSeconds - LastTimestamp);
     Index = FindLowerBound(Level.TimeSeconds - CompensationTime);
     CompensationTime = FMax(
         0, (Level.TimeSeconds - RoutePoints[Index].Timestamp) - CompensationTime);
@@ -61,6 +72,7 @@ event Destroyed()
     {
         MutHexedNET(Owner).RemoveProjectileTracker(Self);
     }
+    RoutePoints.Remove(0, RoutePoints.Length);
     Super.Destroyed();
 }
 

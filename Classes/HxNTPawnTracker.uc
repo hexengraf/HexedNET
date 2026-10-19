@@ -31,6 +31,7 @@ function SetTracked(Pawn P)
         return;
     }
     Tracked = P;
+    SetOwner(Tracked);
     bUseCylinderCollision = Tracked.bUseCylinderCollision;
     DefaultCollisionRadius = Tracked.default.CollisionRadius;
     DefaultCollisionHeight = Tracked.default.CollisionHeight;
