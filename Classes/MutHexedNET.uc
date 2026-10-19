@@ -8,13 +8,13 @@ struct HxNTClassOverride
     var array<class<WeaponFire> > FireModeClass;
 };
 
-const MIN_TIMESTEP = 0.0165;
 const WARMUP_COUNT = 10;
 const DELTA_TIME_ALPHA = 0.008;
 
 var config float PingFrequency;
 var config int LagCompensationLimit;
 var config int ProjectileCompensationLimit;
+var config int MaxCollisionCheckRate;
 var config bool bRubberbandingFix;
 var config bool bLinkMeshes;
 
@@ -67,7 +67,7 @@ function Tick(float DeltaTime)
     {
         AvgDT = AvgDT + (DeltaTime - AvgDT) * DELTA_TIME_ALPHA;
     }
-    FwdTimeStep = FMax(MIN_TIMESTEP, AvgDT);
+    FwdTimeStep = FMax(1.0 / MaxCollisionCheckRate * Level.TimeDilation, AvgDT);
 }
 
 function bool MutatorIsAllowed()
@@ -785,13 +785,15 @@ defaultproperties
     Properties(0)=(Name="PingFrequency",Type=HX_PROPERTY_Float,LowerLimit="0.5",UpperLimit="20.0")
     Properties(1)=(Name="LagCompensationLimit",Type=HX_PROPERTY_Int,LowerLimit="50",UpperLimit="999")
     Properties(2)=(Name="ProjectileCompensationLimit",Type=HX_PROPERTY_Int,LowerLimit="50",UpperLimit="999")
-    Properties(3)=(Name="bRubberbandingFix",Type=HX_PROPERTY_Bool)
-    Properties(4)=(Name="bLinkMeshes",Type=HX_PROPERTY_Bool)
+    Properties(3)=(Name="MaxCollisionCheckRate",Type=HX_PROPERTY_Int,LowerLimit="25",UpperLimit="100")
+    Properties(4)=(Name="bRubberbandingFix",Type=HX_PROPERTY_Bool)
+    Properties(5)=(Name="bLinkMeshes",Type=HX_PROPERTY_Bool)
     DisplayInfo(0)=(Caption="Ping Frequency",Hint="Frequency to send ping packets (pings/second). Lower this value if server connection is saturated.",Step="0.25",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
     DisplayInfo(1)=(Caption="Lag Compensation Limit",Hint="Global lag compensation limit (in milliseconds).",Step="10",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
     DisplayInfo(2)=(Caption="Projectile Compensation Limit",Hint="Projectile-specific lag compensation limit (in milliseconds).",Step="10",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
-    DisplayInfo(3)=(Caption="Backport Rubberbanding Fix",Hint="Backport OldUnreal's rubberbanding fix. Applied on restart/map change.",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
-    DisplayInfo(4)=(Caption="Link Meshes",Hint="Link meshes for collision detection. Disable this if experiencing crashes.",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
+    DisplayInfo(3)=(Caption="Max. Collision Check Rate",Hint="Maximum rate to check for projectile collisions during server-side forwarding. The actual rate is the minimum between this value and the server's tick rate.",Step="5",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
+    DisplayInfo(4)=(Caption="Backport Rubberbanding Fix",Hint="Backport OldUnreal's rubberbanding fix. Applied on restart/map change.",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
+    DisplayInfo(5)=(Caption="Link Meshes",Hint="Link meshes for collision detection. Disable this if experiencing crashes.",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
     ConfigClasses(0)=class'HxNetcodeConfig'
     Priority=64
     ClassOverrides(0)=(TargetClass=class'AssaultRifle',BASClass=class'HxNet_AssaultRifle',FireModeClass=(class'HxNet_AssaultFire',class'HxNet_AssaultGrenade'))
@@ -810,6 +812,7 @@ defaultproperties
     PingFrequency=2.0
     LagCompensationLimit=300
     ProjectileCompensationLimit=125
+    MaxCollisionCheckRate=50
     bRubberbandingFix=false
     bLinkMeshes=true
 }
