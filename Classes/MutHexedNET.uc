@@ -22,8 +22,8 @@ var const private array<HxNTClassOverride> ClassOverrides;
 var private array<HxNTPawnTracker> PawnTrackers;
 var private HxNTPawnTracker PCC;
 var private array<HxNTProjectileTracker> ProjectileTrackers;
-var private float AvgDeltaTime;
-var private float ForwardTimeStep;
+var private float AvgDT;
+var private float FwdTimeStep;
 var private int TickCount;
 
 event PostBeginPlay()
@@ -61,13 +61,13 @@ function Tick(float DeltaTime)
     if (TickCount < WARMUP_COUNT)
     {
         ++TickCount;
-        AvgDeltaTime = AvgDeltaTime + (DeltaTime - AvgDeltaTime) / TickCount;
+        AvgDT = AvgDT + (DeltaTime - AvgDT) / TickCount;
     }
     else
     {
-        AvgDeltaTime = AvgDeltaTime + (DeltaTime - AvgDeltaTime) * DELTA_TIME_ALPHA;
+        AvgDT = AvgDT + (DeltaTime - AvgDT) * DELTA_TIME_ALPHA;
     }
-    ForwardTimeStep = FMax(MIN_TIMESTEP, AvgDeltaTime);
+    FwdTimeStep = FMax(MIN_TIMESTEP, AvgDT);
 }
 
 function bool MutatorIsAllowed()
@@ -285,6 +285,7 @@ function Actor RewoundTrace(Weapon Weapon,
 {
     local Actor Hit;
     local Actor Pawn;
+    local Vector TrackerLocation;
 
     foreach TraceActors(class'Actor', Hit, HitLocation, HitNormal, End, Start, Extent)
     {
@@ -302,9 +303,11 @@ function Actor RewoundTrace(Weapon Weapon,
         else if (Hit.IsA('HxNTProjectileTracker'))
         {
             PastLocation = HitLocation;
+            TrackerLocation = Hit.Location;
             Hit = HxNTProjectileTracker(Hit).GetTracked(HitLocation);
             if (Hit != None)
             {
+                Hit.SetLocation(TrackerLocation);
                 break;
             }
         }
@@ -334,7 +337,7 @@ function ForwardLinearProjectile(Weapon W, Projectile P, float CompensationTime)
     RemainingTime = CompensationTime;
     while (RemainingTime > 0.0)
     {
-        TimeStep = FMin(ForwardTimeStep, RemainingTime);
+        TimeStep = FMin(FwdTimeStep, RemainingTime);
         RemainingTime -= TimeStep;
         Counter += TimeStep;
         Start = P.Location;
@@ -384,7 +387,7 @@ function ForwardLinearProjectiles(Weapon W, array<Projectile> Projectiles, float
     RemainingTime = CompensationTime;
     while (RemainingTime > 0.0)
     {
-        TimeStep = FMin(ForwardTimeStep, RemainingTime);
+        TimeStep = FMin(FwdTimeStep, RemainingTime);
         RemainingTime -= TimeStep;
         for (i = 0; i < Projectiles.Length; ++i)
         {
@@ -448,7 +451,7 @@ function ForwardFallingProjectile(Weapon W,
     RemainingTime = CompensationTime;
     while (RemainingTime > 0.0)
     {
-        TimeStep = FMin(ForwardTimeStep, RemainingTime);
+        TimeStep = FMin(FwdTimeStep, RemainingTime);
         RemainingTime -= TimeStep;
         Start = P.Location;
         P.AutonomousPhysics(TimeStep);
@@ -502,7 +505,7 @@ function ForwardBouncingProjectile(Weapon W, Projectile P, float CompensationTim
     RemainingTime = CompensationTime;
     while (RemainingTime > 0.0)
     {
-        TimeStep = FMin(ForwardTimeStep, RemainingTime);
+        TimeStep = FMin(FwdTimeStep, RemainingTime);
         RemainingTime -= TimeStep;
         Start = P.Location;
         PreviousVelocity = P.Velocity;
@@ -663,9 +666,9 @@ function ApplyClassOverridesToWeaponLocker(WeaponLocker L)
     }
 }
 
-final function float AdjustTimestamp(float Timestamp)
+final function float GetAverageDeltaTime()
 {
-    return Timestamp + (AvgDeltaTime * 0.5);
+    return AvgDT;
 }
 
 final function float GetCompensationLimit()
@@ -675,7 +678,8 @@ final function float GetCompensationLimit()
 
 static final function bool IsPredicted(Actor A)
 {
-    return A.IsA('xPawn') || (A.IsA('Vehicle') && Vehicle(A).Driver != None);
+    return A.IsA('xPawn') || (A.IsA('Vehicle') && Vehicle(A).Driver != None)
+        || A.IsA('HxNet_ShockProjectile');
 }
 
 static final function DisableCollision(Actor A)

@@ -25,7 +25,9 @@ var private int TickCount;
 var private float LatestTimestamp;
 var private float AvgRTT;
 var private float RTTAlpha;
-var private float AvgDeltaTime;
+var private float ClientAvgDT;
+var private float ServerAvgDT;
+var private float MinRTT;
 var private float PingInterval;
 var private float LagCompensationLimit;
 var private float ProjectileCompensationLimit;
@@ -91,13 +93,13 @@ simulated function Tick(float DeltaTime)
             if (TickCount < WARMUP_COUNT)
             {
                 ++TickCount;
-                AvgDeltaTime = AvgDeltaTime + (DeltaTime - AvgDeltaTime) / TickCount;
+                ClientAvgDT = ClientAvgDT + (DeltaTime - ClientAvgDT) / TickCount;
             }
             else
             {
-                AvgDeltaTime = AvgDeltaTime + (DeltaTime - AvgDeltaTime) * DELTA_TIME_ALPHA;
+                ClientAvgDT = ClientAvgDT + (DeltaTime - ClientAvgDT) * DELTA_TIME_ALPHA;
             }
-            NewRTT = Level.TimeSeconds - LatestTimestamp - (AvgDeltaTime * 0.5);
+            NewRTT = Level.TimeSeconds - LatestTimestamp - (ClientAvgDT + ServerAvgDT) * 0.5;
             if (PingCount < WARMUP_COUNT)
             {
                 ++PingCount;
@@ -107,7 +109,8 @@ simulated function Tick(float DeltaTime)
             {
                 AvgRTT = AvgRTT + (NewRTT - AvgRTT) * RTTAlpha;
             }
-            ServerUpdateStats(AvgRTT, AvgDeltaTime);
+            MinRTT = ClientAvgDT * 1.1;
+            ServerUpdateStats(AvgRTT, ClientAvgDT);
         }
     }
     else if (Level.NetMode == NM_DedicatedServer && !bClientUpdated)
@@ -131,19 +134,22 @@ simulated event Timer()
 
 function ServerPing(float Timestamp)
 {
-    ClientPing(MutHexedNET(MutatorOwner).AdjustTimestamp(Timestamp));
+    ServerAvgDT = MutHexedNET(MutatorOwner).GetAverageDeltaTime();
+    ClientPing(Timestamp, ServerAvgDT);
 }
 
-simulated function ClientPing(float Timestamp)
+simulated function ClientPing(float Timestamp, float NewServerAvgDT)
 {
     LatestTimestamp = Timestamp;
+    ServerAvgDT = NewServerAvgDT;
     bReceivedPing = true;
 }
 
-function ServerUpdateStats(float NewAvgRTT, float NewAvgDeltaTime)
+function ServerUpdateStats(float NewAvgRTT, float NewClientAvgDT)
 {
     AvgRTT = NewAvgRTT;
-    AvgDeltaTime = NewAvgDeltaTime;
+    ClientAvgDT = NewClientAvgDT;
+    MinRTT = ClientAvgDT * 1.1;
 }
 
 simulated function UpdatePingInterval()
@@ -209,12 +215,12 @@ simulated final function float GetAveragePing()
 
 simulated final function float GetCompensationTime()
 {
-    return FMin(AvgRTT, LagCompensationLimit);
+    return FMin(FMax(0.0, AvgRTT), LagCompensationLimit);
 }
 
 simulated final function float GetProjectileCompensationTime()
 {
-    return FMin(FMax(0.0, AvgRTT - AvgDeltaTime), ProjectileCompensationLimit);
+    return FMin(FMax(0.0, AvgRTT - ClientAvgDT), ProjectileCompensationLimit);
 }
 
 simulated final function float GetProjectileDelay()
@@ -224,7 +230,7 @@ simulated final function float GetProjectileDelay()
 
 simulated final function bool WantsPingCompensation()
 {
-    return bLagCompensation && AvgRTT > (AvgDeltaTime * 1.2);
+    return bLagCompensation && AvgRTT > MinRTT;
 }
 
 simulated final function bool IsAcceptableBAS(Weapon W, Vector BASStart, Rotator BASAim)
