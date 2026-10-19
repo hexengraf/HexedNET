@@ -228,7 +228,7 @@ simulated final function float GetProjectileDelay()
     return AvgRTT - ProjectileCompensationLimit;
 }
 
-simulated final function bool WantsPingCompensation()
+simulated final function bool WantsLagCompensation()
 {
     return bLagCompensation && AvgRTT > MinRTT;
 }

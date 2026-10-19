@@ -9,15 +9,15 @@ function PreBeginPlay()
     class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
 }
 
-function bool WantsPingCompensation()
+function bool WantsLagCompensation()
 {
     return class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
-        && Client.WantsPingCompensation();
+        && Client.WantsLagCompensation();
 }
 
 function DoTrace(Vector Start, Rotator Dir)
 {
-    if (Level.NetMode == NM_Client || !WantsPingCompensation())
+    if (Level.NetMode == NM_Client || !WantsLagCompensation())
     {
         Super.DoTrace(Start, Dir);
     }

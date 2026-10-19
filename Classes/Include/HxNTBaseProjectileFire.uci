@@ -13,10 +13,10 @@ function PreBeginPlay()
     class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
 }
 
-function bool WantsPingCompensation()
+function bool WantsLagCompensation()
 {
     return class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
-        && Client.WantsPingCompensation();
+        && Client.WantsLagCompensation();
 }
 
 function ApplyBAS(HxNTWeapon.HxBAS BAS)
@@ -33,7 +33,7 @@ function PlayFiring()
     local float ProjectileDelay;
 
     Super.PlayFiring();
-    if (Level.NetMode == NM_Client && WantsPingCompensation() && Instigator.IsLocallyControlled())
+    if (Level.NetMode == NM_Client && WantsLagCompensation() && Instigator.IsLocallyControlled())
     {
         ProjectileDelay = Client.GetProjectileDelay();
         if (ProjectileDelay > 0)
@@ -119,7 +119,7 @@ function DoBaseFireEffect()
     local int SpawnCount;
     local int i;
 
-    if (WantsPingCompensation())
+    if (WantsLagCompensation())
     {
         WeaponInfo = Client.GetWeaponInfo(WeaponClass);
         Instigator.MakeNoise(1.0);

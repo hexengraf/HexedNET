@@ -9,10 +9,10 @@ function PreBeginPlay()
     class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
 }
 
-function bool WantsPingCompensation()
+function bool WantsLagCompensation()
 {
     return class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
-        && Client.WantsPingCompensation();
+        && Client.WantsLagCompensation();
 }
 
 simulated function ModeTick(float DT)
@@ -35,7 +35,7 @@ simulated function ModeTick(float DT)
     local DestroyableObjective HealObjective;
     local Vehicle LinkedVehicle;
 
-    if (Instigator.Role < Role_Authority || !WantsPingCompensation() || !bIsFiring)
+    if (Instigator.Role < Role_Authority || !WantsLagCompensation() || !bIsFiring)
     {
         Super.ModeTick(DT);
         return;

@@ -91,7 +91,7 @@ simulated function bool StartFire(int Mode)
 simulated function bool WantsStartFireBAS(int Mode)
 {
     return HxNet_SniperFire(FireMode[Mode]) != None
-        && HxNet_SniperFire(FireMode[Mode]).WantsPingCompensation();
+        && HxNet_SniperFire(FireMode[Mode]).WantsLagCompensation();
 }
 
 defaultproperties

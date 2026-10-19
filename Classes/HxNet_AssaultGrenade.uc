@@ -13,7 +13,7 @@ function DoFireEffect()
     local Vector Y;
     local Vector Z;
 
-    if (WantsPingCompensation())
+    if (WantsLagCompensation())
     {
         Instigator.MakeNoise(1.0);
         if (bBoostedAimSynchronization)

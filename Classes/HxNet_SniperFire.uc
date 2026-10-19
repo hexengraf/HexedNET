@@ -14,10 +14,10 @@ function PreBeginPlay()
     class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
 }
 
-function bool WantsPingCompensation()
+function bool WantsLagCompensation()
 {
     return class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
-        && Client.WantsPingCompensation();
+        && Client.WantsLagCompensation();
 }
 
 function ApplyBAS(HxNTWeapon.HxBAS BAS)
@@ -32,7 +32,7 @@ function ApplyBAS(HxNTWeapon.HxBAS BAS)
 function PlayFiring()
 {
     Super.PlayFiring();
-    if (Level.NetMode == NM_Client && WantsPingCompensation() && Instigator.IsLocallyControlled())
+    if (Level.NetMode == NM_Client && WantsLagCompensation() && Instigator.IsLocallyControlled())
     {
         DoFireEffect();
     }
@@ -74,7 +74,7 @@ function DoTrace(Vector Start, Rotator Dir)
     local int ReflectNum;
     local int ArcsRemaining;
 
-    if (!WantsPingCompensation())
+    if (!WantsLagCompensation())
     {
         Super.DoTrace(Start, Dir);
         return;

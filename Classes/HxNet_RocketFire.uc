@@ -29,7 +29,7 @@ function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
         }
         return WeaponInfo.TrackProjectile(P, Index);
     }
-    if (WantsPingCompensation())
+    if (WantsLagCompensation())
     {
         P = SpawnIndexedProjectile(
             Start, Dir, class'HxNet_RocketProj', class'HxNet_SeekingRocketProj');

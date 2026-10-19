@@ -91,7 +91,7 @@ simulated function bool StartFire(int Mode)
 simulated function bool WantsStartFireBAS(int Mode)
 {
     return HxNet_LinkAltFire(FireMode[Mode]) != None
-        && HxNet_LinkAltFire(FireMode[Mode]).WantsPingCompensation();
+        && HxNet_LinkAltFire(FireMode[Mode]).WantsLagCompensation();
 }
 
 defaultproperties

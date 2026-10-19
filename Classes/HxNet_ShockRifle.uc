@@ -114,9 +114,9 @@ simulated function bool WantsStartFireBAS(int Mode)
 {
     if (HxNet_ShockBeamFire(FireMode[Mode]) != None)
     {
-        return HxNet_ShockBeamFire(FireMode[Mode]).WantsPingCompensation();
+        return HxNet_ShockBeamFire(FireMode[Mode]).WantsLagCompensation();
     }
-    return HxNet_ShockProjFire(FireMode[Mode]).WantsPingCompensation();
+    return HxNet_ShockProjFire(FireMode[Mode]).WantsLagCompensation();
 }
 
 defaultproperties

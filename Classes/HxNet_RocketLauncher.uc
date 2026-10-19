@@ -142,7 +142,7 @@ simulated function bool WantsStopFireBAS(int Mode)
 {
     return HxNet_RocketMultiFire(FireMode[Mode]) != None
         && HxNet_RocketMultiFire(FireMode[Mode]).Load < 3
-        && HxNet_RocketMultiFire(FireMode[Mode]).WantsPingCompensation();
+        && HxNet_RocketMultiFire(FireMode[Mode]).WantsLagCompensation();
 }
 
 simulated function bool WantsStartFireBAS(int Mode)
@@ -153,7 +153,7 @@ simulated function bool WantsStartFireBAS(int Mode)
     return HxNet_RocketFire(FireMode[Mode]) != None
         && !FireMode[AltMode].bIsFiring
         && FireMode[AltMode].NextFireTime <= Level.TimeSeconds
-        && HxNet_RocketFire(FireMode[Mode]).WantsPingCompensation();
+        && HxNet_RocketFire(FireMode[Mode]).WantsLagCompensation();
 }
 
 defaultproperties

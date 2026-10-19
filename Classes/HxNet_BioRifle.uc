@@ -112,13 +112,13 @@ simulated function bool StartFire(int Mode)
 simulated function bool WantsStopFireBAS(int Mode)
 {
     return HxNet_BioChargedFire(FireMode[Mode]) != None
-        && HxNet_BioChargedFire(FireMode[Mode]).WantsPingCompensation();
+        && HxNet_BioChargedFire(FireMode[Mode]).WantsLagCompensation();
 }
 
 simulated function bool WantsStartFireBAS(int Mode)
 {
     return HxNet_BioFire(FireMode[Mode]) != None
-        && HxNet_BioFire(FireMode[Mode]).WantsPingCompensation();
+        && HxNet_BioFire(FireMode[Mode]).WantsLagCompensation();
 }
 
 defaultproperties

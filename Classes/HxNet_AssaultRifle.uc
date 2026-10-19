@@ -112,13 +112,13 @@ simulated function bool StartFire(int Mode)
 simulated function bool WantsStopFireBAS(int Mode)
 {
     return HxNet_AssaultGrenade(FireMode[Mode]) != None
-        && HxNet_AssaultGrenade(FireMode[Mode]).WantsPingCompensation();
+        && HxNet_AssaultGrenade(FireMode[Mode]).WantsLagCompensation();
 }
 
 simulated function bool WantsStartFireBAS(int Mode)
 {
     return HxNet_AssaultFire(FireMode[Mode]) != None
-        && HxNet_AssaultFire(FireMode[Mode]).WantsPingCompensation();
+        && HxNet_AssaultFire(FireMode[Mode]).WantsLagCompensation();
 }
 
 defaultproperties

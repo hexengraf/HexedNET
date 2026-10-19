@@ -89,7 +89,7 @@ simulated function bool StartFire(int Mode)
 simulated function bool WantsStartFireBAS(int Mode)
 {
     return HxNet_ZoomSuperShockBeamFire(FireMode[Mode]) != None
-        && HxNet_ZoomSuperShockBeamFire(FireMode[Mode]).WantsPingCompensation();
+        && HxNet_ZoomSuperShockBeamFire(FireMode[Mode]).WantsLagCompensation();
 }
 
 defaultproperties

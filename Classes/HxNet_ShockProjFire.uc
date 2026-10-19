@@ -27,7 +27,7 @@ function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
         return WeaponInfo.TrackProjectile(P, Index);
     }
     P = SpawnProjectile(Start, Dir);
-    if (P != None && WantsPingCompensation())
+    if (P != None && WantsLagCompensation())
     {
         HxNet_ShockProjectile(P).Client = Client;
         HexedNET.ForwardLinearProjectile(

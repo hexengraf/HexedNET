@@ -26,7 +26,7 @@ function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
         }
         return WeaponInfo.TrackProjectile(P, Index);
     }
-    if (WantsPingCompensation())
+    if (WantsLagCompensation())
     {
         ProjectileClass = class'HxNet_FlakChunk';
         P = FlakChunk(SpawnProjectile(Start, Dir));

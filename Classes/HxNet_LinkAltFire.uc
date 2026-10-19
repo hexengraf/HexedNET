@@ -26,7 +26,7 @@ function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
         }
         return WeaponInfo.TrackProjectile(P, Index);
     }
-    if (WantsPingCompensation())
+    if (WantsLagCompensation())
     {
         ProjectileClass = class'HxNet_LinkProjectile';
         P = SpawnProjectile(Start, Dir);

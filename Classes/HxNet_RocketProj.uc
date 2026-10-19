@@ -21,7 +21,7 @@ simulated function PostNetBeginPlay()
     local PlayerController PC;
 
     Super(Projectile).PostNetBeginPlay();
-    if (Level.NetMode == NM_Client && Client != None && Client.WantsPingCompensation())
+    if (Level.NetMode == NM_Client && Client != None && Client.WantsLagCompensation())
     {
         SearchPredictedProjectile();
     }

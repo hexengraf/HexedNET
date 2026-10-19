@@ -113,9 +113,9 @@ simulated function bool WantsStartFireBAS(int Mode)
 {
     if (HxNet_FlakFire(FireMode[Mode]) != None)
     {
-        return HxNet_FlakFire(FireMode[Mode]).WantsPingCompensation();
+        return HxNet_FlakFire(FireMode[Mode]).WantsLagCompensation();
     }
-    return HxNet_FlakAltFire(FireMode[Mode]).WantsPingCompensation();
+    return HxNet_FlakAltFire(FireMode[Mode]).WantsLagCompensation();
 }
 
 defaultproperties
