@@ -1,7 +1,13 @@
 class HxNet_AssaultGrenade extends AssaultGrenade
     DependsOn(HxNTWeapon);
 
+var private float DelayedHoldTime;
 #include Classes\Include\HxNTBaseProjectileFire.uci
+
+function SaveDelayedState()
+{
+    DelayedHoldTime = HoldTime;
+}
 
 function DoFireEffect()
 {
@@ -103,7 +109,14 @@ function UpdateSpeedAndDamage(Grenade G, Rotator Dir)
     local Vector Z;
 
     GetAxes(Dir, X, Y, Z);
-    G.Speed = mHoldSpeedMin + HoldTime * mHoldSpeedGainPerSec;
+    if (bIsDelayed)
+    {
+        G.Speed = mHoldSpeedMin + DelayedHoldTime * mHoldSpeedGainPerSec;
+    }
+    else
+    {
+        G.Speed = mHoldSpeedMin + HoldTime * mHoldSpeedGainPerSec;
+    }
     G.Speed = FClamp(G.Speed, mHoldSpeedMin, mHoldSpeedMax);
     G.Speed = (X dot Instigator.Velocity) + G.Speed;
     G.Velocity = G.Speed * Vector(Dir);

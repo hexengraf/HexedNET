@@ -5,6 +5,7 @@ var private Vector BASStart;
 var private Rotator BASAim;
 var private float ProjectileDelayTimer;
 var private bool bBoostedAimSynchronization;
+var private bool bIsDelayed;
 var private const class<Weapon> WeaponClass;
 
 function PreBeginPlay()
@@ -51,6 +52,8 @@ function PlayFiring()
                 BASAim = AdjustAim(BASStart, AimError);
                 bBoostedAimSynchronization = true;
             }
+            SaveDelayedState();
+            bIsDelayed = true;
         }
         else
         {
@@ -67,6 +70,7 @@ event ModeTick(float DT)
         if (ProjectileDelayTimer <= 0)
         {
             DoFireEffect();
+            bIsDelayed = false;
         }
     }
     Super.ModeTick(DT);

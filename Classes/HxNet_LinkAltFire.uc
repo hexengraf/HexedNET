@@ -3,6 +3,8 @@ class HxNet_LinkAltFire extends LinkAltFire
 
 #include Classes\Include\HxNTBaseProjectileFire.uci
 
+function SaveDelayedState();
+
 function DoFireEffect()
 {
     DoBaseFireEffect();

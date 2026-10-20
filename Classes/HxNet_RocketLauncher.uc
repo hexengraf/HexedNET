@@ -141,7 +141,8 @@ simulated function bool WantsStopFireBAS(int Mode)
 {
     return HxNet_RocketMultiFire(FireMode[Mode]) != None
         && HxNet_RocketMultiFire(FireMode[Mode]).Load < 3
-        && HxNet_RocketMultiFire(FireMode[Mode]).WantsLagCompensation();
+        && HxNet_RocketMultiFire(FireMode[Mode]).WantsLagCompensation()
+        && ReadyToFire(Mode);
 }
 
 simulated function bool WantsStartFireBAS(int Mode)

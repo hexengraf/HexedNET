@@ -3,6 +3,8 @@ class HxNet_ShockProjFire extends ShockProjFire
 
 #include Classes\Include\HxNTBaseProjectileFire.uci
 
+function SaveDelayedState();
+
 function DoFireEffect()
 {
     DoBaseFireEffect();

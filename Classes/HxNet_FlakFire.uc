@@ -3,6 +3,8 @@ class HxNet_FlakFire extends FlakFire
 
 #include Classes\Include\HxNTBaseProjectileFire.uci
 
+function SaveDelayedState();
+
 function DoFireEffect()
 {
     DoBaseFireEffect();

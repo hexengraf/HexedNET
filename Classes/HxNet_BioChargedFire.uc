@@ -1,11 +1,36 @@
 class HxNet_BioChargedFire extends BioChargedFire
     DependsOn(HxNTWeapon);
 
+var private int DelayedGoopLoad;
 #include Classes\Include\HxNTBaseProjectileFire.uci
+
+function SaveDelayedState()
+{
+    DelayedGoopLoad = GoopLoad;
+}
+
+function FlashMuzzleFlash()
+{
+    Super.FlashMuzzleFlash();
+    // TODO: Temporary fix, OU will fix it eventually.
+    GotoState('');
+}
 
 function DoFireEffect()
 {
-    DoBaseFireEffect();
+    local int SavedGoopLoad;
+
+    if (bIsDelayed)
+    {
+        SavedGoopLoad = GoopLoad;
+        GoopLoad = DelayedGoopLoad;
+        DoBaseFireEffect();
+        GoopLoad = SavedGoopLoad;
+    }
+    else
+    {
+        DoBaseFireEffect();
+    }
 }
 
 function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
@@ -46,7 +71,6 @@ function Projectile SpawnProjectile(Vector Start, Rotator Dir)
 {
     local BioGlob Glob;
 
-    GotoState('');
     if (GoopLoad != 0)
     {
         Glob = BioGlob(Weapon.Spawn(ProjectileClass,,, Start, Dir));
@@ -56,9 +80,10 @@ function Projectile SpawnProjectile(Vector Start, Rotator Dir)
             Glob.SetGoopLevel(GoopLoad);
             Glob.AdjustSpeed();
         }
-        if (Level.NetMode != NM_Client)
+        GoopLoad = 0;
+        if (Weapon.Role == ROLE_Authority)
         {
-            GoopLoad = 0;
+            GotoState('');
             if (Weapon.AmmoAmount(ThisModeNum) <= 0)
             {
                 Weapon.OutOfAmmo();

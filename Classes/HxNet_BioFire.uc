@@ -3,6 +3,8 @@ class HxNet_BioFire extends BioFire
 
 #include Classes\Include\HxNTBaseProjectileFire.uci
 
+function SaveDelayedState();
+
 function DoFireEffect()
 {
     DoBaseFireEffect();

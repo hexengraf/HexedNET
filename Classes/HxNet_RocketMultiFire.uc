@@ -1,7 +1,13 @@
 class HxNet_RocketMultiFire extends RocketMultiFire
     DependsOn(HxNTWeapon);
 
+var private float DelayedLoad;
 #include Classes\Include\HxNTBaseProjectileFire.uci
+
+function SaveDelayedState()
+{
+    DelayedLoad = Load;
+}
 
 function DoFireEffect()
 {
@@ -16,6 +22,7 @@ function DoFireEffect()
     local Rotator Aim;
     local array<RocketProj> FiredRockets;
     local bool bCurl;
+    local float SavedLoad;
     local int SpawnCount;
     local int p;
     local int q;
@@ -26,11 +33,7 @@ function DoFireEffect()
         Super.DoFireEffect();
         return;
     }
-    if (SpreadStyle == SS_Line || Load < 2)
-    {
-        DoBaseFireEffect();
-        return;
-    }
+    SavedLoad = Load;
     if (HexedNET != None)
     {
         RocketClass = class'HxNet_RocketProj';
@@ -40,6 +43,16 @@ function DoFireEffect()
     {
         RocketClass = class'HxNet_RocketProjPredicted';
         SeekingRocketClass = class'HxNet_SeekingRocketProjPredicted';
+        if (bIsDelayed)
+        {
+            Load = DelayedLoad;
+        }
+    }
+    if (SpreadStyle == SS_Line || Load < 2)
+    {
+        DoBaseFireEffect();
+        Load = SavedLoad;
+        return;
     }
     Instigator.MakeNoise(1.0);
     GetProjectileStartAndDirection(Start, Aim, X, Y, Z);
@@ -94,6 +107,7 @@ function DoFireEffect()
             }
             WeaponInfo.TrackProjectile(FiredRockets[p], p);
         }
+        Load = SavedLoad;
     }
     else if (WantsLagCompensation())
     {

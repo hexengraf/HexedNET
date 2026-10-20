@@ -3,6 +3,8 @@ class HxNet_RocketFire extends RocketFire
 
 #include Classes\Include\HxNTBaseProjectileFire.uci
 
+function SaveDelayedState();
+
 function DoFireEffect()
 {
     DoBaseFireEffect();
