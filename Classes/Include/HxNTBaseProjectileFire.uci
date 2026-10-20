@@ -19,13 +19,15 @@ function bool WantsLagCompensation()
         && Client.WantsLagCompensation();
 }
 
-function ApplyBAS(HxNTWeapon.HxBAS BAS)
+function int ApplyBAS(HxNTWeapon.HxBAS BAS)
 {
     if (class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
     {
         class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
         bBoostedAimSynchronization = Client.IsAcceptableBAS(Weapon, BASStart, BASAim);
+        return Client.GetStopFireTickCount();
     }
+    return 0;
 }
 
 function PlayFiring()

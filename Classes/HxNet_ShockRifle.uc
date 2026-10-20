@@ -51,15 +51,14 @@ simulated event ClientStartFire(int Mode)
             if (HxNet_ShockBeamFire(FireMode[Mode]) != None)
             {
                 BAS = class'HxNTWeapon'.static.EncodeBAS(Self, Mode, true);
-                HxNet_ShockBeamFire(FireMode[Mode]).ApplyBAS(BAS);
+                StopFireTime[Mode] = HxNet_ShockBeamFire(FireMode[Mode]).ApplyBAS(BAS);
             }
             else
             {
                 BAS = class'HxNTWeapon'.static.EncodeBAS(Self, Mode);
-                HxNet_ShockProjFire(FireMode[Mode]).ApplyBAS(BAS);
+                StopFireTime[Mode] = HxNet_ShockProjFire(FireMode[Mode]).ApplyBAS(BAS);
             }
             ServerStartFireBAS(Mode, BAS);
-            StopFireTime[Mode] = 2;
         }
     }
     else

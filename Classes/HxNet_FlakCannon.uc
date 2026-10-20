@@ -51,14 +51,13 @@ simulated event ClientStartFire(int Mode)
             BAS = class'HxNTWeapon'.static.EncodeBAS(Self, Mode);
             if (HxNet_FlakFire(FireMode[Mode]) != None)
             {
-                HxNet_FlakFire(FireMode[Mode]).ApplyBAS(BAS);
+                StopFireTime[Mode] = HxNet_FlakFire(FireMode[Mode]).ApplyBAS(BAS);
             }
             else
             {
-                HxNet_FlakAltFire(FireMode[Mode]).ApplyBAS(BAS);
+                StopFireTime[Mode] = HxNet_FlakAltFire(FireMode[Mode]).ApplyBAS(BAS);
             }
             ServerStartFireBAS(Mode, BAS);
-            StopFireTime[Mode] = 2;
         }
     }
     else

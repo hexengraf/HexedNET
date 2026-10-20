@@ -16,6 +16,7 @@ function InitializeProperties()
         bLagCompensation = default.bLagCompensation;
         SaveConfig();
     }
+    class'MutHexedNET'.static.ApplyFireModeOverrides();
     class'HxNTClient'.default.bLagCompensation = bLagCompensation;
 }
 
@@ -77,6 +78,7 @@ function bool HasClient()
 function Destroy()
 {
     Client = None;
+    class'MutHexedNET'.static.RestoreFireModeOverrides();
     Super.Destroy();
 }
 

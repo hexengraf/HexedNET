@@ -18,6 +18,7 @@ var bool bLagCompensation;
 
 var private HxWeaponGroup Groups[WEAPON_GROUP_COUNT];
 var private HxRandomGeneratorAlt Seeder;
+var private bool bForceStartFireRPCs;
 var private bool bClientUpdated;
 var private bool bReceivedPing;
 var private int PingCount;
@@ -183,6 +184,7 @@ simulated function NotifyMutatorInfoReady()
 {
     SetLagCompensationLimit(MutatorInfo.Get("LagCompensationLimit"));
     SetProjectileCompensationLimit(MutatorInfo.Get("ProjectileCompensationLimit"));
+    bForceStartFireRPCs = bool(MutatorInfo.Get("bForceStartFireRPCs"));
     InitializeCompensation();
 }
 
@@ -199,13 +201,24 @@ simulated function NotifyMutatorPropertyChanged(int Index)
         case "ProjectileCompensationLimit":
             SetProjectileCompensationLimit(MutatorInfo.Get("ProjectileCompensationLimit"));
             break;
-
+        case "bForceStartFireRPCs":
+            bForceStartFireRPCs = bool(MutatorInfo.Get("bForceStartFireRPCs"));
+            break;
     }
 }
 
 simulated function ClientSetAllowMultiHit(bool bEnable)
 {
     class'HxNet_ZoomSuperShockBeamFire'.default.bServerAllowMultiHit = bEnable;
+}
+
+simulated final function int GetStopFireTickCount()
+{
+    if (bForceStartFireRPCs)
+    {
+        return 2;
+    }
+    return 0;
 }
 
 simulated final function float GetAveragePing()
@@ -225,7 +238,7 @@ simulated final function float GetProjectileCompensationTime()
 
 simulated final function float GetProjectileDelay()
 {
-    return AvgRTT - ProjectileCompensationLimit;
+    return AvgRTT - ClientAvgDT - ProjectileCompensationLimit;
 }
 
 simulated final function bool WantsLagCompensation()

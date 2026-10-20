@@ -1,11 +1,17 @@
 class MutHexedNET extends HxMutator
     config(HexedMutators);
 
+struct HxNTFireModeOverride
+{
+    var class<WeaponFire> TargetClass;
+    var class<WeaponFire> NETClass;
+};
+
 struct HxNTClassOverride
 {
     var class<Weapon> TargetClass;
-    var class<Weapon> BASClass;
-    var array<class<WeaponFire> > FireModeClass;
+    var class<Weapon> NETClass;
+    var array<HxNTFireModeOverride> FireModeOverrides;
 };
 
 const WARMUP_COUNT = 10;
@@ -15,6 +21,8 @@ var config float PingFrequency;
 var config int LagCompensationLimit;
 var config int ProjectileCompensationLimit;
 var config int MaxCollisionCheckRate;
+var config bool bBoostedAimSynchronization;
+var config bool bForceStartFireRPCs;
 var config bool bRubberbandingFix;
 var config bool bLinkMeshes;
 
@@ -25,13 +33,19 @@ var private array<HxNTProjectileTracker> ProjectileTrackers;
 var private float AvgDT;
 var private float FwdTimeStep;
 var private int TickCount;
+var private bool bReplaceWeapons;
 
 event PostBeginPlay()
 {
     Super.PostBeginPlay();
     if (!bDeleteMe && !bPendingDelete)
     {
-        ApplyClassOverridesToMutators();
+        ApplyFireModeOverrides();
+        if (bBoostedAimSynchronization)
+        {
+            ApplyClassOverridesToMutators();
+            bReplaceWeapons = true;
+        }
         if (bRubberbandingFix)
         {
             Level.Game.PlayerControllerClassName = string(class'HxNTPlayer');
@@ -78,7 +92,7 @@ function bool MutatorIsAllowed()
 function AddMutator(Mutator M)
 {
     Super.AddMutator(M);
-    if (M.DefaultWeaponName != "")
+    if (bReplaceWeapons && M.DefaultWeaponName != "")
     {
         ApplyClassOverridesToMutator(M);
     }
@@ -114,21 +128,20 @@ function bool CheckReplacement(Actor Other, out byte bSuperRelevant)
     {
         SpawnPawnTracker(xPawn(Other));
     }
-    else if (Weapon(Other) != None)
+    else if (bReplaceWeapons)
     {
-        ApplyClassOverridesToWeapon(Weapon(Other));
-    }
-    else if (xWeaponBase(Other) != None)
-    {
-        ApplyClassOverridesToWeaponBase(xWeaponBase(Other));
-    }
-    else if (WeaponPickup(Other) != None)
-    {
-        ApplyClassOverridesToWeaponPickup(WeaponPickup(Other));
-    }
-    else if (WeaponLocker(Other) != None)
-    {
-        ApplyClassOverridesToWeaponLocker(WeaponLocker(Other));
+        if (xWeaponBase(Other) != None)
+        {
+            ApplyClassOverridesToWeaponBase(xWeaponBase(Other));
+        }
+        else if (WeaponPickup(Other) != None)
+        {
+            ApplyClassOverridesToWeaponPickup(WeaponPickup(Other));
+        }
+        else if (WeaponLocker(Other) != None)
+        {
+            ApplyClassOverridesToWeaponLocker(WeaponLocker(Other));
+        }
     }
     return Super.CheckReplacement(Other, bSuperRelevant);
 }
@@ -138,15 +151,18 @@ function string GetInventoryClassOverride(string InventoryClassName)
     local int i;
 
     InventoryClassName = Super.GetInventoryClassOverride(InventoryClassName);
-    for (i = 0; i < ClassOverrides.Length; ++i)
+    if (bReplaceWeapons)
     {
-        if (InventoryClassName ~= string(ClassOverrides[i].TargetClass))
+        for (i = 0; i < ClassOverrides.Length; ++i)
         {
-            if (ClassOverrides[i].BASClass != None)
+            if (InventoryClassName ~= string(ClassOverrides[i].TargetClass))
             {
-                return string(ClassOverrides[i].BASClass);
+                if (ClassOverrides[i].NETClass != None)
+                {
+                    return string(ClassOverrides[i].NETClass);
+                }
+                break;
             }
-            break;
         }
     }
     return InventoryClassName;
@@ -554,11 +570,14 @@ function ApplyClassOverridesToMutators()
 {
     local Mutator M;
 
-    for (M = Level.Game.BaseMutator; M != None; M = M.NextMutator)
+    if (bReplaceWeapons)
     {
-        if (M.DefaultWeaponName != "")
+        for (M = Level.Game.BaseMutator; M != None; M = M.NextMutator)
         {
-            ApplyClassOverridesToMutator(M);
+            if (M.DefaultWeaponName != "")
+            {
+                ApplyClassOverridesToMutator(M);
+            }
         }
     }
 }
@@ -571,9 +590,9 @@ function ApplyClassOverridesToMutator(Mutator M)
     {
         if (M.DefaultWeaponName ~= string(ClassOverrides[i].TargetClass))
         {
-            if (ClassOverrides[i].BASClass != None)
+            if (ClassOverrides[i].NETClass != None)
             {
-                M.DefaultWeaponName = string(ClassOverrides[i].BASClass);
+                M.DefaultWeaponName = string(ClassOverrides[i].NETClass);
                 if (M.DefaultWeapon != None)
                 {
                     M.DefaultWeapon = class<Weapon>(
@@ -581,29 +600,8 @@ function ApplyClassOverridesToMutator(Mutator M)
                 }
                 if (MutInstaGib(M) != None)
                 {
-                    MutInstaGib(M).WeaponName = ClassOverrides[i].BASClass.Name;
+                    MutInstaGib(M).WeaponName = ClassOverrides[i].NETClass.Name;
                     MutInstaGib(M).WeaponString = M.DefaultWeaponName;
-                }
-            }
-            break;
-        }
-    }
-}
-
-function ApplyClassOverridesToWeapon(Weapon W)
-{
-    local int i;
-    local int j;
-
-    for (i = 0; i < ClassOverrides.Length; ++i)
-    {
-        if (W.Class == ClassOverrides[i].TargetClass)
-        {
-            for (j = 0; j < ClassOverrides[i].FireModeClass.Length; ++j)
-            {
-                if (ClassOverrides[i].FireModeClass[j] != None)
-                {
-                    W.FireModeClass[j] = ClassOverrides[i].FireModeClass[j];
                 }
             }
             break;
@@ -619,9 +617,9 @@ function ApplyClassOverridesToWeaponBase(xWeaponBase B)
     {
         if (B.WeaponType == ClassOverrides[i].TargetClass)
         {
-            if (ClassOverrides[i].BASClass != None)
+            if (ClassOverrides[i].NETClass != None)
             {
-                B.WeaponType = ClassOverrides[i].BASClass;
+                B.WeaponType = ClassOverrides[i].NETClass;
             }
             break;
         }
@@ -636,9 +634,9 @@ function ApplyClassOverridesToWeaponPickup(WeaponPickup P)
     {
         if (P.InventoryType == ClassOverrides[i].TargetClass)
         {
-            if (ClassOverrides[i].BASClass != None)
+            if (ClassOverrides[i].NETClass != None)
             {
-                P.InventoryType = ClassOverrides[i].BASClass;
+                P.InventoryType = ClassOverrides[i].NETClass;
             }
             break;
         }
@@ -656,14 +654,20 @@ function ApplyClassOverridesToWeaponLocker(WeaponLocker L)
         {
             if (L.Weapons[i].WeaponClass == ClassOverrides[j].TargetClass)
             {
-                if (ClassOverrides[j].BASClass != None)
+                if (ClassOverrides[j].NETClass != None)
                 {
-                    L.Weapons[i].WeaponClass = ClassOverrides[j].BASClass;
+                    L.Weapons[i].WeaponClass = ClassOverrides[j].NETClass;
                 }
                 break;
             }
         }
     }
+}
+
+function ServerTraveling(string URL, bool bItems)
+{
+    Super.ServerTraveling(URL, bItems);
+    RestoreFireModeOverrides();
 }
 
 final function float GetAverageDeltaTime()
@@ -775,6 +779,36 @@ static final function Vector GetClearance(Vector HitNormal,
     return Direction * (Clearance / Ratio);
 }
 
+static function ApplyFireModeOverrides()
+{
+    local int i;
+    local int j;
+
+    for (i = 0; i < default.ClassOverrides.Length; ++i)
+    {
+        for (j = 0; j < default.ClassOverrides[i].FireModeOverrides.Length; ++j)
+        {
+            default.ClassOverrides[i].TargetClass.default.FireModeClass[j] =
+                default.ClassOverrides[i].FireModeOverrides[j].NETClass;
+        }
+    }
+}
+
+static function RestoreFireModeOverrides()
+{
+    local int i;
+    local int j;
+
+    for (i = 0; i < default.ClassOverrides.Length; ++i)
+    {
+        for (j = 0; j < default.ClassOverrides[i].FireModeOverrides.Length; ++j)
+        {
+            default.ClassOverrides[i].TargetClass.default.FireModeClass[j] =
+                default.ClassOverrides[i].FireModeOverrides[j].TargetClass;
+        }
+    }
+}
+
 defaultproperties
 {
     FriendlyName="HexedNET %TAG%"
@@ -786,33 +820,39 @@ defaultproperties
     Properties(1)=(Name="LagCompensationLimit",Type=HX_PROPERTY_Int,LowerLimit="50",UpperLimit="999")
     Properties(2)=(Name="ProjectileCompensationLimit",Type=HX_PROPERTY_Int,LowerLimit="50",UpperLimit="999")
     Properties(3)=(Name="MaxCollisionCheckRate",Type=HX_PROPERTY_Int,LowerLimit="25",UpperLimit="100")
-    Properties(4)=(Name="bRubberbandingFix",Type=HX_PROPERTY_Bool)
-    Properties(5)=(Name="bLinkMeshes",Type=HX_PROPERTY_Bool)
-    DisplayInfo(0)=(Caption="Ping Frequency",Hint="Frequency to send ping packets (pings/second). Lower this value if server connection is saturated.",Step="0.25",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
-    DisplayInfo(1)=(Caption="Lag Compensation Limit",Hint="Global lag compensation limit (in milliseconds).",Step="10",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
-    DisplayInfo(2)=(Caption="Projectile Compensation Limit",Hint="Projectile-specific lag compensation limit (in milliseconds).",Step="10",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
-    DisplayInfo(3)=(Caption="Max. Collision Check Rate",Hint="Maximum rate to check for projectile collisions during server-side forwarding. The actual rate is the minimum between this value and the server's tick rate.",Step="5",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
-    DisplayInfo(4)=(Caption="Backport Rubberbanding Fix",Hint="Backport OldUnreal's rubberbanding fix. Applied on restart/map change.",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
-    DisplayInfo(5)=(Caption="Link Meshes",Hint="Link meshes for collision detection. Disable this if experiencing crashes.",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
+    Properties(4)=(Name="bBoostedAimSynchronization",Type=HX_PROPERTY_Bool)
+    Properties(5)=(Name="bForceStartFireRPCs",Type=HX_PROPERTY_Bool)
+    Properties(6)=(Name="bRubberbandingFix",Type=HX_PROPERTY_Bool)
+    Properties(7)=(Name="bLinkMeshes",Type=HX_PROPERTY_Bool)
+    DisplayInfo(0)=(Section="General",Caption="Ping Frequency",Hint="Frequency to send ping packets (pings/second). Lower this value if server connection is saturated.",Step="0.25",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
+    DisplayInfo(1)=(Section="General",Caption="Lag Compensation Limit",Hint="Global lag compensation limit (in milliseconds).",Step="10",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
+    DisplayInfo(2)=(Section="Projectiles",Caption="Projectile Compensation Limit",Hint="Projectile-specific lag compensation limit (in milliseconds).",Step="10",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
+    DisplayInfo(3)=(Section="Projectiles",Caption="Max. Collision Check Rate",Hint="Maximum rate to check for projectile collisions during server-side forwarding. The actual rate is the minimum between this value and the server's tick rate.",Step="5",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
+    DisplayInfo(4)=(Section="Boosted Aim Synchronization (BAS)",Caption="Enable BAS",Hint="When triggering a shot, send the client's location and camera rotation to the server to synchronize the aim. Applied on restart/map change.",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
+    DisplayInfo(5)=(Section="Boosted Aim Synchronization (BAS)",Caption="Force Start Fire RPCs",Hint="Force a new start fire RPC for every shot while holding the fire button. If disabled, BAS is only applied to the first shot while holding fire.",Dependency="bBoostedAimSynchronization",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
+    DisplayInfo(6)=(Section="Miscellaneous",Caption="Backport Rubberbanding Fix",Hint="Backport OldUnreal's rubberbanding fix. Applied on restart/map change.",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
+    DisplayInfo(7)=(Section="Miscellaneous",Caption="Link Meshes",Hint="Link meshes for collision detection. Disable this if experiencing crashes.",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
     ConfigClasses(0)=class'HxNetcodeConfig'
     Priority=64
-    ClassOverrides(0)=(TargetClass=class'AssaultRifle',BASClass=class'HxNet_AssaultRifle',FireModeClass=(class'HxNet_AssaultFire',class'HxNet_AssaultGrenade'))
-    ClassOverrides(1)=(TargetClass=class'BioRifle',BASClass=class'HxNet_BioRifle',FireModeClass=(class'HxNet_BioFire',class'HxNet_BioChargedFire'))
-    ClassOverrides(2)=(TargetClass=class'ShockRifle',BASClass=class'HxNet_ShockRifle',FireModeClass=(class'HxNet_ShockBeamFire',class'HxNet_ShockProjFire'))
-    ClassOverrides(3)=(TargetClass=class'LinkGun',BASClass=class'HxNet_LinkGun',FireModeClass=(class'HxNet_LinkAltFire',class'HxNet_LinkFire'))
-    ClassOverrides(4)=(TargetClass=class'MiniGun',FireModeClass=(class'HxNet_MiniGunFire',class'HxNet_MiniGunAltFire'))
-    ClassOverrides(5)=(TargetClass=class'FlakCannon',BASClass=class'HxNet_FlakCannon',FireModeClass=(class'HxNet_FlakFire',class'HxNet_FlakAltFire'))
-    ClassOverrides(6)=(TargetClass=class'RocketLauncher',BASClass=class'HxNet_RocketLauncher',FireModeClass=(class'HxNet_RocketFire',class'HxNet_RocketMultiFire'))
-    ClassOverrides(7)=(TargetClass=class'SniperRifle',BASClass=class'HxNet_SniperRifle',FireModeClass=(class'HxNet_SniperFire'))
-    ClassOverrides(8)=(TargetClass=class'ClassicSniperRifle',BASClass=class'HxNet_ClassicSniperRifle',FireModeClass=(class'HxNet_ClassicSniperFire'))
-    ClassOverrides(9)=(TargetClass=class'SuperShockRifle',BASClass=class'HxNet_SuperShockRifle',FireModeClass=(class'HxNet_SuperShockBeamFire',class'HxNet_SuperShockBeamFire'))
-    ClassOverrides(10)=(TargetClass=class'ZoomSuperShockRifle',BASClass=class'HxNet_ZoomSuperShockRifle',FireModeClass=(class'HxNet_ZoomSuperShockBeamFire'))
-    ClassOverrides(11)=(TargetClass=class'HxSuperShockRifle',BASClass=class'HxNet_HxSuperShockRifle',FireModeClass=(class'HxNet_SuperShockBeamFire',class'HxNet_SuperShockBeamFire'))
-    ClassOverrides(12)=(TargetClass=class'HxZoomSuperShockRifle',BASClass=class'HxNet_HxZoomSuperShockRifle',FireModeClass=(class'HxNet_ZoomSuperShockBeamFire'))
+    ClassOverrides(0)=(TargetClass=class'AssaultRifle',NETClass=class'HxNet_AssaultRifle',FireModeOverrides=((TargetClass=class'AssaultFire',NETClass=class'HxNet_AssaultFire'),(TargetClass=class'AssaultGrenade',NETClass=class'HxNet_AssaultGrenade')))
+    ClassOverrides(1)=(TargetClass=class'BioRifle',NETClass=class'HxNet_BioRifle',FireModeOverrides=((TargetClass=class'BioFire',NETClass=class'HxNet_BioFire'),(TargetClass=class'BioChargedFire',NETClass=class'HxNet_BioChargedFire')))
+    ClassOverrides(2)=(TargetClass=class'ShockRifle',NETClass=class'HxNet_ShockRifle',FireModeOverrides=((TargetClass=class'ShockBeamFire',NETClass=class'HxNet_ShockBeamFire'),(TargetClass=class'ShockProjFire',NETClass=class'HxNet_ShockProjFire')))
+    ClassOverrides(3)=(TargetClass=class'LinkGun',NETClass=class'HxNet_LinkGun',FireModeOverrides=((TargetClass=class'LinkAltFire',NETClass=class'HxNet_LinkAltFire'),(TargetClass=class'LinkFire',NETClass=class'HxNet_LinkFire')))
+    ClassOverrides(4)=(TargetClass=class'MiniGun',FireModeOverrides=((TargetClass=class'MiniGunFire',NETClass=class'HxNet_MiniGunFire'),(TargetClass=class'MiniGunAltFire',NETClass=class'HxNet_MiniGunAltFire')))
+    ClassOverrides(5)=(TargetClass=class'FlakCannon',NETClass=class'HxNet_FlakCannon',FireModeOverrides=((TargetClass=class'FlakFire',NETClass=class'HxNet_FlakFire'),(TargetClass=class'FlakAltFire',NETClass=class'HxNet_FlakAltFire')))
+    ClassOverrides(6)=(TargetClass=class'RocketLauncher',NETClass=class'HxNet_RocketLauncher',FireModeOverrides=((TargetClass=class'RocketFire',NETClass=class'HxNet_RocketFire'),(TargetClass=class'RocketMultiFire',NETClass=class'HxNet_RocketMultiFire')))
+    ClassOverrides(7)=(TargetClass=class'SniperRifle',NETClass=class'HxNet_SniperRifle',FireModeOverrides=((TargetClass=class'SniperFire',NETClass=class'HxNet_SniperFire')))
+    ClassOverrides(8)=(TargetClass=class'ClassicSniperRifle',NETClass=class'HxNet_ClassicSniperRifle',FireModeOverrides=((TargetClass=class'ClassicSniperFire',NETClass=class'HxNet_ClassicSniperFire')))
+    ClassOverrides(9)=(TargetClass=class'SuperShockRifle',NETClass=class'HxNet_SuperShockRifle',FireModeOverrides=((TargetClass=class'SuperShockBeamFire',NETClass=class'HxNet_SuperShockBeamFire'),(TargetClass=class'SuperShockBeamFire',NETClass=class'HxNet_SuperShockBeamFire')))
+    ClassOverrides(10)=(TargetClass=class'ZoomSuperShockRifle',NETClass=class'HxNet_ZoomSuperShockRifle',FireModeOverrides=((TargetClass=class'ZoomSuperShockBeamFire',NETClass=class'HxNet_ZoomSuperShockBeamFire')))
+    ClassOverrides(11)=(TargetClass=class'HxSuperShockRifle',NETClass=class'HxNet_HxSuperShockRifle',FireModeOverrides=((TargetClass=class'SuperShockBeamFire',NETClass=class'HxNet_SuperShockBeamFire'),(TargetClass=class'SuperShockBeamFire',NETClass=class'HxNet_SuperShockBeamFire')))
+    ClassOverrides(12)=(TargetClass=class'HxZoomSuperShockRifle',NETClass=class'HxNet_HxZoomSuperShockRifle',FireModeOverrides=((TargetClass=class'ZoomSuperShockBeamFire',NETClass=class'HxNet_ZoomSuperShockBeamFire')))
     PingFrequency=2.0
     LagCompensationLimit=300
     ProjectileCompensationLimit=125
     MaxCollisionCheckRate=50
+    bBoostedAimSynchronization=true
+    bForceStartFireRPCs=true
     bRubberbandingFix=false
     bLinkMeshes=true
 }
