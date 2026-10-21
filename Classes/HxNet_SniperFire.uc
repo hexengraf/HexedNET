@@ -3,11 +3,6 @@ class HxNet_SniperFire extends SniperFire
 
 #include Classes\Include\HxNTBaseInstantFire.uci
 
-function DoFireEffect()
-{
-    DoBaseFireEffect();
-}
-
 function DoTrace(Vector Start, Rotator Dir)
 {
     local Vector HitLocation;
@@ -22,6 +17,7 @@ function DoTrace(Vector Start, Rotator Dir)
     local Pawn HeadShotPawn;
     local xEmitter HitEmitter;
     local class<Actor> TmpHitEmitClass;
+    local float CompensationTime;
     local float TmpTraceRange;
     local bool bDoReflect;
     local bool bRewind;
@@ -54,8 +50,9 @@ function DoTrace(Vector Start, Rotator Dir)
         End = Start + TmpTraceRange * X;
         if (bRewind)
         {
-            HexedNET.Rewind(Client.GetCompensationTime() + ServerDelay);
-            Hit = HexedNET.RewoundTrace(Weapon, HitLocation, HitNormal, End, Start);
+            CompensationTime = Client.GetCompensationTime() + ServerDelay;
+            Hit = HexedNET.ReconTrace(
+                Weapon, HitLocation, HitNormal, End, Start, CompensationTime, ClientHit);
             HexedNET.UndoRewind();
             TmpHitEmitClass = class'HxNet_NewLightningBolt';
             bRewind = false;
@@ -197,6 +194,15 @@ function Vector GetArcStart(Vector EffectOffset)
         + EffectOffset.Z * Z;
 }
 
+function GetStartAndAim(out Vector Start, out Rotator Aim)
+{
+    Start = Instigator.Location + Instigator.EyePosition();
+    Aim = AdjustAim(Start, AimError);
+}
+
 defaultproperties
 {
+    BASLocationTolerance=360
+    BASAngleTolerance=-0.5
+    bClientFireEffect=true
 }

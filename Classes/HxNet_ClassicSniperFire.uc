@@ -1,50 +1,7 @@
 class HxNet_ClassicSniperFire extends ClassicSniperFire
     DependsOn(HxNTWeapon);
 
-var float ServerDelay;
-var private MutHexedNET HexedNET;
-var private HxNTClient Client;
-var private Vector BASStart;
-var private Rotator BASAim;
-var private bool bBoostedAimSynchronization;
-
-function PreBeginPlay()
-{
-    Super.PreBeginPlay();
-    class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
-}
-
-function bool WantsLagCompensation()
-{
-    return class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
-        && Client.WantsLagCompensation();
-}
-
-function int ApplyBAS(HxNTWeapon.HxBAS BAS)
-{
-    if (class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
-    {
-        class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
-        bBoostedAimSynchronization = Client.IsAcceptableBAS(Weapon, BASStart, BASAim);
-        return Client.GetStopFireTickCount();
-    }
-    return 0;
-}
-
-function DoFireEffect()
-{
-    if (bBoostedAimSynchronization)
-    {
-        Instigator.MakeNoise(1.0);
-        DoTrace(BASStart, BASAim);
-        bBoostedAimSynchronization = false;
-    }
-    else
-    {
-        Super.DoFireEffect();
-    }
-    ServerDelay = 0;
-}
+#include Classes\Include\HxNTBaseInstantFire.uci
 
 function DoTrace(Vector Start, Rotator Dir)
 {
@@ -55,6 +12,7 @@ function DoTrace(Vector Start, Rotator Dir)
     local Vector End;
     local Vector HitLocation;
     local Vector HitNormal;
+    local float CompensationTime;
 
     if (Level.NetMode == NM_Client || !WantsLagCompensation())
     {
@@ -63,8 +21,9 @@ function DoTrace(Vector Start, Rotator Dir)
     }
     X = Vector(Dir);
     End = Start + TraceRange * X;
-    HexedNET.Rewind(Client.GetCompensationTime() + ServerDelay);
-    Other = HexedNET.RewoundTrace(Weapon, HitLocation, HitNormal, End, Start);
+    CompensationTime = Client.GetCompensationTime() + ServerDelay;
+    Other = HexedNET.ReconTrace(
+        Weapon, HitLocation, HitNormal, End, Start, CompensationTime, ClientHit);
     HexedNET.UndoRewind();
     if (Level.NetMode != NM_Standalone || PlayerController(Instigator.Controller) == None)
     {
@@ -122,6 +81,15 @@ function DoTrace(Vector Start, Rotator Dir)
     }
 }
 
+function GetStartAndAim(out Vector Start, out Rotator Aim)
+{
+    Start = Instigator.Location + Instigator.EyePosition();
+    Aim = AdjustAim(Start, AimError);
+}
+
 defaultproperties
 {
+    BASLocationTolerance=360
+    BASAngleTolerance=-0.5
+    bClientFireEffect=false
 }

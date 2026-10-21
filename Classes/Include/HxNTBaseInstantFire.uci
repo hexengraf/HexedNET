@@ -1,9 +1,14 @@
 var float ServerDelay;
+var private const float BASLocationTolerance;
+var private const float BASAngleTolerance;
+var private const bool bClientFireEffect;
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
 var private Vector BASStart;
 var private Rotator BASAim;
-var private bool bBoostedAimSynchronization;
+var private bool bHasNETWeapon;
+var private bool bUseBAS;
+var private Actor ClientHit;
 
 function PreBeginPlay()
 {
@@ -17,13 +22,37 @@ function bool WantsLagCompensation()
         && Client.WantsLagCompensation();
 }
 
-function int ApplyBAS(HxNTWeapon.HxBAS BAS)
+function int ApplyBAS(HxNTWeapon.HxBAS BAS, optional out Actor Hit)
 {
+    local Rotator CurrentAim;
+    local Vector CurrentStart;
+    local Vector HitLocation;
+    local Vector HitNormal;
+    local Vector Diff;
+
     if (class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
     {
         class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
-        bBoostedAimSynchronization = Client.IsAcceptableBAS(Weapon, BASStart, BASAim);
-        return Client.GetStopFireTickCount();
+        if (Weapon.Role < ROLE_Authority)
+        {
+            if (Client.WantsClientSideCollision())
+            {
+                Hit = Weapon.Trace(
+                    HitLocation, HitNormal, BASStart + Vector(BASAim) * TraceRange, BASStart, true);
+            }
+            bUseBAS = true;
+            if (bClientFireEffect)
+            {
+                bHasNETWeapon = true;
+                DoFireEffect();
+            }
+            return Client.GetStopFireTickCount();
+        }
+        ClientHit = Hit;
+        GetStartAndAim(CurrentStart, CurrentAim);
+        Diff = BASStart - CurrentStart;
+        bUseBAS = (Diff dot Diff) < BASLocationTolerance
+            && Vector(BASAim) dot Vector(CurrentAim) > BASAngleTolerance;
     }
     return 0;
 }
@@ -31,19 +60,20 @@ function int ApplyBAS(HxNTWeapon.HxBAS BAS)
 function PlayFiring()
 {
     Super.PlayFiring();
-    if (Level.NetMode == NM_Client && WantsLagCompensation() && Instigator.IsLocallyControlled())
+    if (Level.NetMode == NM_Client && bClientFireEffect && !bHasNETWeapon
+        && Instigator.IsLocallyControlled() && WantsLagCompensation())
     {
         DoFireEffect();
     }
 }
 
-function DoBaseFireEffect()
+function DoFireEffect()
 {
-    if (bBoostedAimSynchronization)
+    if (bUseBAS)
     {
         Instigator.MakeNoise(1.0);
         DoTrace(BASStart, BASAim);
-        bBoostedAimSynchronization = false;
+        bUseBAS = false;
     }
     else
     {

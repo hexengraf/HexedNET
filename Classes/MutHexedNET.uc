@@ -23,6 +23,8 @@ var config int ProjectileCompensationLimit;
 var config int MaxCollisionCheckRate;
 var config bool bBoostedAimSynchronization;
 var config bool bForceStartFireRPCs;
+var config bool bClientSideCollisions;
+var config int CSCTolerance;
 var config bool bRubberbandingFix;
 var config bool bLinkMeshes;
 
@@ -301,7 +303,6 @@ function Actor RewoundTrace(Weapon Weapon,
 {
     local Actor Hit;
     local Actor Pawn;
-    local Vector TrackerLocation;
 
     foreach TraceActors(class'Actor', Hit, HitLocation, HitNormal, End, Start, Extent)
     {
@@ -319,19 +320,70 @@ function Actor RewoundTrace(Weapon Weapon,
         else if (Hit.IsA('HxNTProjectileTracker'))
         {
             PastLocation = HitLocation;
-            TrackerLocation = Hit.Location;
             Hit = HxNTProjectileTracker(Hit).GetTracked(HitLocation);
-            if (Hit != None)
-            {
-                Hit.SetLocation(TrackerLocation);
-                break;
-            }
+            break;
         }
-        else if ((Hit.bBlockActors || Hit.bProjTarget || Hit.bWorldGeometry) && !IsPredicted(Hit))
+        else if ((Hit.bBlockActors || Hit.bProjTarget || Hit.bWorldGeometry) && !IsTracked(Hit))
         {
             PastLocation = HitLocation;
             break;
         }
+    }
+    return Hit;
+}
+
+function Actor ReconTrace(Weapon Weapon,
+                          out Vector HitLocation,
+                          out Vector HitNormal,
+                          Vector End,
+                          Vector Start,
+                          float CompensationTime,
+                          Actor ClientHit,
+                          optional Vector PastLocation)
+{
+    local Actor Other;
+    local Actor Hit;
+    local float OlderTime;
+    local float NewerTime;
+    local float TimeStep;
+    local float Limit;
+    local int StepCount;
+    local int i;
+
+    Rewind(CompensationTime);
+    Hit = RewoundTrace(Weapon, HitLocation, HitNormal, End, Start,,, PastLocation);
+    if (ClientHit != None && Hit != ClientHit
+        && (IsTracked(ClientHit) || (Hit != None && IsTracked(Hit))))
+    {
+        TimeStep = AvgDT * 0.5;
+        StepCount = 2 * CSCTolerance + 1;
+        Limit = GetCompensationLimit();
+        OlderTime = CompensationTime;
+        NewerTime = CompensationTime;
+        for (i = 1; i < StepCount; ++i)
+        {
+            if (NewerTime > 0.0)
+            {
+                NewerTime = FMax(CompensationTime - i * TimeStep, 0.0);
+                Rewind(NewerTime);
+                Other = RewoundTrace(Weapon, HitLocation, HitNormal, End, Start,,, PastLocation);
+                if (Other == ClientHit)
+                {
+                    return Other;
+                }
+            }
+            if (OlderTime < Limit)
+            {
+                OlderTime = FMin(CompensationTime + i * TimeStep, Limit);
+                Rewind(OlderTime);
+                Other = RewoundTrace(Weapon, HitLocation, HitNormal, End, Start,,, PastLocation);
+                if (Other == ClientHit)
+                {
+                    return Other;
+                }
+            }
+        }
+        Rewind(CompensationTime);
     }
     return Hit;
 }
@@ -680,7 +732,7 @@ final function float GetCompensationLimit()
     return (LagCompensationLimit * Level.TimeDilation) / 1000.0;
 }
 
-static final function bool IsPredicted(Actor A)
+static final function bool IsTracked(Actor A)
 {
     return A.IsA('xPawn') || (A.IsA('Vehicle') && Vehicle(A).Driver != None)
         || A.IsA('HxNet_ShockProjectile');
@@ -822,16 +874,20 @@ defaultproperties
     Properties(3)=(Name="MaxCollisionCheckRate",Type=HX_PROPERTY_Int,LowerLimit="25",UpperLimit="100")
     Properties(4)=(Name="bBoostedAimSynchronization",Type=HX_PROPERTY_Bool)
     Properties(5)=(Name="bForceStartFireRPCs",Type=HX_PROPERTY_Bool)
-    Properties(6)=(Name="bRubberbandingFix",Type=HX_PROPERTY_Bool)
-    Properties(7)=(Name="bLinkMeshes",Type=HX_PROPERTY_Bool)
+    Properties(6)=(Name="bClientSideCollisions",Type=HX_PROPERTY_Bool)
+    Properties(7)=(Name="CSCTolerance",Type=HX_PROPERTY_Int,LowerLimit="1",UpperLimit="10")
+    Properties(8)=(Name="bRubberbandingFix",Type=HX_PROPERTY_Bool)
+    Properties(9)=(Name="bLinkMeshes",Type=HX_PROPERTY_Bool)
     DisplayInfo(0)=(Section="General",Caption="Ping Frequency",Hint="Frequency to send ping packets (pings/second). Lower this value if server connection is saturated.",Step="0.25",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
     DisplayInfo(1)=(Section="General",Caption="Lag Compensation Limit",Hint="Global lag compensation limit (in milliseconds).",Step="10",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
     DisplayInfo(2)=(Section="Projectiles",Caption="Projectile Compensation Limit",Hint="Projectile-specific lag compensation limit (in milliseconds).",Step="10",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
     DisplayInfo(3)=(Section="Projectiles",Caption="Max. Collision Check Rate",Hint="Maximum rate to check for projectile collisions during server-side forwarding. The actual rate is the minimum between this value and the server's tick rate.",Step="5",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
     DisplayInfo(4)=(Section="Boosted Aim Synchronization (BAS)",Caption="Enable BAS",Hint="When triggering a shot, send the client's location and camera rotation to the server to synchronize the aim. Applied on restart/map change.",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
     DisplayInfo(5)=(Section="Boosted Aim Synchronization (BAS)",Caption="Force Start Fire RPCs",Hint="Force a new start fire RPC for every shot while holding the fire button. If disabled, BAS is only applied to the first shot while holding fire.",Dependency="bBoostedAimSynchronization",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
-    DisplayInfo(6)=(Section="Miscellaneous",Caption="Backport Rubberbanding Fix",Hint="Backport OldUnreal's rubberbanding fix. Applied on restart/map change.",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
-    DisplayInfo(7)=(Section="Miscellaneous",Caption="Link Meshes",Hint="Link meshes for collision detection. Disable this if experiencing crashes.",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
+    DisplayInfo(6)=(Section="Boosted Aim Synchronization (BAS)",Caption="Evaluate Client-Side Collisions",Hint="Execute client-side collision detection and add the result to BAS. The server decides if the collision is valid. Only applies to hitscan weapons.",Dependency="bBoostedAimSynchronization",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
+    DisplayInfo(7)=(Section="Boosted Aim Synchronization (BAS)",Caption="Client-Side Collision Tolerance",Hint="Maximum acceptable temporal distance to validate client-side collisions, expressed in server ticks.",Step="1",Dependency="bBoostedAimSynchronization",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
+    DisplayInfo(8)=(Section="Miscellaneous",Caption="Backport Rubberbanding Fix",Hint="Backport OldUnreal's rubberbanding fix. Applied on restart/map change.",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
+    DisplayInfo(9)=(Section="Miscellaneous",Caption="Link Meshes",Hint="Link meshes for collision detection. Disable this if experiencing crashes.",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
     ConfigClasses(0)=class'HxNetcodeConfig'
     Priority=64
     ClassOverrides(0)=(TargetClass=class'AssaultRifle',NETClass=class'HxNet_AssaultRifle',FireModeOverrides=((TargetClass=class'AssaultFire',NETClass=class'HxNet_AssaultFire'),(TargetClass=class'AssaultGrenade',NETClass=class'HxNet_AssaultGrenade')))
@@ -853,6 +909,8 @@ defaultproperties
     MaxCollisionCheckRate=50
     bBoostedAimSynchronization=true
     bForceStartFireRPCs=true
+    bClientSideCollisions=true
+    CSCTolerance=2
     bRubberbandingFix=false
     bLinkMeshes=true
 }

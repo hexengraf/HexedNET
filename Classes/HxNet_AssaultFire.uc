@@ -3,21 +3,6 @@ class HxNet_AssaultFire extends AssaultFire
 
 #include Classes\Include\HxNTBaseInstantFire.uci
 
-function DoFireEffect()
-{
-    if (bBoostedAimSynchronization)
-    {
-        Instigator.MakeNoise(1.0);
-        DoTrace(BASStart, Rotator(Vector(BASAim) + VRand() * FRand() * Spread));
-        bBoostedAimSynchronization = false;
-    }
-    else
-    {
-        Super.DoFireEffect();
-    }
-    ServerDelay = 0;
-}
-
 function DoTrace(Vector Start, Rotator Dir)
 {
     if (Level.NetMode == NM_Client || !WantsLagCompensation())
@@ -27,10 +12,19 @@ function DoTrace(Vector Start, Rotator Dir)
     else
     {
         class'HxNTWeapon'.static.InstantFireTrace(
-            HexedNET, Self, Start, Dir, Client.GetCompensationTime());
+            HexedNET, Self, Start, Dir, Client.GetCompensationTime() + ServerDelay, ClientHit);
     }
+}
+
+function GetStartAndAim(out Vector Start, out Rotator Aim)
+{
+    Start = Instigator.Location + Instigator.EyePosition();
+    Aim = AdjustAim(Start, AimError);
 }
 
 defaultproperties
 {
+    BASLocationTolerance=360
+    BASAngleTolerance=-0.5
+    bClientFireEffect=true
 }

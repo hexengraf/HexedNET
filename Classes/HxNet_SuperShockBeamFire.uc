@@ -3,11 +3,6 @@ class HxNet_SuperShockBeamFire extends SuperShockBeamFire
 
 #include Classes\Include\HxNTBaseInstantFire.uci
 
-function DoFireEffect()
-{
-    DoBaseFireEffect();
-}
-
 function SpawnBeamEffect(Vector Start,
                          Rotator Dir,
                          Vector HitLocation,
@@ -41,19 +36,30 @@ function SpawnBeamEffect(Vector Start,
 
 function TracePart(Vector Start, Vector End, Vector X, Rotator Dir, Pawn Ignored)
 {
+    local float CompensationTime;
+
     if (!WantsLagCompensation())
     {
         Super.TracePart(Start, End, X, Dir, Ignored);
     }
     else if (HexedNET != None)
     {
-        HexedNET.Rewind(Client.GetCompensationTime() + ServerDelay);
-        StaticTracePart(HexedNET, Self, Start, End, X, Dir, Ignored);
+        CompensationTime = Client.GetCompensationTime() + ServerDelay;
+        if (ClientHit == None)
+        {
+            HexedNET.Rewind(CompensationTime);
+            StaticTracePart(HexedNET, Self, Start, End, X, Dir, Ignored, CompensationTime);
+        }
+        else
+        {
+            StaticTracePart(
+                HexedNET, Self, Start, End, X, Dir, Ignored, CompensationTime, ClientHit);
+        }
         HexedNET.UndoRewind();
     }
     else
     {
-        StaticTracePart(HexedNET, Self, Start, End, X, Dir, Ignored);
+        StaticClientTracePart(Self, Start, End, X, Dir, Ignored);
     }
 }
 
@@ -63,35 +69,42 @@ static function StaticTracePart(MutHexedNET HexedNET,
                                 Vector End,
                                 Vector X,
                                 Rotator Dir,
-                                Pawn Ignored)
+                                Pawn Ignored,
+                                float CompensationTime,
+                                optional Actor ClientHit)
 {
-    local Actor Hit;
     local Vector HitLocation;
     local Vector PastLocation;
     local Vector HitNormal;
+    local Actor Hit;
 
-    if (HexedNET != None)
+    if (ClientHit != None)
     {
-        Hit = HexedNET.RewoundTrace(WF.Weapon, HitLocation, HitNormal, End, Start,,, PastLocation);
+        Hit = HexedNET.ReconTrace(
+            WF.Weapon,
+            HitLocation,
+            HitNormal,
+            End,
+            Start,
+            CompensationTime,
+            ClientHit,
+            PastLocation);
     }
     else
     {
-        Hit = Ignored.Trace(HitLocation, HitNormal, End, Start, true);
-        PastLocation = HitLocation;
+        Hit = HexedNET.RewoundTrace(WF.Weapon, HitLocation, HitNormal, End, Start,,, PastLocation);
     }
     if (Hit != None && Hit != Ignored)
     {
         if (!Hit.bWorldGeometry)
         {
-            if (WF.Level.NetMode != NM_Client)
-            {
-                Hit.TakeDamage(
-                    WF.DamageMax, WF.Instigator, HitLocation, WF.Momentum * X, WF.DamageType);
-            }
+            Hit.TakeDamage(
+                WF.DamageMax, WF.Instigator, HitLocation, WF.Momentum * X, WF.DamageType);
             HitNormal = Vect(0, 0, 0);
             if (Pawn(Hit) != None && HitLocation != Start && WF.AllowMultiHit())
             {
-                StaticTracePart(HexedNET, WF, PastLocation, End, X, Dir, Pawn(Hit));
+                StaticTracePart(
+                    HexedNET, WF, PastLocation, End, X, Dir, Pawn(Hit), CompensationTime);
             }
         }
     }
@@ -103,6 +116,46 @@ static function StaticTracePart(MutHexedNET HexedNET,
     WF.SpawnBeamEffect(Start, Dir, HitLocation, HitNormal, 0);
 }
 
+static function StaticClientTracePart(SuperShockBeamFire WF,
+                                      Vector Start,
+                                      Vector End,
+                                      Vector X,
+                                      Rotator Dir,
+                                      Pawn Ignored)
+{
+    local Vector HitLocation;
+    local Vector HitNormal;
+    local Actor Hit;
+
+    Hit = Ignored.Trace(HitLocation, HitNormal, End, Start, true);
+    if (Hit != None && Hit != Ignored)
+    {
+        if (!Hit.bWorldGeometry)
+        {
+            HitNormal = Vect(0, 0, 0);
+            if (Pawn(Hit) != None && HitLocation != Start && WF.AllowMultiHit())
+            {
+                StaticClientTracePart(WF, HitLocation, End, X, Dir, Pawn(Hit));
+            }
+        }
+    }
+    else
+    {
+        HitLocation = End;
+        HitNormal = Vect(0, 0, 0);
+    }
+    WF.SpawnBeamEffect(Start, Dir, HitLocation, HitNormal, 0);
+}
+
+function GetStartAndAim(out Vector Start, out Rotator Aim)
+{
+    Start = Instigator.Location + Instigator.EyePosition();
+    Aim = AdjustAim(Start, AimError);
+}
+
 defaultproperties
 {
+    BASLocationTolerance=360
+    BASAngleTolerance=-0.5
+    bClientFireEffect=true
 }

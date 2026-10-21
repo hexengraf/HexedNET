@@ -9,7 +9,7 @@ var private bool bConfigCleared;
 replication
 {
     reliable if (Role < ROLE_Authority)
-        ServerStartFireBAS;
+        ServerStartFireBAS, ServerStartFireBASRecon;
 }
 
 simulated event PreBeginPlay()
@@ -38,6 +38,7 @@ simulated event ClientStopFire(int Mode)
 simulated event ClientStartFire(int Mode)
 {
     local HxNTWeapon.HxBAS BAS;
+    local Actor ClientHit;
 
     if (Pawn(Owner).Controller.IsInState('GameEnded')
         || Pawn(Owner).Controller.IsInState('RoundEnded'))
@@ -50,15 +51,23 @@ simulated event ClientStartFire(int Mode)
         {
             if (HxNet_ShockBeamFire(FireMode[Mode]) != None)
             {
-                BAS = class'HxNTWeapon'.static.EncodeBAS(Self, Mode, true);
-                StopFireTime[Mode] = HxNet_ShockBeamFire(FireMode[Mode]).ApplyBAS(BAS);
+                BAS = EncodeBAS(Mode);
+                StopFireTime[Mode] = HxNet_ShockBeamFire(FireMode[Mode]).ApplyBAS(BAS, ClientHit);
+                if (ClientHit == None)
+                {
+                    ServerStartFireBAS(Mode, BAS);
+                }
+                else
+                {
+                    ServerStartFireBASRecon(Mode, BAS, ClientHit);
+                }
             }
             else
             {
                 BAS = class'HxNTWeapon'.static.EncodeBAS(Self, Mode);
                 StopFireTime[Mode] = HxNet_ShockProjFire(FireMode[Mode]).ApplyBAS(BAS);
+                ServerStartFireBAS(Mode, BAS);
             }
-            ServerStartFireBAS(Mode, BAS);
         }
     }
     else
@@ -72,6 +81,19 @@ function ServerStartFireBAS(byte Mode, HxNTWeapon.HxBAS BAS)
     if (HxNet_ShockBeamFire(FireMode[Mode]) != None)
     {
         HxNet_ShockBeamFire(FireMode[Mode]).ApplyBAS(BAS);
+    }
+    else
+    {
+        HxNet_ShockProjFire(FireMode[Mode]).ApplyBAS(BAS);
+    }
+    ServerStartFire(Mode);
+}
+
+function ServerStartFireBASRecon(byte Mode, HxNTWeapon.HxBAS BAS, Actor ClientHit)
+{
+    if (HxNet_ShockBeamFire(FireMode[Mode]) != None)
+    {
+        HxNet_ShockBeamFire(FireMode[Mode]).ApplyBAS(BAS, ClientHit);
     }
     else
     {
@@ -116,6 +138,22 @@ simulated function bool WantsStartFireBAS(int Mode)
         return HxNet_ShockBeamFire(FireMode[Mode]).WantsLagCompensation();
     }
     return HxNet_ShockProjFire(FireMode[Mode]).WantsLagCompensation();
+}
+
+simulated function HxNTWeapon.HxBAS EncodeBAS(int Mode)
+{
+    local HxNTWeapon.HxBAS BAS;
+    local Rotator Aim;
+    local Vector Start;
+
+    HxNet_ShockBeamFire(FireMode[Mode]).GetStartAndAim(Start, Aim);
+    Aim = Rotator(Vector(Aim) + VRand() * FRand() * FireMode[Mode].Spread);
+    BAS.X = Start.X;
+    BAS.Y = Start.Y;
+    BAS.Z = Start.Z;
+    BAS.Yaw = Aim.Yaw;
+    BAS.Pitch = Aim.Pitch;
+    return BAS;
 }
 
 defaultproperties

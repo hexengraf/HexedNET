@@ -9,8 +9,6 @@ struct HxWeaponGroup
 const WEAPON_GROUP_COUNT = 16;
 const WARMUP_COUNT = 10;
 const PING_INTERVAL_VARIANCE = 0.1;
-const BAS_LOCATION_TOLERANCE = 360;
-const BAS_ANGLE_TOLERANCE = -0.5;
 const RTT_TIME_CONSTANT = 10.0;
 const DELTA_TIME_ALPHA = 0.008;
 
@@ -19,6 +17,7 @@ var bool bLagCompensation;
 var private HxWeaponGroup Groups[WEAPON_GROUP_COUNT];
 var private HxRandomGeneratorAlt Seeder;
 var private bool bForceStartFireRPCs;
+var private bool bClientSideCollisions;
 var private bool bClientUpdated;
 var private bool bReceivedPing;
 var private int PingCount;
@@ -185,6 +184,7 @@ simulated function NotifyMutatorInfoReady()
     SetLagCompensationLimit(MutatorInfo.Get("LagCompensationLimit"));
     SetProjectileCompensationLimit(MutatorInfo.Get("ProjectileCompensationLimit"));
     bForceStartFireRPCs = bool(MutatorInfo.Get("bForceStartFireRPCs"));
+    bClientSideCollisions = bool(MutatorInfo.Get("bClientSideCollisions"));
     InitializeCompensation();
 }
 
@@ -203,6 +203,9 @@ simulated function NotifyMutatorPropertyChanged(int Index)
             break;
         case "bForceStartFireRPCs":
             bForceStartFireRPCs = bool(MutatorInfo.Get("bForceStartFireRPCs"));
+            break;
+        case "bClientSideCollisions":
+            bClientSideCollisions = bool(MutatorInfo.Get("bClientSideCollisions"));
             break;
     }
 }
@@ -246,21 +249,9 @@ simulated final function bool WantsLagCompensation()
     return bLagCompensation && AvgRTT > MinRTT;
 }
 
-simulated final function bool IsAcceptableBAS(Weapon W, Vector BASStart, Rotator BASAim)
+simulated final function bool WantsClientSideCollision()
 {
-    local Vector Diff;
-
-    if (Role == ROLE_Authority)
-    {
-        if (Pawn(W.Owner) == None)
-        {
-            return false;
-        }
-        Diff = BASStart - (W.Owner.Location + Pawn(W.Owner).EyePosition());
-        return (Diff dot Diff) < BAS_LOCATION_TOLERANCE
-            && (Vector(BasAim) dot Vector(W.Owner.Rotation) > BAS_ANGLE_TOLERANCE);
-    }
-    return true;
+    return bClientSideCollisions;
 }
 
 simulated final function HxNTWeaponInfo GetWeaponInfo(class<Weapon> WeaponClass)

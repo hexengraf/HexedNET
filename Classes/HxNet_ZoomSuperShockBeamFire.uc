@@ -15,11 +15,6 @@ function BeginPlay()
     }
 }
 
-function DoFireEffect()
-{
-    DoBaseFireEffect();
-}
-
 function SpawnBeamEffect(Vector Start,
                          Rotator Dir,
                          Vector HitLocation,
@@ -56,21 +51,32 @@ function SpawnBeamEffect(Vector Start,
 
 function TracePart(Vector Start, Vector End, Vector X, Rotator Dir, Pawn Ignored)
 {
+    local float CompensationTime;
+
     if (!WantsLagCompensation())
     {
         Super.TracePart(Start, End, X, Dir, Ignored);
     }
     else if (HexedNET != None)
     {
-        HexedNET.Rewind(Client.GetCompensationTime() + ServerDelay);
-        class'HxNet_SuperShockBeamFire'.static.StaticTracePart(
-            HexedNET, Self, Start, End, X, Dir, Ignored);
+        CompensationTime = Client.GetCompensationTime() + ServerDelay;
+        if (ClientHit == None)
+        {
+            HexedNET.Rewind(CompensationTime);
+            class'HxNet_SuperShockBeamFire'.static.StaticTracePart(
+                HexedNET, Self, Start, End, X, Dir, Ignored, CompensationTime);
+        }
+        else
+        {
+            class'HxNet_SuperShockBeamFire'.static.StaticTracePart(
+                HexedNET, Self, Start, End, X, Dir, Ignored, CompensationTime, ClientHit);
+        }
         HexedNET.UndoRewind();
     }
     else
     {
-        class'HxNet_SuperShockBeamFire'.static.StaticTracePart(
-            HexedNET, Self, Start, End, X, Dir, Ignored);
+        class'HxNet_SuperShockBeamFire'.static.StaticClientTracePart(
+            Self, Start, End, X, Dir, Ignored);
     }
 }
 
@@ -81,4 +87,17 @@ function bool AllowMultiHit()
         return default.bServerAllowMultiHit;
     }
     return bAllowMultiHit;
+}
+
+function GetStartAndAim(out Vector Start, out Rotator Aim)
+{
+    Start = Instigator.Location + Instigator.EyePosition();
+    Aim = AdjustAim(Start, AimError);
+}
+
+defaultproperties
+{
+    BASLocationTolerance=360
+    BASAngleTolerance=-0.5
+    bClientFireEffect=true
 }

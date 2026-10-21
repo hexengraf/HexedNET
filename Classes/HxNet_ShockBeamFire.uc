@@ -3,35 +3,6 @@ class HxNet_ShockBeamFire extends ShockBeamFire
 
 #include Classes\Include\HxNTBaseInstantFire.uci
 
-function DoFireEffect()
-{
-    local Vector X;
-    local Vector Y;
-    local Vector Z;
-
-    if (bBoostedAimSynchronization)
-    {
-        if (PlayerController(Instigator.Controller) != None)
-        {
-            GetAxes(BASAim, X, Y, Z);
-            BASStart += X * class'ShockProjFire'.Default.ProjSpawnOffset.X;
-            if (!Weapon.WeaponCentered())
-            {
-                BASStart += Weapon.Hand * Y * class'ShockProjFire'.Default.ProjSpawnOffset.Y
-                    + Z * class'ShockProjFire'.Default.ProjSpawnOffset.Z;
-            }
-        }
-        Instigator.MakeNoise(1.0);
-        DoTrace(BASStart, BASAim);
-        bBoostedAimSynchronization = false;
-    }
-    else
-    {
-        Super.DoFireEffect();
-    }
-    ServerDelay = 0;
-}
-
 function SpawnBeamEffect(Vector Start,
                          Rotator Dir,
                          Vector HitLocation,
@@ -55,7 +26,7 @@ function DoTrace(Vector Start, Rotator Dir)
     if (WantsLagCompensation())
     {
         class'HxNTWeapon'.static.InstantFireTrace(
-            HexedNET, Self, Start, Dir, Client.GetCompensationTime() + ServerDelay);
+            HexedNET, Self, Start, Dir, Client.GetCompensationTime() + ServerDelay, ClientHit);
     }
     else
     {
@@ -63,6 +34,26 @@ function DoTrace(Vector Start, Rotator Dir)
     }
 }
 
+function GetStartAndAim(out Vector Start, out Rotator Aim)
+{
+    local Vector X;
+    local Vector Y;
+    local Vector Z;
+
+    Start = Instigator.Location + Instigator.EyePosition();
+    Aim = AdjustAim(Start, AimError);
+    Weapon.GetViewAxes(X, Y, Z);
+    Start += X * class'ShockProjFire'.Default.ProjSpawnOffset.X;
+    if (!Weapon.WeaponCentered())
+    {
+        Start += Weapon.Hand * Y * class'ShockProjFire'.Default.ProjSpawnOffset.Y
+            + Z * class'ShockProjFire'.Default.ProjSpawnOffset.Z;
+    }
+}
+
 defaultproperties
 {
+    BASLocationTolerance=360
+    BASAngleTolerance=-0.5
+    bClientFireEffect=true
 }

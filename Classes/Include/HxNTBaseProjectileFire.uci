@@ -1,10 +1,13 @@
+const BAS_LOCATION_TOLERANCE = 360;
+const BAS_ANGLE_TOLERANCE = -0.5;
+
 var float ServerDelay;
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
 var private Vector BASStart;
 var private Rotator BASAim;
 var private float ProjectileDelayTimer;
-var private bool bBoostedAimSynchronization;
+var private bool bUseBAS;
 var private bool bIsDelayed;
 var private const class<Weapon> WeaponClass;
 
@@ -22,11 +25,23 @@ function bool WantsLagCompensation()
 
 function int ApplyBAS(HxNTWeapon.HxBAS BAS)
 {
+    local Rotator CurrentAim;
+    local Vector CurrentStart;
+    local Vector Diff;
+
     if (class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
     {
         class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
-        bBoostedAimSynchronization = Client.IsAcceptableBAS(Weapon, BASStart, BASAim);
-        return Client.GetStopFireTickCount();
+        if (Weapon.Role < ROLE_Authority)
+        {
+            bUseBAS = true;
+            return Client.GetStopFireTickCount();
+        }
+        CurrentStart = Instigator.Location + Instigator.EyePosition();
+        CurrentAim = AdjustAim(CurrentStart, AimError);
+        Diff = BASStart - CurrentStart;
+        bUseBAS = (Diff dot Diff) < BAS_LOCATION_TOLERANCE
+            && Vector(BASAim) dot Vector(CurrentAim) > BAS_ANGLE_TOLERANCE;
     }
     return 0;
 }
@@ -46,11 +61,11 @@ function PlayFiring()
                 DoFireEffect();
             }
             ProjectileDelayTimer = ProjectileDelay;
-            if (!bBoostedAimSynchronization)
+            if (!bUseBAS)
             {
                 BASStart = Instigator.Location + Instigator.EyePosition();
                 BASAim = AdjustAim(BASStart, AimError);
-                bBoostedAimSynchronization = true;
+                bUseBAS = true;
             }
             SaveDelayedState();
             bIsDelayed = true;
@@ -85,9 +100,9 @@ function GetProjectileStartAndDirection(out Vector Start,
     local Vector HitLocation;
     local Vector HitNormal;
 
-    if (bBoostedAimSynchronization)
+    if (bUseBAS)
     {
-        bBoostedAimSynchronization = false;
+        bUseBAS = false;
         Dir = BASAim;
     }
     else

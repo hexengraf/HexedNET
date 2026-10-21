@@ -119,7 +119,8 @@ static function InstantFireTrace(MutHexedNET HexedNET,
                                  InstantFire WF,
                                  Vector Start,
                                  Rotator Dir,
-                                 float CompensationTime)
+                                 float CompensationTime,
+                                 optional Actor ClientHit)
 {
     local Vector X;
     local Vector End;
@@ -142,8 +143,16 @@ static function InstantFireTrace(MutHexedNET HexedNET,
         End = Start + WF.TraceRange * X;
         if (bRewind)
         {
-            HexedNET.Rewind(CompensationTime);
-            Hit = HexedNET.RewoundTrace(WF.Weapon, HitLocation, HitNormal, End, Start);
+            if (ClientHit == None)
+            {
+                HexedNET.Rewind(CompensationTime);
+                Hit = HexedNET.RewoundTrace(WF.Weapon, HitLocation, HitNormal, End, Start);
+            }
+            else
+            {
+                Hit = HexedNET.ReconTrace(
+                    WF.Weapon, HitLocation, HitNormal, End, Start, CompensationTime, ClientHit);
+            }
             HexedNET.UndoRewind();
             bRewind = false;
         }

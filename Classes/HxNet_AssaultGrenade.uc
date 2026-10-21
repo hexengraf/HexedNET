@@ -22,9 +22,9 @@ function DoFireEffect()
     if (WantsLagCompensation())
     {
         Instigator.MakeNoise(1.0);
-        if (bBoostedAimSynchronization)
+        if (bUseBAS)
         {
-            bBoostedAimSynchronization = false;
+            bUseBAS = false;
             Dir = BASAim;
         }
         else
