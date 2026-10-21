@@ -10,13 +10,22 @@ struct HxRoutePoint
 
 var private Projectile Tracked;
 var private array<HxRoutePoint> RoutePoints;
-var private float LastTimestamp;
+var private bool bFixLastPoint;
 
 event Tick(float DeltaTime)
 {
-    if (Tracked != None)
+    local int i;
+
+    if (bFixLastPoint)
     {
-        LastTimestamp = Level.TimeSeconds;
+        i = RoutePoints.Length - 1;
+        if (RoutePoints[i].Timestamp ~= Level.TimeSeconds)
+        {
+            RoutePoints[i].Location = Tracked.Location;
+            RoutePoints[i].Velocity = Tracked.Velocity;
+            RoutePoints[i].Radius = Tracked.CollisionRadius;
+        }
+        bFixLastPoint = false;
     }
 }
 
@@ -25,6 +34,7 @@ function SetTracked(Projectile P)
     Tracked = P;
     SetOwner(Tracked);
     StoreRoutePoint();
+    bFixLastPoint = true;
 }
 
 // TODO: maybe move tracked to past location instead of using current location?
@@ -52,7 +62,6 @@ function Rewind(float CompensationTime)
 {
     local int Index;
 
-    CompensationTime = CompensationTime - (Level.TimeSeconds - LastTimestamp);
     Index = FindLowerBound(Level.TimeSeconds - CompensationTime);
     CompensationTime = FMax(
         0, (Level.TimeSeconds - RoutePoints[Index].Timestamp) - CompensationTime);
