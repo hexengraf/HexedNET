@@ -162,12 +162,12 @@ simulated function UpdatePingInterval()
 
 simulated function SetLagCompensationLimit(coerce float Value)
 {
-    LagCompensationLimit = (Value * Level.TimeDilation) / 1000.0;
+    LagCompensationLimit = (Value * Level.TimeDilation) * 0.001;
 }
 
 simulated function SetProjectileCompensationLimit(coerce float Value)
 {
-    ProjectileCompensationLimit = (Value * Level.TimeDilation) / 1000.0;
+    ProjectileCompensationLimit = (Value * Level.TimeDilation) * 0.001;
 }
 
 function ServerSetLagCompensation(bool bEnable, int Seed)

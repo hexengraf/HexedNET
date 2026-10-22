@@ -729,7 +729,7 @@ final function float GetAverageDeltaTime()
 
 final function float GetCompensationLimit()
 {
-    return (LagCompensationLimit * Level.TimeDilation) / 1000.0;
+    return (LagCompensationLimit * Level.TimeDilation) * 0.001;
 }
 
 static final function bool IsTracked(Actor A)
