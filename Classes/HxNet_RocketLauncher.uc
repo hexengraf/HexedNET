@@ -1,10 +1,10 @@
 class HxNet_RocketLauncher extends RocketLauncher
+    config(HexedCache)
     DependsOn(HxNTWeapon)
     HideDropDown
     CacheExempt;
 
 var private int StopFireTime[2];
-var private bool bConfigCleared;
 var private Pawn ClientSeekTarget;
 
 replication
@@ -14,17 +14,6 @@ replication
 
     reliable if (Role < Role_Authority)
         ServerStartFireBAS, ServerStopFireBAS;
-}
-
-simulated event PreBeginPlay()
-{
-    Super.PreBeginPlay();
-    if (Level.NetMode != NM_DedicatedServer)
-    {
-        class'HxNTWeapon'.static.LoadDefaultConfig(
-            Self, class'RocketLauncher', !default.bConfigCleared);
-        default.bConfigCleared = true;
-    }
 }
 
 simulated event WeaponTick(float DT)

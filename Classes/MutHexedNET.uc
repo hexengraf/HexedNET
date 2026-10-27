@@ -28,7 +28,7 @@ var config int CSCTolerance;
 var config bool bRubberbandingFix;
 var config bool bLinkMeshes;
 
-var const private array<HxNTClassOverride> ClassOverrides;
+var const array<HxNTClassOverride> ClassOverrides;
 var private array<HxNTPawnTracker> PawnTrackers;
 var private HxNTPawnTracker PCC;
 var private array<HxNTProjectileTracker> ProjectileTrackers;

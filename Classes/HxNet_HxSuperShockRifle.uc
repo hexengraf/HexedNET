@@ -98,7 +98,6 @@ simulated function bool WantsStartFireBAS(int Mode)
 
 defaultproperties
 {
-    BaseClass=class'HxSuperShockRifle'
     FireModeClass(0)=class'HxNet_SuperShockBeamFire'
     FireModeClass(1)=class'HxNet_SuperShockBeamFire'
 }

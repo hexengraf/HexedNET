@@ -1,26 +1,15 @@
 class HxNet_FlakCannon extends FlakCannon
+    config(HexedCache)
     DependsOn(HxNTWeapon)
     HideDropDown
     CacheExempt;
 
 var private int StopFireTime[2];
-var private bool bConfigCleared;
 
 replication
 {
     reliable if (Role < Role_Authority)
         ServerStartFireBAS;
-}
-
-simulated event PreBeginPlay()
-{
-    Super.PreBeginPlay();
-    if (Level.NetMode != NM_DedicatedServer)
-    {
-        class'HxNTWeapon'.static.LoadDefaultConfig(
-            Self, class'FlakCannon', !default.bConfigCleared);
-        default.bConfigCleared = true;
-    }
 }
 
 simulated event WeaponTick(float DT)

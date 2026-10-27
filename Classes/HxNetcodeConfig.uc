@@ -16,6 +16,7 @@ function InitializeProperties()
         bLagCompensation = default.bLagCompensation;
         SaveConfig();
     }
+    EqualizeWeaponConfigOverrides();
     class'MutHexedNET'.static.ApplyFireModeOverrides();
     class'HxNTClient'.default.bLagCompensation = bLagCompensation;
 }
@@ -78,9 +79,28 @@ function bool HasClient()
 function Destroy()
 {
     Client = None;
+    EqualizeWeaponConfigOverrides();
     class'MutHexedNET'.static.RestoreFireModeOverrides();
     Super.Destroy();
 }
+
+static function EqualizeWeaponConfigOverrides()
+{
+    local int i;
+
+    for (i = 0; i < class'MutHexedNET'.default.ClassOverrides.Length; ++i)
+    {
+        if (class'MutHexedNET'.default.ClassOverrides[i].NETClass != None)
+        {
+            EqualizeWeaponConfigs(
+                class'MutHexedNET'.default.ClassOverrides[i].TargetClass,
+                class'MutHexedNET'.default.ClassOverrides[i].NETClass);
+        }
+    }
+    EqualizeWeaponConfigs(class'ShockRifle', class'HxSuperShockRifle');
+    EqualizeWeaponConfigs(class'ShockRifle', class'HxZoomSuperShockRifle');
+}
+
 
 defaultproperties
 {

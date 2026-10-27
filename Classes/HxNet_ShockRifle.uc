@@ -1,26 +1,15 @@
 class HxNet_ShockRifle extends ShockRifle
+    config(HexedCache)
     DependsOn(HxNTWeapon)
     HideDropDown
     CacheExempt;
 
 var private int StopFireTime[2];
-var private bool bConfigCleared;
 
 replication
 {
     reliable if (Role < ROLE_Authority)
         ServerStartFireBAS, ServerStartFireBASRecon;
-}
-
-simulated event PreBeginPlay()
-{
-    Super.PreBeginPlay();
-    if (Level.NetMode != NM_DedicatedServer)
-    {
-        class'HxNTWeapon'.static.LoadDefaultConfig(
-            Self, class'ShockRifle', !default.bConfigCleared);
-        default.bConfigCleared = true;
-    }
 }
 
 simulated event WeaponTick(float DT)
