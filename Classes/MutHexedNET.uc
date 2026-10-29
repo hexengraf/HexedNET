@@ -24,7 +24,7 @@ var config int MaxCollisionCheckRate;
 var config bool bBoostedAimSynchronization;
 var config bool bForceStartFireRPCs;
 var config bool bClientSideCollisions;
-var config int CSCTolerance;
+var config int PingSpikeTolerance;
 var config bool bRubberbandingFix;
 var config bool bLinkMeshes;
 
@@ -341,12 +341,15 @@ function Actor ReconTrace(Weapon Weapon,
                           Actor ClientHit,
                           optional Vector PastLocation)
 {
-    local Actor Other;
     local Actor Hit;
+    local Actor Other;
+    local Vector SavedHitLocation;
+    local Vector SavedHitNormal;
     local float OlderTime;
     local float NewerTime;
+    local float NewerLimit;
+    local float OlderLimit;
     local float TimeStep;
-    local float Limit;
     local int StepCount;
     local int i;
 
@@ -355,16 +358,20 @@ function Actor ReconTrace(Weapon Weapon,
     if (ClientHit != None && Hit != ClientHit
         && (IsTracked(ClientHit) || (Hit != None && IsTracked(Hit))))
     {
-        TimeStep = AvgDT * 0.5;
-        StepCount = 2 * CSCTolerance + 1;
-        Limit = GetCompensationLimit();
+        SavedHitLocation = HitLocation;
+        SavedHitNormal = HitNormal;
+        OlderLimit = GetPingSpikeTolerance();
+        TimeStep = FMin(AvgDT, OlderLimit * 0.5);
+        StepCount = int(OlderLimit / TimeStep) + 2;
+        NewerLimit = FMax(CompensationTime - OlderLimit, 0.0);
+        OlderLimit = FMin(CompensationTime + OlderLimit, GetCompensationLimit());
         OlderTime = CompensationTime;
         NewerTime = CompensationTime;
         for (i = 1; i < StepCount; ++i)
         {
-            if (NewerTime > 0.0)
+            if (NewerTime > NewerLimit)
             {
-                NewerTime = FMax(CompensationTime - i * TimeStep, 0.0);
+                NewerTime = FMax(CompensationTime - i * TimeStep, NewerLimit);
                 Rewind(NewerTime);
                 Other = RewoundTrace(Weapon, HitLocation, HitNormal, End, Start,,, PastLocation);
                 if (Other == ClientHit)
@@ -372,9 +379,9 @@ function Actor ReconTrace(Weapon Weapon,
                     return Other;
                 }
             }
-            if (OlderTime < Limit)
+            if (OlderTime < OlderLimit)
             {
-                OlderTime = FMin(CompensationTime + i * TimeStep, Limit);
+                OlderTime = FMin(CompensationTime + i * TimeStep, OlderLimit);
                 Rewind(OlderTime);
                 Other = RewoundTrace(Weapon, HitLocation, HitNormal, End, Start,,, PastLocation);
                 if (Other == ClientHit)
@@ -383,6 +390,8 @@ function Actor ReconTrace(Weapon Weapon,
                 }
             }
         }
+        HitLocation = SavedHitLocation;
+        HitNormal = SavedHitNormal;
         Rewind(CompensationTime);
     }
     return Hit;
@@ -732,6 +741,11 @@ final function float GetCompensationLimit()
     return (LagCompensationLimit * Level.TimeDilation) * 0.001;
 }
 
+final function float GetPingSpikeTolerance()
+{
+    return (PingSpikeTolerance * Level.TimeDilation) * 0.001;
+}
+
 static final function bool IsTracked(Actor A)
 {
     return A.IsA('xPawn') || (A.IsA('Vehicle') && Vehicle(A).Driver != None)
@@ -875,7 +889,7 @@ defaultproperties
     Properties(4)=(Name="bBoostedAimSynchronization",Type=HX_PROPERTY_Bool)
     Properties(5)=(Name="bForceStartFireRPCs",Type=HX_PROPERTY_Bool)
     Properties(6)=(Name="bClientSideCollisions",Type=HX_PROPERTY_Bool)
-    Properties(7)=(Name="CSCTolerance",Type=HX_PROPERTY_Int,LowerLimit="1",UpperLimit="10")
+    Properties(7)=(Name="PingSpikeTolerance",Type=HX_PROPERTY_Int,LowerLimit="5",UpperLimit="999")
     Properties(8)=(Name="bRubberbandingFix",Type=HX_PROPERTY_Bool)
     Properties(9)=(Name="bLinkMeshes",Type=HX_PROPERTY_Bool)
     DisplayInfo(0)=(Section="General",Caption="Ping Frequency",Hint="Frequency to send ping packets (pings/second). Lower this value if server connection is saturated.",Step="0.25",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
@@ -885,7 +899,7 @@ defaultproperties
     DisplayInfo(4)=(Section="Boosted Aim Synchronization (BAS)",Caption="Enable BAS",Hint="When triggering a shot, send the client's location and camera rotation to the server to synchronize the aim. Applied on restart/map change.",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
     DisplayInfo(5)=(Section="Boosted Aim Synchronization (BAS)",Caption="Force Start Fire RPCs",Hint="Force a new start fire RPC for every shot while holding the fire button. If disabled, BAS is only applied to the first shot while holding fire.",Dependency="bBoostedAimSynchronization",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
     DisplayInfo(6)=(Section="Boosted Aim Synchronization (BAS)",Caption="Evaluate Client-Side Collisions",Hint="Execute client-side collision detection and add the result to BAS. The server decides if the collision is valid. Only applies to hitscan weapons.",Dependency="bBoostedAimSynchronization",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
-    DisplayInfo(7)=(Section="Boosted Aim Synchronization (BAS)",Caption="Client-Side Collision Tolerance",Hint="Maximum acceptable temporal distance to validate client-side collisions, expressed in server ticks.",Step="1",Dependency="bBoostedAimSynchronization",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
+    DisplayInfo(7)=(Section="Boosted Aim Synchronization (BAS)",Caption="Ping Spike Tolerance",Hint="Maximum acceptable ping spike (in milliseconds) when validating client-side collisions.",Step="1",Dependency="bBoostedAimSynchronization",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
     DisplayInfo(8)=(Section="Miscellaneous",Caption="Backport Rubberbanding Fix",Hint="Backport OldUnreal's rubberbanding fix. Applied on restart/map change.",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
     DisplayInfo(9)=(Section="Miscellaneous",Caption="Link Meshes",Hint="Link meshes for collision detection. Disable this if experiencing crashes.",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
     ConfigClasses(0)=class'HxNetcodeConfig'
@@ -910,7 +924,7 @@ defaultproperties
     bBoostedAimSynchronization=true
     bForceStartFireRPCs=true
     bClientSideCollisions=true
-    CSCTolerance=2
+    PingSpikeTolerance=60
     bRubberbandingFix=false
     bLinkMeshes=true
 }
