@@ -1,4 +1,4 @@
-const BAS_LOCATION_TOLERANCE = 360;
+const BAS_LOCATION_TOLERANCE = 1250;
 const BAS_ANGLE_TOLERANCE = -0.5;
 
 var float ServerDelay;
