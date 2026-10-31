@@ -23,10 +23,13 @@ function SpawnBeamEffect(Vector Start,
 
 function DoTrace(Vector Start, Rotator Dir)
 {
+    local float CompensationTime;
+
     if (WantsLagCompensation())
     {
+        CompensationTime = Client.GetCompensationTime() + ServerDelay;
         class'HxNTWeapon'.static.InstantFireTrace(
-            HexedNET, Self, Start, Dir, Client.GetCompensationTime() + ServerDelay, ClientHit);
+            HexedNET, Self, Start, Dir, CompensationTime, ClientHit, bDoRecon);
     }
     else
     {

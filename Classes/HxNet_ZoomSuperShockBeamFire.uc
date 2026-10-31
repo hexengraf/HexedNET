@@ -60,18 +60,8 @@ function TracePart(Vector Start, Vector End, Vector X, Rotator Dir, Pawn Ignored
     else if (HexedNET != None)
     {
         CompensationTime = Client.GetCompensationTime() + ServerDelay;
-        if (ClientHit == None)
-        {
-            HexedNET.Rewind(CompensationTime);
-            class'HxNet_SuperShockBeamFire'.static.StaticTracePart(
-                HexedNET, Self, Start, End, X, Dir, Ignored, CompensationTime);
-        }
-        else
-        {
-            class'HxNet_SuperShockBeamFire'.static.StaticTracePart(
-                HexedNET, Self, Start, End, X, Dir, Ignored, CompensationTime, ClientHit);
-        }
-        HexedNET.UndoRewind();
+        class'HxNet_SuperShockBeamFire'.static.StaticDoTrace(
+            HexedNET, Self, Start, End, X, Dir, Ignored, CompensationTime, ClientHit, bDoRecon);
     }
     else
     {

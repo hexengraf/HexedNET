@@ -41,14 +41,14 @@ simulated event ClientStartFire(int Mode)
             if (HxNet_ShockBeamFire(FireMode[Mode]) != None)
             {
                 BAS = EncodeBAS(Mode);
-                StopFireTime[Mode] = HxNet_ShockBeamFire(FireMode[Mode]).ApplyBAS(BAS, ClientHit);
-                if (ClientHit == None)
+                if (HxNet_ShockBeamFire(FireMode[Mode]).ClientApplyBAS(
+                    BAS, StopFireTime[Mode], ClientHit))
                 {
-                    ServerStartFireBAS(Mode, BAS);
+                    ServerStartFireBASRecon(Mode, BAS, ClientHit);
                 }
                 else
                 {
-                    ServerStartFireBASRecon(Mode, BAS, ClientHit);
+                    ServerStartFireBAS(Mode, BAS);
                 }
             }
             else
@@ -69,7 +69,7 @@ function ServerStartFireBAS(byte Mode, HxNTWeapon.HxBAS BAS)
 {
     if (HxNet_ShockBeamFire(FireMode[Mode]) != None)
     {
-        HxNet_ShockBeamFire(FireMode[Mode]).ApplyBAS(BAS);
+        HxNet_ShockBeamFire(FireMode[Mode]).ServerApplyBAS(BAS);
     }
     else
     {
@@ -80,14 +80,7 @@ function ServerStartFireBAS(byte Mode, HxNTWeapon.HxBAS BAS)
 
 function ServerStartFireBASRecon(byte Mode, HxNTWeapon.HxBAS BAS, Actor ClientHit)
 {
-    if (HxNet_ShockBeamFire(FireMode[Mode]) != None)
-    {
-        HxNet_ShockBeamFire(FireMode[Mode]).ApplyBAS(BAS, ClientHit);
-    }
-    else
-    {
-        HxNet_ShockProjFire(FireMode[Mode]).ApplyBAS(BAS);
-    }
+    HxNet_ShockBeamFire(FireMode[Mode]).ServerApplyBASRecon(BAS, ClientHit);
     ServerStartFire(Mode);
 }
 

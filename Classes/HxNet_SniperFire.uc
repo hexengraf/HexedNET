@@ -51,8 +51,16 @@ function DoTrace(Vector Start, Rotator Dir)
         if (bRewind)
         {
             CompensationTime = Client.GetCompensationTime() + ServerDelay;
-            Hit = HexedNET.ReconTrace(
-                Weapon, HitLocation, HitNormal, End, Start, CompensationTime, ClientHit);
+            if (bDoRecon)
+            {
+                Hit = HexedNET.ReconTrace(
+                    Weapon, HitLocation, HitNormal, End, Start, CompensationTime, ClientHit);
+            }
+            else
+            {
+                HexedNET.Rewind(CompensationTime);
+                Hit = HexedNET.RewoundTrace(Weapon, HitLocation, HitNormal, End, Start);
+            }
             HexedNET.UndoRewind();
             TmpHitEmitClass = class'HxNet_NewLightningBolt';
             bRewind = false;

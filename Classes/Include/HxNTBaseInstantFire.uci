@@ -9,6 +9,7 @@ var private Rotator BASAim;
 var private bool bHasNETWeapon;
 var private bool bUseBAS;
 var private Actor ClientHit;
+var private bool bDoRecon;
 
 function PreBeginPlay()
 {
@@ -22,39 +23,56 @@ function bool WantsLagCompensation()
         && Client.WantsLagCompensation();
 }
 
-function int ApplyBAS(HxNTWeapon.HxBAS BAS, optional out Actor Hit)
+function bool ClientApplyBAS(HxNTWeapon.HxBAS BAS, out int StopFireTime, optional out Actor Hit)
+{
+    local Vector HitLocation;
+    local Vector HitNormal;
+    local bool bCSC;
+
+    class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
+    if (Client.WantsClientSideCollision())
+    {
+        Hit = Weapon.Trace(
+            HitLocation, HitNormal, BASStart + Vector(BASAim) * TraceRange, BASStart, true);
+        bCSC = true;
+    }
+    bUseBAS = true;
+    if (bClientFireEffect)
+    {
+        bHasNETWeapon = true;
+        DoFireEffect();
+    }
+    StopFireTime = Client.GetStopFireTickCount();
+    return bCSC;
+}
+
+function ServerApplyBAS(HxNTWeapon.HxBAS BAS)
 {
     local Rotator CurrentAim;
     local Vector CurrentStart;
-    local Vector HitLocation;
-    local Vector HitNormal;
     local Vector Diff;
 
-    if (class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
-    {
-        class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
-        if (Weapon.Role < ROLE_Authority)
-        {
-            if (Client.WantsClientSideCollision())
-            {
-                Hit = Weapon.Trace(
-                    HitLocation, HitNormal, BASStart + Vector(BASAim) * TraceRange, BASStart, true);
-            }
-            bUseBAS = true;
-            if (bClientFireEffect)
-            {
-                bHasNETWeapon = true;
-                DoFireEffect();
-            }
-            return Client.GetStopFireTickCount();
-        }
-        ClientHit = Hit;
-        GetStartAndAim(CurrentStart, CurrentAim);
-        Diff = BASStart - CurrentStart;
-        bUseBAS = (Diff dot Diff) < BASLocationTolerance
-            && Vector(BASAim) dot Vector(CurrentAim) > BASAngleTolerance;
-    }
-    return 0;
+    class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
+    bDoRecon = false;
+    GetStartAndAim(CurrentStart, CurrentAim);
+    Diff = BASStart - CurrentStart;
+    bUseBAS = (Diff dot Diff) < BASLocationTolerance
+        && Vector(BASAim) dot Vector(CurrentAim) > BASAngleTolerance;
+}
+
+function ServerApplyBASRecon(HxNTWeapon.HxBAS BAS, Actor Hit)
+{
+    local Rotator CurrentAim;
+    local Vector CurrentStart;
+    local Vector Diff;
+
+    class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
+    ClientHit = Hit;
+    bDoRecon = true;
+    GetStartAndAim(CurrentStart, CurrentAim);
+    Diff = BASStart - CurrentStart;
+    bUseBAS = (Diff dot Diff) < BASLocationTolerance
+        && Vector(BASAim) dot Vector(CurrentAim) > BASAngleTolerance;
 }
 
 function PlayFiring()

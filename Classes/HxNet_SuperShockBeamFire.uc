@@ -45,22 +45,37 @@ function TracePart(Vector Start, Vector End, Vector X, Rotator Dir, Pawn Ignored
     else if (HexedNET != None)
     {
         CompensationTime = Client.GetCompensationTime() + ServerDelay;
-        if (ClientHit == None)
-        {
-            HexedNET.Rewind(CompensationTime);
-            StaticTracePart(HexedNET, Self, Start, End, X, Dir, Ignored, CompensationTime);
-        }
-        else
-        {
-            StaticTracePart(
-                HexedNET, Self, Start, End, X, Dir, Ignored, CompensationTime, ClientHit);
-        }
-        HexedNET.UndoRewind();
+        StaticDoTrace(
+            HexedNET, Self, Start, End, X, Dir, Ignored, CompensationTime, ClientHit, bDoRecon);
     }
     else
     {
         StaticClientTracePart(Self, Start, End, X, Dir, Ignored);
     }
+}
+
+static function StaticDoTrace(MutHexedNET HexedNET,
+                              SuperShockBeamFire WF,
+                              Vector Start,
+                              Vector End,
+                              Vector X,
+                              Rotator Dir,
+                              Pawn Ignored,
+                              float CompensationTime,
+                              optional Actor ClientHit,
+                              optional bool bDoRecon)
+{
+    if (bDoRecon)
+    {
+        StaticTracePart(
+            HexedNET, WF, Start, End, X, Dir, Ignored, CompensationTime, ClientHit, bDoRecon);
+    }
+    else
+    {
+        HexedNET.Rewind(CompensationTime);
+        StaticTracePart(HexedNET, WF, Start, End, X, Dir, Ignored, CompensationTime);
+    }
+    HexedNET.UndoRewind();
 }
 
 static function StaticTracePart(MutHexedNET HexedNET,
@@ -71,14 +86,15 @@ static function StaticTracePart(MutHexedNET HexedNET,
                                 Rotator Dir,
                                 Pawn Ignored,
                                 float CompensationTime,
-                                optional Actor ClientHit)
+                                optional Actor ClientHit,
+                                optional bool bDoRecon)
 {
     local Vector HitLocation;
     local Vector PastLocation;
     local Vector HitNormal;
     local Actor Hit;
 
-    if (ClientHit != None)
+    if (bDoRecon)
     {
         Hit = HexedNET.ReconTrace(
             WF.Weapon,

@@ -338,7 +338,7 @@ function Actor ReconTrace(Weapon Weapon,
                           Vector End,
                           Vector Start,
                           float CompensationTime,
-                          Actor ClientHit,
+                          Actor Expected,
                           optional Vector PastLocation)
 {
     local Actor Hit;
@@ -355,8 +355,8 @@ function Actor ReconTrace(Weapon Weapon,
 
     Rewind(CompensationTime);
     Hit = RewoundTrace(Weapon, HitLocation, HitNormal, End, Start,,, PastLocation);
-    if (ClientHit != None && Hit != ClientHit
-        && (IsTracked(ClientHit) || (Hit != None && IsTracked(Hit))))
+    if (Hit != Expected
+        && ((Expected != None && IsTracked(Expected)) || (Hit != None && IsTracked(Hit))))
     {
         SavedHitLocation = HitLocation;
         SavedHitNormal = HitNormal;
@@ -374,7 +374,7 @@ function Actor ReconTrace(Weapon Weapon,
                 NewerTime = FMax(CompensationTime - i * TimeStep, NewerLimit);
                 Rewind(NewerTime);
                 Other = RewoundTrace(Weapon, HitLocation, HitNormal, End, Start,,, PastLocation);
-                if (Other == ClientHit)
+                if (Other == Expected)
                 {
                     return Other;
                 }
@@ -384,7 +384,7 @@ function Actor ReconTrace(Weapon Weapon,
                 OlderTime = FMin(CompensationTime + i * TimeStep, OlderLimit);
                 Rewind(OlderTime);
                 Other = RewoundTrace(Weapon, HitLocation, HitNormal, End, Start,,, PastLocation);
-                if (Other == ClientHit)
+                if (Other == Expected)
                 {
                     return Other;
                 }
