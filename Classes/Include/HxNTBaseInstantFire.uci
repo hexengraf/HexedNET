@@ -1,6 +1,4 @@
 var float ServerDelay;
-var private const float BASLocationTolerance;
-var private const float BASAngleTolerance;
 var private const bool bClientFireEffect;
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
@@ -46,33 +44,19 @@ function bool ClientApplyBAS(HxNTWeapon.HxBAS BAS, out int StopFireTime, optiona
     return bCSC;
 }
 
-function ServerApplyBAS(HxNTWeapon.HxBAS BAS)
+function ServerApplyBAS(HxNTWeapon.HxBAS BAS, optional Actor Hit, optional bool bHasHit)
 {
     local Rotator CurrentAim;
     local Vector CurrentStart;
-    local Vector Diff;
 
-    class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
-    bDoRecon = false;
-    GetStartAndAim(CurrentStart, CurrentAim);
-    Diff = BASStart - CurrentStart;
-    bUseBAS = (Diff dot Diff) < BASLocationTolerance
-        && Vector(BASAim) dot Vector(CurrentAim) > BASAngleTolerance;
-}
-
-function ServerApplyBASRecon(HxNTWeapon.HxBAS BAS, Actor Hit)
-{
-    local Rotator CurrentAim;
-    local Vector CurrentStart;
-    local Vector Diff;
-
-    class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
-    ClientHit = Hit;
-    bDoRecon = true;
-    GetStartAndAim(CurrentStart, CurrentAim);
-    Diff = BASStart - CurrentStart;
-    bUseBAS = (Diff dot Diff) < BASLocationTolerance
-        && Vector(BASAim) dot Vector(CurrentAim) > BASAngleTolerance;
+    if (class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
+    {
+        class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
+        ClientHit = Hit;
+        bDoRecon = bHasHit;
+        GetStartAndAim(CurrentStart, CurrentAim);
+        bUseBAS = HexedNET.IsReasonableBAS(BASStart, BASAim, CurrentStart, CurrentAim);
+    }
 }
 
 function PlayFiring()

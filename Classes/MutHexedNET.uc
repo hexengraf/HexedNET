@@ -22,6 +22,8 @@ var config int LagCompensationLimit;
 var config int ProjectileCompensationLimit;
 var config int MaxCollisionCheckRate;
 var config bool bBoostedAimSynchronization;
+var config int LocationErrorTolerance;
+var config float AngleErrorTolerance;
 var config bool bForceStartFireRPCs;
 var config bool bClientSideCollisions;
 var config int PingSpikeTolerance;
@@ -746,6 +748,18 @@ final function float GetPingSpikeTolerance()
     return (PingSpikeTolerance * Level.TimeDilation) * 0.001;
 }
 
+final function bool IsReasonableBAS(Vector BASStart,
+                                    Rotator BASAim,
+                                    Vector CurrentStart,
+                                    Rotator CurrentAim)
+{
+    local Vector Diff;
+
+    Diff = BASStart - CurrentStart;
+    return (Diff dot Diff) <= float(LocationErrorTolerance * LocationErrorTolerance)
+        && (Vector(BASAim) dot Vector(CurrentAim)) >= AngleErrorTolerance;
+}
+
 static final function bool IsTracked(Actor A)
 {
     return A.IsA('xPawn') || (A.IsA('Vehicle') && Vehicle(A).Driver != None)
@@ -887,21 +901,25 @@ defaultproperties
     Properties(2)=(Name="ProjectileCompensationLimit",Type=HX_PROPERTY_Int,LowerLimit="50",UpperLimit="999")
     Properties(3)=(Name="MaxCollisionCheckRate",Type=HX_PROPERTY_Int,LowerLimit="25",UpperLimit="100")
     Properties(4)=(Name="bBoostedAimSynchronization",Type=HX_PROPERTY_Bool)
-    Properties(5)=(Name="bForceStartFireRPCs",Type=HX_PROPERTY_Bool)
-    Properties(6)=(Name="bClientSideCollisions",Type=HX_PROPERTY_Bool)
-    Properties(7)=(Name="PingSpikeTolerance",Type=HX_PROPERTY_Int,LowerLimit="5",UpperLimit="999")
-    Properties(8)=(Name="bRubberbandingFix",Type=HX_PROPERTY_Bool)
-    Properties(9)=(Name="bLinkMeshes",Type=HX_PROPERTY_Bool)
-    DisplayInfo(0)=(Section="General",Caption="Ping Frequency",Hint="Frequency to send ping packets (pings/second). Lower this value if server connection is saturated.",Step="0.25",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
-    DisplayInfo(1)=(Section="General",Caption="Lag Compensation Limit",Hint="Global lag compensation limit (in milliseconds).",Step="10",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
+    Properties(5)=(Name="LocationErrorTolerance",Type=HX_PROPERTY_Int,LowerLimit="10",UpperLimit="100")
+    Properties(6)=(Name="AngleErrorTolerance",Type=HX_PROPERTY_Float,LowerLimit="-1.0",UpperLimit="1.0")
+    Properties(7)=(Name="bForceStartFireRPCs",Type=HX_PROPERTY_Bool)
+    Properties(8)=(Name="bClientSideCollisions",Type=HX_PROPERTY_Bool)
+    Properties(9)=(Name="PingSpikeTolerance",Type=HX_PROPERTY_Int,LowerLimit="5",UpperLimit="999")
+    Properties(10)=(Name="bRubberbandingFix",Type=HX_PROPERTY_Bool)
+    Properties(11)=(Name="bLinkMeshes",Type=HX_PROPERTY_Bool)
+    DisplayInfo(0)=(Caption="Ping Frequency",Hint="Frequency to send ping packets (pings/second). Lower this value if server connection is saturated.",Step="0.25",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
+    DisplayInfo(1)=(Caption="Lag Compensation Limit",Hint="Global lag compensation limit (in milliseconds).",Step="10",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
     DisplayInfo(2)=(Section="Projectiles",Caption="Projectile Compensation Limit",Hint="Projectile-specific lag compensation limit (in milliseconds).",Step="10",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
     DisplayInfo(3)=(Section="Projectiles",Caption="Max. Collision Check Rate",Hint="Maximum rate to check for projectile collisions during server-side forwarding. The actual rate is the minimum between this value and the server's tick rate.",Step="5",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
     DisplayInfo(4)=(Section="Boosted Aim Synchronization (BAS)",Caption="Enable BAS",Hint="When triggering a shot, send the client's location and camera rotation to the server to synchronize the aim. Applied on restart/map change.",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
-    DisplayInfo(5)=(Section="Boosted Aim Synchronization (BAS)",Caption="Force Start Fire RPCs",Hint="Force a new start fire RPC for every shot while holding the fire button. If disabled, BAS is only applied to the first shot while holding fire.",Dependency="bBoostedAimSynchronization",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
-    DisplayInfo(6)=(Section="Boosted Aim Synchronization (BAS)",Caption="Evaluate Client-Side Collisions",Hint="Execute client-side collision detection and add the result to BAS. The server decides if the collision is valid. Only applies to hitscan weapons.",Dependency="bBoostedAimSynchronization",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
-    DisplayInfo(7)=(Section="Boosted Aim Synchronization (BAS)",Caption="Ping Spike Tolerance",Hint="Maximum acceptable ping spike (in milliseconds) when validating client-side collisions.",Step="1",Dependency="bBoostedAimSynchronization",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
-    DisplayInfo(8)=(Section="Miscellaneous",Caption="Backport Rubberbanding Fix",Hint="Backport OldUnreal's rubberbanding fix. Applied on restart/map change.",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
-    DisplayInfo(9)=(Section="Miscellaneous",Caption="Link Meshes",Hint="Link meshes for collision detection. Disable this if experiencing crashes.",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
+    DisplayInfo(5)=(Section="Boosted Aim Synchronization (BAS)",Caption="Location Error Tolerance",Hint="Maximum acceptable difference between BAS location and current server location (in unreal units).",Step="1",Dependency="bBoostedAimSynchronization",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
+    DisplayInfo(6)=(Section="Boosted Aim Synchronization (BAS)",Caption="Angle Error Tolerance",Hint="Maximum acceptable difference between BAS angle and current server angle (-1.0 = unrestrained, 0.0 = 90 degrees, 1.0 = perfectly aligned).",Step="0.25",Dependency="bBoostedAimSynchronization",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
+    DisplayInfo(7)=(Section="Boosted Aim Synchronization (BAS)",Caption="Force Start Fire RPCs",Hint="Force a new start fire RPC for every shot while holding the fire button. If disabled, BAS is only applied to the first shot while holding fire.",Dependency="bBoostedAimSynchronization",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
+    DisplayInfo(8)=(Section="Boosted Aim Synchronization (BAS)",Caption="Evaluate Client-Side Collisions",Hint="Execute client-side collision detection and add the result to BAS. The server decides if the collision is valid. Only applies to hitscan weapons.",Dependency="bBoostedAimSynchronization",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
+    DisplayInfo(9)=(Section="Boosted Aim Synchronization (BAS)",Caption="Ping Spike Tolerance",Hint="Maximum acceptable ping spike (in milliseconds) when validating client-side collisions.",Step="1",Dependency="bBoostedAimSynchronization",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
+    DisplayInfo(10)=(Section="Miscellaneous",Caption="Backport Rubberbanding Fix",Hint="Backport OldUnreal's rubberbanding fix. Applied on restart/map change.",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
+    DisplayInfo(11)=(Section="Miscellaneous",Caption="Link Meshes",Hint="Link meshes for collision detection. Disable this if experiencing crashes.",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
     ConfigClasses(0)=class'HxNetcodeConfig'
     Priority=64
     ClassOverrides(0)=(TargetClass=class'AssaultRifle',NETClass=class'HxNet_AssaultRifle',FireModeOverrides=((TargetClass=class'AssaultFire',NETClass=class'HxNet_AssaultFire'),(TargetClass=class'AssaultGrenade',NETClass=class'HxNet_AssaultGrenade')))
@@ -922,6 +940,8 @@ defaultproperties
     ProjectileCompensationLimit=125
     MaxCollisionCheckRate=50
     bBoostedAimSynchronization=true
+    LocationErrorTolerance=36
+    AngleErrorTolerance=-0.5
     bForceStartFireRPCs=true
     bClientSideCollisions=true
     PingSpikeTolerance=60

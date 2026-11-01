@@ -63,7 +63,7 @@ function ServerStartFireBAS(byte Mode, HxNTWeapon.HxBAS BAS)
 
 function ServerStartFireBASRecon(byte Mode, HxNTWeapon.HxBAS BAS, Actor ClientHit)
 {
-    HxNet_SniperFire(FireMode[Mode]).ServerApplyBASRecon(BAS, ClientHit);
+    HxNet_SniperFire(FireMode[Mode]).ServerApplyBAS(BAS, ClientHit, true);
     ServerStartFire(Mode);
 }
 

@@ -97,7 +97,5 @@ function GetStartAndAim(out Vector Start, out Rotator Aim)
 
 defaultproperties
 {
-    BASLocationTolerance=1250
-    BASAngleTolerance=-0.5
     bClientFireEffect=false
 }
