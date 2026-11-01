@@ -938,7 +938,7 @@ defaultproperties
     PingFrequency=2.0
     LagCompensationLimit=300
     ProjectileCompensationLimit=125
-    MaxCollisionCheckRate=50
+    MaxCollisionCheckRate=60
     bBoostedAimSynchronization=true
     LocationErrorTolerance=36
     AngleErrorTolerance=-0.5
