@@ -36,8 +36,7 @@ function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
         if (P != None)
         {
             HxNet_LinkProjectile(P).Client = Client;
-            HexedNET.ForwardLinearProjectile(
-                Weapon, P, Client.GetProjectileCompensationTime() + ServerDelay);
+            HexedNET.ForwardLinearProjectile(Weapon, P, GetCompensationTime());
         }
         return P;
     }

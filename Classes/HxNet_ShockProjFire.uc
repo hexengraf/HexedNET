@@ -32,8 +32,7 @@ function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
     if (P != None && WantsLagCompensation())
     {
         HxNet_ShockProjectile(P).Client = Client;
-        HexedNET.ForwardLinearProjectile(
-            Weapon, P, Client.GetProjectileCompensationTime() + ServerDelay);
+        HexedNET.ForwardLinearProjectile(Weapon, P, GetCompensationTime());
     }
     if (HexedNET != None)
     {

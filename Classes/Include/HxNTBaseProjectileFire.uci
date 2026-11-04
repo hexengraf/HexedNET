@@ -173,3 +173,8 @@ function DoBaseFireEffect()
     }
     ServerDelay = 0;
 }
+
+final function float GetCompensationTime()
+{
+    return Client.GetProjectileCompensationTime() + ServerDelay;
+}

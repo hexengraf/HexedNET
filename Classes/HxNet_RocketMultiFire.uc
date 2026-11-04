@@ -124,8 +124,7 @@ function DoFireEffect()
                 HxNet_SeekingRocketProj(FiredRockets[p]).Index = p;
             }
         }
-        HexedNET.ForwardLinearProjectiles(
-            Weapon, FiredRockets, Client.GetProjectileCompensationTime() + ServerDelay);
+        HexedNET.ForwardLinearProjectiles(Weapon, FiredRockets, GetCompensationTime());
     }
 }
 
@@ -166,7 +165,7 @@ function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
                 HxNet_SeekingRocketProj(P).Client = Client;
                 HxNet_SeekingRocketProj(P).Index = Index;
             }
-            HexedNET.ForwardLinearProjectile(Weapon, P, Client.GetProjectileCompensationTime() + ServerDelay);
+            HexedNET.ForwardLinearProjectile(Weapon, P, GetCompensationTime());
         }
         return P;
     }

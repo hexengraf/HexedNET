@@ -12,7 +12,6 @@ function DoTrace(Vector Start, Rotator Dir)
     local Vector End;
     local Vector HitLocation;
     local Vector HitNormal;
-    local float CompensationTime;
 
     if (Level.NetMode == NM_Client || !WantsLagCompensation())
     {
@@ -21,15 +20,14 @@ function DoTrace(Vector Start, Rotator Dir)
     }
     X = Vector(Dir);
     End = Start + TraceRange * X;
-    CompensationTime = Client.GetCompensationTime() + ServerDelay;
     if (bDoRecon)
     {
         Hit = HexedNET.ReconTrace(
-            Weapon, HitLocation, HitNormal, End, Start, CompensationTime, ClientHit);
+            Weapon, HitLocation, HitNormal, End, Start, GetCompensationTime(), ClientHit);
     }
     else
     {
-        HexedNET.Rewind(CompensationTime);
+        HexedNET.Rewind(GetCompensationTime());
         Hit = HexedNET.RewoundTrace(Weapon, HitLocation, HitNormal, End, Start);
     }
     HexedNET.UndoRewind();

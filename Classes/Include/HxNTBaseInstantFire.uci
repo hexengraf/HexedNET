@@ -83,3 +83,8 @@ function DoFireEffect()
     }
     ServerDelay = 0;
 }
+
+final function float GetCompensationTime()
+{
+    return Client.GetCompensationTime() + ServerDelay;
+}

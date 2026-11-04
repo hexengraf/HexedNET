@@ -5,17 +5,14 @@ class HxNet_AssaultFire extends AssaultFire
 
 function DoTrace(Vector Start, Rotator Dir)
 {
-    local float CompensationTime;
-
     if (Level.NetMode == NM_Client || !WantsLagCompensation())
     {
         Super.DoTrace(Start, Dir);
     }
     else
     {
-        CompensationTime = Client.GetCompensationTime() + ServerDelay;
         class'HxNTWeapon'.static.InstantFireTrace(
-            HexedNET, Self, Start, Dir, CompensationTime, ClientHit, bDoRecon);
+            HexedNET, Self, Start, Dir, GetCompensationTime(), ClientHit, bDoRecon);
     }
 }
 

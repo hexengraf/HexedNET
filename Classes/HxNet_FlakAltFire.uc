@@ -36,7 +36,7 @@ function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
         if (P != None)
         {
             HxNet_FlakShell(P).Client = Client;
-            HexedNET.ForwardFallingProjectile(Weapon, P, Client.GetProjectileCompensationTime() + ServerDelay);
+            HexedNET.ForwardFallingProjectile(Weapon, P, GetCompensationTime());
         }
         return P;
     }

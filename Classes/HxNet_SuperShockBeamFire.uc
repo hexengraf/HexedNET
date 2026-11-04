@@ -34,23 +34,20 @@ function SpawnBeamEffect(Vector Start,
     }
 }
 
-function TracePart(Vector Start, Vector End, Vector X, Rotator Dir, Pawn Ignored)
+function TracePart(Vector Start, Vector End, Vector X, Rotator Dir, Pawn Ignore)
 {
-    local float CompensationTime;
-
     if (!WantsLagCompensation())
     {
-        Super.TracePart(Start, End, X, Dir, Ignored);
+        Super.TracePart(Start, End, X, Dir, Ignore);
     }
     else if (HexedNET != None)
     {
-        CompensationTime = Client.GetCompensationTime() + ServerDelay;
         StaticDoTrace(
-            HexedNET, Self, Start, End, X, Dir, Ignored, CompensationTime, ClientHit, bDoRecon);
+            HexedNET, Self, Start, End, X, Dir, Ignore, GetCompensationTime(), ClientHit, bDoRecon);
     }
     else
     {
-        StaticClientTracePart(Self, Start, End, X, Dir, Ignored);
+        StaticClientTracePart(Self, Start, End, X, Dir, Ignore);
     }
 }
 
@@ -60,7 +57,7 @@ static function StaticDoTrace(MutHexedNET HexedNET,
                               Vector End,
                               Vector X,
                               Rotator Dir,
-                              Pawn Ignored,
+                              Pawn Ignore,
                               float CompensationTime,
                               optional Actor ClientHit,
                               optional bool bDoRecon)
@@ -68,12 +65,12 @@ static function StaticDoTrace(MutHexedNET HexedNET,
     if (bDoRecon)
     {
         StaticTracePart(
-            HexedNET, WF, Start, End, X, Dir, Ignored, CompensationTime, ClientHit, bDoRecon);
+            HexedNET, WF, Start, End, X, Dir, Ignore, CompensationTime, ClientHit, bDoRecon);
     }
     else
     {
         HexedNET.Rewind(CompensationTime);
-        StaticTracePart(HexedNET, WF, Start, End, X, Dir, Ignored, CompensationTime);
+        StaticTracePart(HexedNET, WF, Start, End, X, Dir, Ignore, CompensationTime);
     }
     HexedNET.UndoRewind();
 }
@@ -84,7 +81,7 @@ static function StaticTracePart(MutHexedNET HexedNET,
                                 Vector End,
                                 Vector X,
                                 Rotator Dir,
-                                Pawn Ignored,
+                                Pawn Ignore,
                                 float CompensationTime,
                                 optional Actor ClientHit,
                                 optional bool bDoRecon)
@@ -110,7 +107,7 @@ static function StaticTracePart(MutHexedNET HexedNET,
     {
         Hit = HexedNET.RewoundTrace(WF.Weapon, HitLocation, HitNormal, End, Start,,, PastLocation);
     }
-    if (Hit != None && Hit != Ignored)
+    if (Hit != None && Hit != Ignore)
     {
         if (!Hit.bWorldGeometry)
         {
@@ -137,14 +134,14 @@ static function StaticClientTracePart(SuperShockBeamFire WF,
                                       Vector End,
                                       Vector X,
                                       Rotator Dir,
-                                      Pawn Ignored)
+                                      Pawn Ignore)
 {
     local Vector HitLocation;
     local Vector HitNormal;
     local Actor Hit;
 
-    Hit = Ignored.Trace(HitLocation, HitNormal, End, Start, true);
-    if (Hit != None && Hit != Ignored)
+    Hit = Ignore.Trace(HitLocation, HitNormal, End, Start, true);
+    if (Hit != None && Hit != Ignore)
     {
         if (!Hit.bWorldGeometry)
         {

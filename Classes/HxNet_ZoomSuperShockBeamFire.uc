@@ -49,24 +49,21 @@ function SpawnBeamEffect(Vector Start,
     }
 }
 
-function TracePart(Vector Start, Vector End, Vector X, Rotator Dir, Pawn Ignored)
+function TracePart(Vector Start, Vector End, Vector X, Rotator Dir, Pawn Ignore)
 {
-    local float CompensationTime;
-
     if (!WantsLagCompensation())
     {
-        Super.TracePart(Start, End, X, Dir, Ignored);
+        Super.TracePart(Start, End, X, Dir, Ignore);
     }
     else if (HexedNET != None)
     {
-        CompensationTime = Client.GetCompensationTime() + ServerDelay;
         class'HxNet_SuperShockBeamFire'.static.StaticDoTrace(
-            HexedNET, Self, Start, End, X, Dir, Ignored, CompensationTime, ClientHit, bDoRecon);
+            HexedNET, Self, Start, End, X, Dir, Ignore, GetCompensationTime(), ClientHit, bDoRecon);
     }
     else
     {
         class'HxNet_SuperShockBeamFire'.static.StaticClientTracePart(
-            Self, Start, End, X, Dir, Ignored);
+            Self, Start, End, X, Dir, Ignore);
     }
 }
 

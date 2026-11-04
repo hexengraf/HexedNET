@@ -17,7 +17,6 @@ function DoTrace(Vector Start, Rotator Dir)
     local Pawn HeadShotPawn;
     local xEmitter HitEmitter;
     local class<Actor> TmpHitEmitClass;
-    local float CompensationTime;
     local float TmpTraceRange;
     local bool bDoReflect;
     local bool bRewind;
@@ -50,15 +49,14 @@ function DoTrace(Vector Start, Rotator Dir)
         End = Start + TmpTraceRange * X;
         if (bRewind)
         {
-            CompensationTime = Client.GetCompensationTime() + ServerDelay;
             if (bDoRecon)
             {
                 Hit = HexedNET.ReconTrace(
-                    Weapon, HitLocation, HitNormal, End, Start, CompensationTime, ClientHit);
+                    Weapon, HitLocation, HitNormal, End, Start, GetCompensationTime(), ClientHit);
             }
             else
             {
-                HexedNET.Rewind(CompensationTime);
+                HexedNET.Rewind(GetCompensationTime());
                 Hit = HexedNET.RewoundTrace(Weapon, HitLocation, HitNormal, End, Start);
             }
             HexedNET.UndoRewind();
