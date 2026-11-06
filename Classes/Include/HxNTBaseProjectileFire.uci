@@ -45,7 +45,7 @@ function PlayFiring()
     local float ProjectileDelay;
 
     Super.PlayFiring();
-    if (Level.NetMode == NM_Client && WantsLagCompensation() && Instigator.IsLocallyControlled())
+    if (Level.NetMode == NM_Client && WantsLagCompensation())
     {
         ProjectileDelay = Client.GetProjectileDelay();
         if (ProjectileDelay > 0)

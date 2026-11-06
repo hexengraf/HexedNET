@@ -62,8 +62,7 @@ function ServerApplyBAS(HxNTWeapon.HxBAS BAS, optional Actor Hit, optional bool 
 function PlayFiring()
 {
     Super.PlayFiring();
-    if (Level.NetMode == NM_Client && bClientFireEffect && !bHasNETWeapon
-        && Instigator.IsLocallyControlled() && WantsLagCompensation())
+    if (Level.NetMode == NM_Client && bClientFireEffect && !bHasNETWeapon && WantsLagCompensation())
     {
         DoFireEffect();
     }
