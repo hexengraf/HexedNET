@@ -16,7 +16,7 @@ replication
         Client;
 }
 
-simulated function PostNetBeginPlay()
+simulated event PostNetBeginPlay()
 {
     Super.PostNetBeginPlay();
     if (Level.NetMode == NM_Client && Client != None && Client.WantsLagCompensation())
@@ -25,13 +25,23 @@ simulated function PostNetBeginPlay()
     }
 }
 
+simulated event Destroyed()
+{
+    if (Generator != None)
+    {
+        Level.ObjectPool.FreeObject(Generator);
+        Generator = None;
+    }
+    Super.Destroyed();
+}
+
 simulated function SearchPredictedProjectile()
 {
     local HxNTWeaponInfo WeaponInfo;
     local Grenade G;
 
     WeaponInfo = Client.GetWeaponInfo(class'AssaultRifle');
-    G = Grenade(WeaponInfo.MatchProjectile(Location));
+    G = Grenade(WeaponInfo.MatchPrediction(Self, class'HxNet_GrenadePredicted'));
     if (G != None)
     {
         InterpolatePredicted(G);
@@ -160,16 +170,6 @@ simulated function DeterministicRandSpin(float SpinRate)
     {
         RandSpin(SpinRate);
     }
-}
-
-simulated event Destroyed()
-{
-    if (Generator != None)
-    {
-        Level.ObjectPool.FreeObject(Generator);
-        Generator = None;
-    }
-    Super.Destroyed();
 }
 
 simulated function Explode(Vector HitLocation, Vector HitNormal)

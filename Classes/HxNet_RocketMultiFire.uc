@@ -105,7 +105,7 @@ function DoFireEffect()
             {
                 HxNet_SeekingRocketProjPredicted(FiredRockets[p]).WeaponInfo = WeaponInfo;
             }
-            WeaponInfo.TrackProjectile(FiredRockets[p], p);
+            WeaponInfo.AddPredictedProjectile(FiredRockets[p], p);
         }
         Load = SavedLoad;
     }
@@ -147,7 +147,7 @@ function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
         {
             HxNet_SeekingRocketProjPredicted(P).WeaponInfo = WeaponInfo;
         }
-        return WeaponInfo.TrackProjectile(P, Index);
+        return WeaponInfo.AddPredictedProjectile(P, Index);
     }
     if (WantsLagCompensation())
     {

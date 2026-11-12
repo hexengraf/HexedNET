@@ -16,7 +16,7 @@ replication
         Client, Index;
 }
 
-simulated function PostNetBeginPlay()
+simulated event PostNetBeginPlay()
 {
     local PlayerController PC;
 
@@ -57,12 +57,12 @@ simulated function SearchPredictedProjectile()
     local RocketProj Rocket;
 
     WeaponInfo = Client.GetWeaponInfo(class'RocketLauncher');
-    Rocket = RocketProj(WeaponInfo.MatchProjectileFull(
-        Location, class'HxNet_SeekingRocketProjPredicted', Index));
+    Rocket = RocketProj(WeaponInfo.MatchPrediction(
+        Self, class'HxNet_SeekingRocketProjPredicted', Index));
     if (Rocket == None)
     {
-        Rocket = RocketProj(WeaponInfo.MatchProjectileFull(
-            Location, class'HxNet_RocketProjPredicted', Index));
+        Rocket = RocketProj(WeaponInfo.MatchPrediction(
+            Self, class'HxNet_RocketProjPredicted', Index));
     }
     if (Rocket != None)
     {

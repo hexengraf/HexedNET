@@ -29,7 +29,7 @@ function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
         {
             HxNet_SeekingRocketProjPredicted(P).WeaponInfo = WeaponInfo;
         }
-        return WeaponInfo.TrackProjectile(P, Index);
+        return WeaponInfo.AddPredictedProjectile(P, Index);
     }
     if (WantsLagCompensation())
     {

@@ -1,10 +1,10 @@
+var const bool bClientFireEffect;
+var bool bEarlyFireEffect;
 var float ServerDelay;
-var private const bool bClientFireEffect;
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
 var private Vector BASStart;
 var private Rotator BASAim;
-var private bool bHasNETWeapon;
 var private bool bUseBAS;
 var private Actor ClientHit;
 var private bool bDoRecon;
@@ -21,37 +21,47 @@ function bool WantsLagCompensation()
         && Client.WantsLagCompensation();
 }
 
-function bool ClientApplyBAS(HxNTWeapon.HxBAS BAS, out int StopFireTime, optional out Actor Hit)
+function bool PrepareBAS(out HxNTWeapon.HxBAS BAS, out int StopFireTime, optional out Actor Hit)
 {
     local Vector HitLocation;
     local Vector HitNormal;
-    local bool bCSC;
+    local bool bUseCSC;
 
-    class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
+    GetStartAndAim(BASStart, BASAim);
+    BASAim = Rotator(Vector(BASAim) + VRand() * FRand() * Spread);
+    BAS.X = BASStart.X;
+    BAS.Y = BASStart.Y;
+    BAS.Z = BASStart.Z;
+    BAS.Yaw = BASAim.Yaw;
+    BAS.Pitch = BASAim.Pitch;
     if (Client.WantsClientSideCollision())
     {
         Hit = Weapon.Trace(
             HitLocation, HitNormal, BASStart + Vector(BASAim) * TraceRange, BASStart, true);
-        bCSC = true;
+        bUseCSC = true;
     }
     bUseBAS = true;
     if (bClientFireEffect)
     {
-        bHasNETWeapon = true;
+        bEarlyFireEffect = true;
         DoFireEffect();
     }
     StopFireTime = Client.GetStopFireTickCount();
-    return bCSC;
+    return bUseCSC;
 }
 
-function ServerApplyBAS(HxNTWeapon.HxBAS BAS, optional Actor Hit, optional bool bHasHit)
+function ApplyBAS(HxNTWeapon.HxBAS BAS, optional Actor Hit, optional bool bHasHit)
 {
     local Rotator CurrentAim;
     local Vector CurrentStart;
 
     if (class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
     {
-        class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
+        BASStart.X = BAS.X;
+        BASStart.Y = BAS.Y;
+        BASStart.Z = BAS.Z;
+        BASAim.Yaw = BAS.Yaw;
+        BASAim.Pitch = BAS.Pitch;
         ClientHit = Hit;
         bDoRecon = bHasHit;
         GetStartAndAim(CurrentStart, CurrentAim);
@@ -62,10 +72,12 @@ function ServerApplyBAS(HxNTWeapon.HxBAS BAS, optional Actor Hit, optional bool 
 function PlayFiring()
 {
     Super.PlayFiring();
-    if (Level.NetMode == NM_Client && bClientFireEffect && !bHasNETWeapon && WantsLagCompensation())
+    if (Level.NetMode == NM_Client && bClientFireEffect && !bEarlyFireEffect
+        && WantsLagCompensation())
     {
         DoFireEffect();
     }
+    bEarlyFireEffect = false;
 }
 
 function DoFireEffect()

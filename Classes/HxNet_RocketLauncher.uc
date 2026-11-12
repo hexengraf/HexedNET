@@ -36,8 +36,7 @@ simulated event ClientStopFire(int Mode)
 
     if (Role < ROLE_Authority && WantsStopFireBAS(Mode))
     {
-        BAS = class'HxNTWeapon'.static.EncodeBAS(Self, Mode);
-        HxNet_RocketMultiFire(FireMode[Mode]).ApplyBAS(BAS);
+        HxNet_RocketMultiFire(FireMode[Mode]).PrepareBAS(BAS);
         StopFire(Mode);
         ServerStopFireBAS(Mode, BAS);
     }
@@ -61,8 +60,7 @@ simulated event ClientStartFire(int Mode)
     {
         if (StartFire(Mode))
         {
-            BAS = class'HxNTWeapon'.static.EncodeBAS(Self, Mode);
-            StopFireTime[Mode] = HxNet_RocketFire(FireMode[Mode]).ApplyBAS(BAS);
+            HxNet_RocketFire(FireMode[Mode]).PrepareBAS(BAS, StopFireTime[Mode]);
             ServerStartFireBAS(Mode, BAS);
         }
     }

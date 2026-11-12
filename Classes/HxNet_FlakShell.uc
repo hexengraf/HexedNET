@@ -15,7 +15,7 @@ replication
         Client;
 }
 
-simulated function PostNetBeginPlay()
+simulated event PostNetBeginPlay()
 {
     Super.PostNetBeginPlay();
     if (Level.NetMode == NM_Client && Client != None && Client.WantsLagCompensation())
@@ -30,7 +30,7 @@ simulated function SearchPredictedProjectile()
     local FlakShell Shell;
 
     WeaponInfo = Client.GetWeaponInfo(class'FlakCannon');
-    Shell = FlakShell(WeaponInfo.MatchProjectileClass(Location, class'HxNet_FlakShellPredicted'));
+    Shell = FlakShell(WeaponInfo.MatchPrediction(Self, class'HxNet_FlakShellPredicted'));
     if (Shell != None)
     {
         InterpolatePredicted(Shell);

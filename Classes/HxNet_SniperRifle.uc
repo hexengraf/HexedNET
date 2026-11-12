@@ -38,8 +38,7 @@ simulated event ClientStartFire(int Mode)
     {
         if (StartFire(Mode))
         {
-            BAS = class'HxNTWeapon'.static.EncodeBAS(Self, Mode, true);
-            if (HxNet_SniperFire(FireMode[Mode]).ClientApplyBAS(BAS, StopFireTime[Mode], ClientHit))
+            if (HxNet_SniperFire(FireMode[Mode]).PrepareBAS(BAS, StopFireTime[Mode], ClientHit))
             {
                 ServerStartFireBASRecon(Mode, BAS, ClientHit);
             }
@@ -57,13 +56,13 @@ simulated event ClientStartFire(int Mode)
 
 function ServerStartFireBAS(byte Mode, HxNTWeapon.HxBAS BAS)
 {
-    HxNet_SniperFire(FireMode[Mode]).ServerApplyBAS(BAS);
+    HxNet_SniperFire(FireMode[Mode]).ApplyBAS(BAS);
     ServerStartFire(Mode);
 }
 
 function ServerStartFireBASRecon(byte Mode, HxNTWeapon.HxBAS BAS, Actor ClientHit)
 {
-    HxNet_SniperFire(FireMode[Mode]).ServerApplyBAS(BAS, ClientHit, true);
+    HxNet_SniperFire(FireMode[Mode]).ApplyBAS(BAS, ClientHit, true);
     ServerStartFire(Mode);
 }
 

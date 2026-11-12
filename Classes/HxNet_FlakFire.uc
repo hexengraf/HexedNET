@@ -26,7 +26,7 @@ function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
             HxNet_FlakChunkPredicted(P).WeaponInfo = WeaponInfo;
             P.Bounces = RandomizeBounces(WeaponInfo.Generator);
         }
-        return WeaponInfo.TrackProjectile(P, Index);
+        return WeaponInfo.AddPredictedProjectile(P, Index);
     }
     if (WantsLagCompensation())
     {

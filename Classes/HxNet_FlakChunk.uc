@@ -16,7 +16,7 @@ replication
         Client, Index;
 }
 
-simulated function PostNetBeginPlay()
+simulated event PostNetBeginPlay()
 {
 
     Super.PostNetBeginPlay();
@@ -32,7 +32,7 @@ simulated function SearchPredictedProjectile()
     local FlakChunk Chunk;
 
     WeaponInfo = Client.GetWeaponInfo(class'FlakCannon');
-    Chunk = FlakChunk(WeaponInfo.MatchProjectileFull(Location, class'HxNet_FlakChunkPredicted', Index));
+    Chunk = FlakChunk(WeaponInfo.MatchPrediction(Self, class'HxNet_FlakChunkPredicted', Index));
     if (Chunk != None)
     {
         InterpolatePredicted(Chunk);

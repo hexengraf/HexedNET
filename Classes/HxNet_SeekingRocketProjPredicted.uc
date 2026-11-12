@@ -7,7 +7,7 @@ simulated event Destroyed()
 {
     if (!bRemoved && WeaponInfo != None)
     {
-        WeaponInfo.RemoveProjectile(Self);
+        WeaponInfo.RemovePredictedProjectile(Self);
     }
     Super.Destroyed();
 }

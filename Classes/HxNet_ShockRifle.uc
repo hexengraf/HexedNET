@@ -40,8 +40,7 @@ simulated event ClientStartFire(int Mode)
         {
             if (HxNet_ShockBeamFire(FireMode[Mode]) != None)
             {
-                BAS = EncodeBAS(Mode);
-                if (HxNet_ShockBeamFire(FireMode[Mode]).ClientApplyBAS(
+                if (HxNet_ShockBeamFire(FireMode[Mode]).PrepareBAS(
                     BAS, StopFireTime[Mode], ClientHit))
                 {
                     ServerStartFireBASRecon(Mode, BAS, ClientHit);
@@ -53,8 +52,7 @@ simulated event ClientStartFire(int Mode)
             }
             else
             {
-                BAS = class'HxNTWeapon'.static.EncodeBAS(Self, Mode);
-                StopFireTime[Mode] = HxNet_ShockProjFire(FireMode[Mode]).ApplyBAS(BAS);
+                HxNet_ShockProjFire(FireMode[Mode]).PrepareBAS(BAS, StopFireTime[Mode]);
                 ServerStartFireBAS(Mode, BAS);
             }
         }
@@ -69,7 +67,7 @@ function ServerStartFireBAS(byte Mode, HxNTWeapon.HxBAS BAS)
 {
     if (HxNet_ShockBeamFire(FireMode[Mode]) != None)
     {
-        HxNet_ShockBeamFire(FireMode[Mode]).ServerApplyBAS(BAS);
+        HxNet_ShockBeamFire(FireMode[Mode]).ApplyBAS(BAS);
     }
     else
     {
@@ -80,7 +78,7 @@ function ServerStartFireBAS(byte Mode, HxNTWeapon.HxBAS BAS)
 
 function ServerStartFireBASRecon(byte Mode, HxNTWeapon.HxBAS BAS, Actor ClientHit)
 {
-    HxNet_ShockBeamFire(FireMode[Mode]).ServerApplyBAS(BAS, ClientHit, true);
+    HxNet_ShockBeamFire(FireMode[Mode]).ApplyBAS(BAS, ClientHit, true);
     ServerStartFire(Mode);
 }
 
@@ -120,22 +118,6 @@ simulated function bool WantsStartFireBAS(int Mode)
         return HxNet_ShockBeamFire(FireMode[Mode]).WantsLagCompensation();
     }
     return HxNet_ShockProjFire(FireMode[Mode]).WantsLagCompensation();
-}
-
-simulated function HxNTWeapon.HxBAS EncodeBAS(int Mode)
-{
-    local HxNTWeapon.HxBAS BAS;
-    local Rotator Aim;
-    local Vector Start;
-
-    HxNet_ShockBeamFire(FireMode[Mode]).GetStartAndAim(Start, Aim);
-    Aim = Rotator(Vector(Aim) + VRand() * FRand() * FireMode[Mode].Spread);
-    BAS.X = Start.X;
-    BAS.Y = Start.Y;
-    BAS.Z = Start.Z;
-    BAS.Yaw = Aim.Yaw;
-    BAS.Pitch = Aim.Pitch;
-    return BAS;
 }
 
 defaultproperties

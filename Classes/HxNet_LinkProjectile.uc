@@ -15,7 +15,7 @@ replication
         Client;
 }
 
-simulated function PostNetBeginPlay()
+simulated event PostNetBeginPlay()
 {
     Super.PostNetBeginPlay();
     if (Level.NetMode == NM_Client && Client != None && Client.WantsLagCompensation())
@@ -30,7 +30,7 @@ simulated function SearchPredictedProjectile()
     local LinkProjectile Proj;
 
     WeaponInfo = Client.GetWeaponInfo(class'LinkGun');
-    Proj = LinkProjectile(WeaponInfo.MatchProjectile(Location));
+    Proj = LinkProjectile(WeaponInfo.MatchPrediction(Self, class'HxNet_LinkProjectilePredicted'));
     if (Proj != None)
     {
         InterpolatePredicted(Proj);

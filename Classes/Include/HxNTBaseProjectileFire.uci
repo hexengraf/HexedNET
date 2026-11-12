@@ -1,3 +1,4 @@
+var bool bEarlyFireEffect;
 var float ServerDelay;
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
@@ -20,54 +21,73 @@ function bool WantsLagCompensation()
         && Client.WantsLagCompensation();
 }
 
-function int ApplyBAS(HxNTWeapon.HxBAS BAS)
+function PrepareBAS(out HxNTWeapon.HxBAS BAS, optional out int StopFireTime)
+{
+    BASStart = Instigator.Location + Instigator.EyePosition();
+    BASAim = AdjustAim(BASStart, AimError);
+    BAS.X = BASStart.X;
+    BAS.Y = BASStart.Y;
+    BAS.Z = BASStart.Z;
+    BAS.Yaw = BASAim.Yaw;
+    BAS.Pitch = BASAim.Pitch;
+    bUseBAS = true;
+    bEarlyFireEffect = true;
+    DoPredictedFireEffect();
+    StopFireTime = Client.GetStopFireTickCount();
+}
+
+function ApplyBAS(HxNTWeapon.HxBAS BAS)
 {
     local Rotator CurrentAim;
     local Vector CurrentStart;
 
     if (class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
     {
-        class'HxNTWeapon'.static.DecodeBAS(BAS, BASStart, BASAim);
-        if (Weapon.Role < ROLE_Authority)
-        {
-            bUseBAS = true;
-            return Client.GetStopFireTickCount();
-        }
+        BASStart.X = BAS.X;
+        BASStart.Y = BAS.Y;
+        BASStart.Z = BAS.Z;
+        BASAim.Yaw = BAS.Yaw;
+        BASAim.Pitch = BAS.Pitch;
         CurrentStart = Instigator.Location + Instigator.EyePosition();
         CurrentAim = AdjustAim(CurrentStart, AimError);
         bUseBAS = HexedNET.IsReasonableBAS(BASStart, BASAim, CurrentStart, CurrentAim);
     }
-    return 0;
 }
 
 function PlayFiring()
 {
+    Super.PlayFiring();
+    if (Level.NetMode == NM_Client && !bEarlyFireEffect && WantsLagCompensation())
+    {
+        DoPredictedFireEffect();
+    }
+    bEarlyFireEffect = false;
+}
+
+function DoPredictedFireEffect()
+{
     local float ProjectileDelay;
 
-    Super.PlayFiring();
-    if (Level.NetMode == NM_Client && WantsLagCompensation())
+    ProjectileDelay = Client.GetProjectileDelay();
+    if (ProjectileDelay > 0)
     {
-        ProjectileDelay = Client.GetProjectileDelay();
-        if (ProjectileDelay > 0)
-        {
-            if (ProjectileDelayTimer > 0)
-            {
-                DoFireEffect();
-            }
-            ProjectileDelayTimer = ProjectileDelay;
-            if (!bUseBAS)
-            {
-                BASStart = Instigator.Location + Instigator.EyePosition();
-                BASAim = AdjustAim(BASStart, AimError);
-                bUseBAS = true;
-            }
-            SaveDelayedState();
-            bIsDelayed = true;
-        }
-        else
+        if (ProjectileDelayTimer > 0)
         {
             DoFireEffect();
         }
+        ProjectileDelayTimer = ProjectileDelay;
+        if (!bUseBAS)
+        {
+            BASStart = Instigator.Location + Instigator.EyePosition();
+            BASAim = AdjustAim(BASStart, AimError);
+            bUseBAS = true;
+        }
+        SaveDelayedState();
+        bIsDelayed = true;
+    }
+    else
+    {
+        DoFireEffect();
     }
 }
 
@@ -144,7 +164,7 @@ function DoBaseFireEffect()
         {
             case SS_Random:
                 X = Vector(Dir);
-                for (i = 0; i < SpawnCount; i++)
+                for (i = 0; i < SpawnCount; ++i)
                 {
                     Dir.Yaw = Spread * (WeaponInfo.Generator.RandFloat() - 0.5);
                     Dir.Pitch = Spread * (WeaponInfo.Generator.RandFloat() - 0.5);
@@ -153,7 +173,7 @@ function DoBaseFireEffect()
                 }
                 break;
             case SS_Line:
-                for (i = 0; i < SpawnCount; i++)
+                for (i = 0; i < SpawnCount; ++i)
                 {
                     Theta = Spread * PI / 32768 * (i - float(SpawnCount - 1) / 2.0);
                     X.X = Cos(Theta);
@@ -176,5 +196,5 @@ function DoBaseFireEffect()
 
 final function float GetCompensationTime()
 {
-    return Client.GetProjectileCompensationTime() + ServerDelay;
+    return Client.GetProjectileCompensationTime(bEarlyFireEffect) + ServerDelay;
 }

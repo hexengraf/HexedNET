@@ -27,7 +27,6 @@ var private float AvgRTT;
 var private float RTTAlpha;
 var private float ClientAvgDT;
 var private float ServerAvgDT;
-var private float MinRTT;
 var private float PingInterval;
 var private float LagCompensationLimit;
 var private float ProjectileCompensationLimit;
@@ -109,7 +108,6 @@ simulated function Tick(float DeltaTime)
             {
                 AvgRTT = AvgRTT + (NewRTT - AvgRTT) * RTTAlpha;
             }
-            MinRTT = ClientAvgDT * 1.1;
             ServerUpdateStats(AvgRTT, ClientAvgDT);
         }
     }
@@ -149,7 +147,6 @@ function ServerUpdateStats(float NewAvgRTT, float NewClientAvgDT)
 {
     AvgRTT = NewAvgRTT;
     ClientAvgDT = NewClientAvgDT;
-    MinRTT = ClientAvgDT * 1.1;
 }
 
 simulated function UpdatePingInterval()
@@ -235,8 +232,12 @@ simulated final function float GetCompensationTime()
     return FMin(FMax(0.0, AvgRTT), LagCompensationLimit);
 }
 
-simulated final function float GetProjectileCompensationTime()
+simulated final function float GetProjectileCompensationTime(bool bEarlyFireEffect)
 {
+    if (bEarlyFireEffect)
+    {
+        return FMin(FMax(0.0, AvgRTT), ProjectileCompensationLimit);
+    }
     return FMin(FMax(0.0, AvgRTT - ClientAvgDT), ProjectileCompensationLimit);
 }
 
@@ -247,7 +248,7 @@ simulated final function float GetProjectileDelay()
 
 simulated final function bool WantsLagCompensation()
 {
-    return bLagCompensation && AvgRTT > MinRTT;
+    return bLagCompensation;
 }
 
 simulated final function bool WantsClientSideCollision()

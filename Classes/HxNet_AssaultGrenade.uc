@@ -80,7 +80,7 @@ function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
         {
             HxNet_GrenadePredicted(G).WeaponInfo = WeaponInfo;
             HxNet_GrenadePredicted(G).SpawnRandomGenerator(WeaponInfo.Generator.RandInt());
-            WeaponInfo.TrackProjectile(G);
+            WeaponInfo.AddPredictedProjectile(G);
             UpdateSpeedAndDamage(G, Dir);
         }
     }

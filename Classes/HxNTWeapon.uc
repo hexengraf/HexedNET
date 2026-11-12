@@ -86,35 +86,6 @@ static final function CheckStopFire(Weapon W, out int StopFireTime, out int AltS
     }
 }
 
-static final function HxBAS EncodeBAS(Weapon W, int Mode, optional bool bSpread)
-{
-    local HxBAS BAS;
-    local Vector Start;
-    local Rotator Aim;
-
-    Start = W.Instigator.Location + W.Instigator.EyePosition();
-    Aim = W.FireMode[Mode].AdjustAim(Start, W.FireMode[Mode].AimError);
-    if (bSpread)
-    {
-        Aim = Rotator(Vector(Aim) + VRand() * FRand() * W.FireMode[Mode].Spread);
-    }
-    BAS.X = Start.X;
-    BAS.Y = Start.Y;
-    BAS.Z = Start.Z;
-    BAS.Yaw = Aim.Yaw;
-    BAS.Pitch = Aim.Pitch;
-    return BAS;
-}
-
-static final function DecodeBAS(HxBAS BAS, out Vector Start, out Rotator Dir)
-{
-    Start.X = BAS.X;
-    Start.Y = BAS.Y;
-    Start.Z = BAS.Z;
-    Dir.Yaw = BAS.Yaw;
-    Dir.Pitch = BAS.Pitch;
-}
-
 static function InstantFireTrace(MutHexedNET HexedNET,
                                  InstantFire WF,
                                  Vector Start,

@@ -26,7 +26,7 @@ function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
         {
             HxNet_FlakShellPredicted(P).WeaponInfo = WeaponInfo;
         }
-        return WeaponInfo.TrackProjectile(P, Index);
+        return WeaponInfo.AddPredictedProjectile(P, Index);
     }
     if (WantsLagCompensation())
     {

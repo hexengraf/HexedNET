@@ -16,7 +16,7 @@ replication
         Client;
 }
 
-simulated function PostNetBeginPlay()
+simulated event PostNetBeginPlay()
 {
     Super.PostNetBeginPlay();
     if (Level.NetMode == NM_Client && Client != None && Client.WantsLagCompensation())
@@ -25,13 +25,22 @@ simulated function PostNetBeginPlay()
     }
 }
 
+simulated event Destroyed()
+{
+    if (Tracker != None)
+    {
+        Tracker.Destroy();
+    }
+    Super.Destroyed();
+}
+
 simulated function SearchPredictedProjectile()
 {
     local HxNTWeaponInfo WeaponInfo;
     local ShockProjectile Core;
 
     WeaponInfo = Client.GetWeaponInfo(class'ShockRifle');
-    Core = ShockProjectile(WeaponInfo.MatchProjectile(Location));
+    Core = ShockProjectile(WeaponInfo.MatchPrediction(Self, class'HxNet_ShockProjectilePredicted'));
     if (Core != None)
     {
         InterpolatePredicted(Core);
@@ -155,15 +164,6 @@ function Timer()
     {
         Tracker.StoreRoutePoint();
     }
-}
-
-simulated event Destroyed()
-{
-    if (Tracker != None)
-    {
-        Tracker.Destroy();
-    }
-    Super.Destroyed();
 }
 
 function SetTracker(HxNTProjectileTracker T)

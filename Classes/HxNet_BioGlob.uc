@@ -14,7 +14,7 @@ replication
         Client;
 }
 
-simulated function PostNetBeginPlay()
+simulated event PostNetBeginPlay()
 {
     Super.PostNetBeginPlay();
     if (Level.NetMode == NM_Client && Client != None && Client.WantsLagCompensation())
@@ -29,7 +29,7 @@ simulated function SearchPredictedProjectile()
     local BioGlob Glob;
 
     WeaponInfo = Client.GetWeaponInfo(class'BioRifle');
-    Glob = BioGlob(WeaponInfo.MatchProjectile(Location));
+    Glob = BioGlob(WeaponInfo.MatchPrediction(Self, class'HxNet_BioGlobPredicted'));
     if (Glob != None)
     {
         InterpolatePredicted(Glob);
