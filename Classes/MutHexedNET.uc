@@ -1,17 +1,10 @@
 class MutHexedNET extends HxMutator
     config(HexedMutators);
 
-struct HxNTFireModeOverride
-{
-    var class<WeaponFire> TargetClass;
-    var class<WeaponFire> NETClass;
-};
-
 struct HxNTClassOverride
 {
     var class<Weapon> TargetClass;
     var class<Weapon> NETClass;
-    var array<HxNTFireModeOverride> FireModeOverrides;
 };
 
 const WARMUP_COUNT = 10;
@@ -21,7 +14,6 @@ var config float PingFrequency;
 var config int LagCompensationLimit;
 var config int ProjectileCompensationLimit;
 var config int MaxCollisionCheckRate;
-var config bool bBoostedAimSynchronization;
 var config int LocationErrorTolerance;
 var config float AngleErrorTolerance;
 var config bool bForceStartFireRPCs;
@@ -37,19 +29,13 @@ var private array<HxNTProjectileTracker> ProjectileTrackers;
 var private float AvgDT;
 var private float FwdTimeStep;
 var private int TickCount;
-var private bool bReplaceWeapons;
 
 event PostBeginPlay()
 {
     Super.PostBeginPlay();
     if (!bDeleteMe && !bPendingDelete)
     {
-        ApplyFireModeOverrides();
-        if (bBoostedAimSynchronization)
-        {
-            ApplyClassOverridesToMutators();
-            bReplaceWeapons = true;
-        }
+        ApplyClassOverridesToMutators();
         if (bRubberbandingFix)
         {
             Level.Game.PlayerControllerClassName = string(class'HxNTPlayer');
@@ -96,7 +82,7 @@ function bool MutatorIsAllowed()
 function AddMutator(Mutator M)
 {
     Super.AddMutator(M);
-    if (bReplaceWeapons && M.DefaultWeaponName != "")
+    if (M.DefaultWeaponName != "")
     {
         ApplyClassOverridesToMutator(M);
     }
@@ -132,20 +118,17 @@ function bool CheckReplacement(Actor Other, out byte bSuperRelevant)
     {
         SpawnPawnTracker(xPawn(Other));
     }
-    else if (bReplaceWeapons)
+    else if (xWeaponBase(Other) != None)
     {
-        if (xWeaponBase(Other) != None)
-        {
-            ApplyClassOverridesToWeaponBase(xWeaponBase(Other));
-        }
-        else if (WeaponPickup(Other) != None)
-        {
-            ApplyClassOverridesToWeaponPickup(WeaponPickup(Other));
-        }
-        else if (WeaponLocker(Other) != None)
-        {
-            ApplyClassOverridesToWeaponLocker(WeaponLocker(Other));
-        }
+        ApplyClassOverridesToWeaponBase(xWeaponBase(Other));
+    }
+    else if (WeaponPickup(Other) != None)
+    {
+        ApplyClassOverridesToWeaponPickup(WeaponPickup(Other));
+    }
+    else if (WeaponLocker(Other) != None)
+    {
+        ApplyClassOverridesToWeaponLocker(WeaponLocker(Other));
     }
     return Super.CheckReplacement(Other, bSuperRelevant);
 }
@@ -155,18 +138,15 @@ function string GetInventoryClassOverride(string InventoryClassName)
     local int i;
 
     InventoryClassName = Super.GetInventoryClassOverride(InventoryClassName);
-    if (bReplaceWeapons)
+    for (i = 0; i < ClassOverrides.Length; ++i)
     {
-        for (i = 0; i < ClassOverrides.Length; ++i)
+        if (InventoryClassName ~= string(ClassOverrides[i].TargetClass))
         {
-            if (InventoryClassName ~= string(ClassOverrides[i].TargetClass))
+            if (ClassOverrides[i].NETClass != None)
             {
-                if (ClassOverrides[i].NETClass != None)
-                {
-                    return string(ClassOverrides[i].NETClass);
-                }
-                break;
+                return string(ClassOverrides[i].NETClass);
             }
+            break;
         }
     }
     return InventoryClassName;
@@ -633,14 +613,11 @@ function ApplyClassOverridesToMutators()
 {
     local Mutator M;
 
-    if (bReplaceWeapons)
+    for (M = Level.Game.BaseMutator; M != None; M = M.NextMutator)
     {
-        for (M = Level.Game.BaseMutator; M != None; M = M.NextMutator)
+        if (M.DefaultWeaponName != "")
         {
-            if (M.DefaultWeaponName != "")
-            {
-                ApplyClassOverridesToMutator(M);
-            }
+            ApplyClassOverridesToMutator(M);
         }
     }
 }
@@ -725,12 +702,6 @@ function ApplyClassOverridesToWeaponLocker(WeaponLocker L)
             }
         }
     }
-}
-
-function ServerTraveling(string URL, bool bItems)
-{
-    Super.ServerTraveling(URL, bItems);
-    RestoreFireModeOverrides();
 }
 
 final function float GetAverageDeltaTime()
@@ -859,36 +830,6 @@ static final function Vector GetClearance(Vector HitNormal,
     return Direction * (Clearance / Ratio);
 }
 
-static function ApplyFireModeOverrides()
-{
-    local int i;
-    local int j;
-
-    for (i = 0; i < default.ClassOverrides.Length; ++i)
-    {
-        for (j = 0; j < default.ClassOverrides[i].FireModeOverrides.Length; ++j)
-        {
-            default.ClassOverrides[i].TargetClass.default.FireModeClass[j] =
-                default.ClassOverrides[i].FireModeOverrides[j].NETClass;
-        }
-    }
-}
-
-static function RestoreFireModeOverrides()
-{
-    local int i;
-    local int j;
-
-    for (i = 0; i < default.ClassOverrides.Length; ++i)
-    {
-        for (j = 0; j < default.ClassOverrides[i].FireModeOverrides.Length; ++j)
-        {
-            default.ClassOverrides[i].TargetClass.default.FireModeClass[j] =
-                default.ClassOverrides[i].FireModeOverrides[j].TargetClass;
-        }
-    }
-}
-
 defaultproperties
 {
     FriendlyName="HexedNET %TAG%"
@@ -900,46 +841,43 @@ defaultproperties
     Properties(1)=(Name="LagCompensationLimit",Type=HX_PROPERTY_Int,LowerLimit="50",UpperLimit="999")
     Properties(2)=(Name="ProjectileCompensationLimit",Type=HX_PROPERTY_Int,LowerLimit="50",UpperLimit="999")
     Properties(3)=(Name="MaxCollisionCheckRate",Type=HX_PROPERTY_Int,LowerLimit="25",UpperLimit="100")
-    Properties(4)=(Name="bBoostedAimSynchronization",Type=HX_PROPERTY_Bool)
-    Properties(5)=(Name="LocationErrorTolerance",Type=HX_PROPERTY_Int,LowerLimit="10",UpperLimit="100")
-    Properties(6)=(Name="AngleErrorTolerance",Type=HX_PROPERTY_Float,LowerLimit="-1.0",UpperLimit="1.0")
-    Properties(7)=(Name="bForceStartFireRPCs",Type=HX_PROPERTY_Bool)
-    Properties(8)=(Name="bClientSideCollisions",Type=HX_PROPERTY_Bool)
-    Properties(9)=(Name="PingSpikeTolerance",Type=HX_PROPERTY_Int,LowerLimit="5",UpperLimit="999")
-    Properties(10)=(Name="bRubberbandingFix",Type=HX_PROPERTY_Bool)
-    Properties(11)=(Name="bLinkMeshes",Type=HX_PROPERTY_Bool)
+    Properties(4)=(Name="LocationErrorTolerance",Type=HX_PROPERTY_Int,LowerLimit="10",UpperLimit="100")
+    Properties(5)=(Name="AngleErrorTolerance",Type=HX_PROPERTY_Float,LowerLimit="-1.0",UpperLimit="1.0")
+    Properties(6)=(Name="bForceStartFireRPCs",Type=HX_PROPERTY_Bool)
+    Properties(7)=(Name="bClientSideCollisions",Type=HX_PROPERTY_Bool)
+    Properties(8)=(Name="PingSpikeTolerance",Type=HX_PROPERTY_Int,LowerLimit="5",UpperLimit="999")
+    Properties(9)=(Name="bRubberbandingFix",Type=HX_PROPERTY_Bool)
+    Properties(10)=(Name="bLinkMeshes",Type=HX_PROPERTY_Bool)
     DisplayInfo(0)=(Caption="Ping Frequency",Hint="Frequency to send ping packets (pings/second). Lower this value if server connection is saturated.",Step="0.25",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_High)
     DisplayInfo(1)=(Caption="Lag Compensation Limit",Hint="Global lag compensation limit (in milliseconds).",Step="10",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
     DisplayInfo(2)=(Caption="Projectile Compensation Limit",Hint="Projectile-specific lag compensation limit (in milliseconds).",Step="10",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
     DisplayInfo(3)=(Caption="Max. Collision Check Rate",Hint="Maximum rate to check for projectile collisions during server-side forwarding. The actual rate is the minimum between this value and the server's tick rate.",Step="5",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_High)
-    DisplayInfo(4)=(Section="Boosted Aim Synchronization (BAS)",Caption="Enable BAS",Hint="When triggering a shot, send the client's location and camera rotation to the server to synchronize the aim. Applied on restart/map change.",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
-    DisplayInfo(5)=(Section="Boosted Aim Synchronization (BAS)",Caption="Location Error Tolerance",Hint="Maximum acceptable difference between BAS location and current server location (in unreal units).",Step="1",Dependency="bBoostedAimSynchronization",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_High)
-    DisplayInfo(6)=(Section="Boosted Aim Synchronization (BAS)",Caption="Angle Error Tolerance",Hint="Maximum acceptable difference between BAS rotation and current server rotation (-1.0 = unrestrained, 0.0 = 90 degrees, 1.0 = perfectly aligned).",Step="0.25",Dependency="bBoostedAimSynchronization",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_High)
-    DisplayInfo(7)=(Section="Boosted Aim Synchronization (BAS)",Caption="Force Start Fire RPCs",Hint="Force a new start fire RPC for every shot while holding the fire button. If disabled, BAS is only applied to the first shot while holding fire.",Dependency="bBoostedAimSynchronization",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_High)
-    DisplayInfo(8)=(Section="Boosted Aim Synchronization (BAS)",Caption="Evaluate Client-Side Collisions",Hint="Execute client-side collision detection and add the result to BAS. The server decides if the collision is valid. Only applies to hitscan weapons.",Dependency="bBoostedAimSynchronization",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
-    DisplayInfo(9)=(Section="Boosted Aim Synchronization (BAS)",Caption="Ping Spike Tolerance",Hint="Maximum acceptable ping spike (in milliseconds) when validating client-side collisions.",Step="1",Dependency="bBoostedAimSynchronization",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_High)
-    DisplayInfo(10)=(Section="Miscellaneous",Caption="Backport Rubberbanding Fix",Hint="Backport OldUnreal's rubberbanding fix. Applied on restart/map change.",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_High)
-    DisplayInfo(11)=(Section="Miscellaneous",Caption="Link Meshes",Hint="Link meshes for collision detection. Disable this if experiencing crashes.",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_High)
+    DisplayInfo(4)=(Section="Boosted Aim Synchronization (BAS)",Caption="Location Error Tolerance",Hint="Maximum acceptable difference between BAS location and current server location (in unreal units).",Step="1",Dependency="bBoostedAimSynchronization",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_High)
+    DisplayInfo(5)=(Section="Boosted Aim Synchronization (BAS)",Caption="Angle Error Tolerance",Hint="Maximum acceptable difference between BAS rotation and current server rotation (-1.0 = unrestrained, 0.0 = 90 degrees, 1.0 = perfectly aligned).",Step="0.25",Dependency="bBoostedAimSynchronization",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_High)
+    DisplayInfo(6)=(Section="Boosted Aim Synchronization (BAS)",Caption="Force Start Fire RPCs",Hint="Force a new start fire RPC for every shot while holding the fire button. If disabled, BAS is only applied to the first shot while holding fire.",Dependency="bBoostedAimSynchronization",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_High)
+    DisplayInfo(7)=(Section="Boosted Aim Synchronization (BAS)",Caption="Evaluate Client-Side Collisions",Hint="Execute client-side collision detection and add the result to BAS. The server decides if the collision is valid. Only applies to hitscan weapons.",Dependency="bBoostedAimSynchronization",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_Medium)
+    DisplayInfo(8)=(Section="Boosted Aim Synchronization (BAS)",Caption="Ping Spike Tolerance",Hint="Maximum acceptable ping spike (in milliseconds) when validating client-side collisions.",Step="1",Dependency="bBoostedAimSynchronization",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_High)
+    DisplayInfo(9)=(Section="Miscellaneous",Caption="Backport Rubberbanding Fix",Hint="Backport OldUnreal's rubberbanding fix. Applied on restart/map change.",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_High)
+    DisplayInfo(10)=(Section="Miscellaneous",Caption="Link Meshes",Hint="Link meshes for collision detection. Disable this if experiencing crashes.",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_High)
     ConfigClasses(0)=class'HxNetcodeConfig'
     Priority=64
-    ClassOverrides(0)=(TargetClass=class'AssaultRifle',NETClass=class'HxNet_AssaultRifle',FireModeOverrides=((TargetClass=class'AssaultFire',NETClass=class'HxNet_AssaultFire'),(TargetClass=class'AssaultGrenade',NETClass=class'HxNet_AssaultGrenade')))
-    ClassOverrides(1)=(TargetClass=class'BioRifle',NETClass=class'HxNet_BioRifle',FireModeOverrides=((TargetClass=class'BioFire',NETClass=class'HxNet_BioFire'),(TargetClass=class'BioChargedFire',NETClass=class'HxNet_BioChargedFire')))
-    ClassOverrides(2)=(TargetClass=class'ShockRifle',NETClass=class'HxNet_ShockRifle',FireModeOverrides=((TargetClass=class'ShockBeamFire',NETClass=class'HxNet_ShockBeamFire'),(TargetClass=class'ShockProjFire',NETClass=class'HxNet_ShockProjFire')))
-    ClassOverrides(3)=(TargetClass=class'LinkGun',NETClass=class'HxNet_LinkGun',FireModeOverrides=((TargetClass=class'LinkAltFire',NETClass=class'HxNet_LinkAltFire'),(TargetClass=class'LinkFire',NETClass=class'HxNet_LinkFire')))
-    ClassOverrides(4)=(TargetClass=class'MiniGun',FireModeOverrides=((TargetClass=class'MiniGunFire',NETClass=class'HxNet_MiniGunFire'),(TargetClass=class'MiniGunAltFire',NETClass=class'HxNet_MiniGunAltFire')))
-    ClassOverrides(5)=(TargetClass=class'FlakCannon',NETClass=class'HxNet_FlakCannon',FireModeOverrides=((TargetClass=class'FlakFire',NETClass=class'HxNet_FlakFire'),(TargetClass=class'FlakAltFire',NETClass=class'HxNet_FlakAltFire')))
-    ClassOverrides(6)=(TargetClass=class'RocketLauncher',NETClass=class'HxNet_RocketLauncher',FireModeOverrides=((TargetClass=class'RocketFire',NETClass=class'HxNet_RocketFire'),(TargetClass=class'RocketMultiFire',NETClass=class'HxNet_RocketMultiFire')))
-    ClassOverrides(7)=(TargetClass=class'SniperRifle',NETClass=class'HxNet_SniperRifle',FireModeOverrides=((TargetClass=class'SniperFire',NETClass=class'HxNet_SniperFire')))
-    ClassOverrides(8)=(TargetClass=class'ClassicSniperRifle',NETClass=class'HxNet_ClassicSniperRifle',FireModeOverrides=((TargetClass=class'ClassicSniperFire',NETClass=class'HxNet_ClassicSniperFire')))
-    ClassOverrides(9)=(TargetClass=class'SuperShockRifle',NETClass=class'HxNet_SuperShockRifle',FireModeOverrides=((TargetClass=class'SuperShockBeamFire',NETClass=class'HxNet_SuperShockBeamFire'),(TargetClass=class'SuperShockBeamFire',NETClass=class'HxNet_SuperShockBeamFire')))
-    ClassOverrides(10)=(TargetClass=class'ZoomSuperShockRifle',NETClass=class'HxNet_ZoomSuperShockRifle',FireModeOverrides=((TargetClass=class'ZoomSuperShockBeamFire',NETClass=class'HxNet_ZoomSuperShockBeamFire')))
-    ClassOverrides(11)=(TargetClass=class'HxSuperShockRifle',NETClass=class'HxNet_HxSuperShockRifle',FireModeOverrides=((TargetClass=class'SuperShockBeamFire',NETClass=class'HxNet_SuperShockBeamFire'),(TargetClass=class'SuperShockBeamFire',NETClass=class'HxNet_SuperShockBeamFire')))
-    ClassOverrides(12)=(TargetClass=class'HxZoomSuperShockRifle',NETClass=class'HxNet_HxZoomSuperShockRifle',FireModeOverrides=((TargetClass=class'ZoomSuperShockBeamFire',NETClass=class'HxNet_ZoomSuperShockBeamFire')))
+    ClassOverrides(0)=(TargetClass=class'AssaultRifle',NETClass=class'HxNet_AssaultRifle')
+    ClassOverrides(1)=(TargetClass=class'BioRifle',NETClass=class'HxNet_BioRifle')
+    ClassOverrides(2)=(TargetClass=class'ShockRifle',NETClass=class'HxNet_ShockRifle')
+    ClassOverrides(3)=(TargetClass=class'LinkGun',NETClass=class'HxNet_LinkGun')
+    ClassOverrides(4)=(TargetClass=class'MiniGun',NETClass=class'HxNet_MiniGun')
+    ClassOverrides(5)=(TargetClass=class'FlakCannon',NETClass=class'HxNet_FlakCannon')
+    ClassOverrides(6)=(TargetClass=class'RocketLauncher',NETClass=class'HxNet_RocketLauncher')
+    ClassOverrides(7)=(TargetClass=class'SniperRifle',NETClass=class'HxNet_SniperRifle')
+    ClassOverrides(8)=(TargetClass=class'ClassicSniperRifle',NETClass=class'HxNet_ClassicSniperRifle')
+    ClassOverrides(9)=(TargetClass=class'SuperShockRifle',NETClass=class'HxNet_SuperShockRifle')
+    ClassOverrides(10)=(TargetClass=class'ZoomSuperShockRifle',NETClass=class'HxNet_ZoomSuperShockRifle')
+    ClassOverrides(11)=(TargetClass=class'HxSuperShockRifle',NETClass=class'HxNet_HxSuperShockRifle')
+    ClassOverrides(12)=(TargetClass=class'HxZoomSuperShockRifle',NETClass=class'HxNet_HxZoomSuperShockRifle')
     PingFrequency=2.0
     LagCompensationLimit=300
     ProjectileCompensationLimit=125
     MaxCollisionCheckRate=60
-    bBoostedAimSynchronization=true
     LocationErrorTolerance=36
     AngleErrorTolerance=-0.5
     bForceStartFireRPCs=true

@@ -17,7 +17,6 @@ function InitializeProperties()
         SaveConfig();
     }
     EqualizeWeaponConfigOverrides();
-    class'MutHexedNET'.static.ApplyFireModeOverrides();
     class'HxNTClient'.default.bLagCompensation = bLagCompensation;
 }
 
@@ -80,7 +79,6 @@ function Destroy()
 {
     Client = None;
     EqualizeWeaponConfigOverrides();
-    class'MutHexedNET'.static.RestoreFireModeOverrides();
     Super.Destroy();
 }
 
