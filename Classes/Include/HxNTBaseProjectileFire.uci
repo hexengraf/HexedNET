@@ -1,5 +1,5 @@
 var bool bEarlyFireEffect;
-var float ServerDelay;
+var float RTTDeviation;
 var private MutHexedNET HexedNET;
 var private HxNTClient Client;
 var private Vector BASStart;
@@ -30,6 +30,7 @@ function PrepareBAS(out HxNTWeapon.HxBAS BAS, optional out int StopFireTime)
     BAS.Z = BASStart.Z;
     BAS.Yaw = BASAim.Yaw;
     BAS.Pitch = BASAim.Pitch;
+    BAS.Timestamp = Client.GetReferenceTimestamp();
     bUseBAS = true;
     bEarlyFireEffect = true;
     DoPredictedFireEffect();
@@ -51,6 +52,24 @@ function ApplyBAS(HxNTWeapon.HxBAS BAS)
         CurrentStart = Instigator.Location + Instigator.EyePosition();
         CurrentAim = AdjustAim(CurrentStart, AimError);
         bUseBAS = HexedNET.IsReasonableBAS(BASStart, BASAim, CurrentStart, CurrentAim);
+        RTTDeviation = Client.GetRTTDeviation(Level.TimeSeconds - BAS.Timestamp);
+    }
+}
+
+function SynchronizeFireTime(float MaxDelay)
+{
+    RTTDeviation = FMin(RTTDeviation, MaxDelay);
+    if (MaxDelay > 0.0)
+    {
+        if (bServerDelayStartFire)
+        {
+            NextFireTime -= MaxDelay + 0.001;
+            RTTDeviation = MaxDelay;
+        }
+        else if (RTTDeviation > 0.0)
+        {
+            NextFireTime -= RTTDeviation;
+        }
     }
 }
 
@@ -191,10 +210,10 @@ function DoBaseFireEffect()
     {
         Super.DoFireEffect();
     }
-    ServerDelay = 0;
+    RTTDeviation = 0;
 }
 
 final function float GetCompensationTime()
 {
-    return Client.GetProjectileCompensationTime(bEarlyFireEffect) + ServerDelay;
+    return Client.GetProjectileCompensationTime(bEarlyFireEffect) + RTTDeviation;
 }

@@ -22,7 +22,9 @@ var private bool bClientUpdated;
 var private bool bReceivedPing;
 var private int PingCount;
 var private int TickCount;
-var private float LatestTimestamp;
+var private float PendingTimestamp;
+var private float ReferenceTimestamp;
+var private float PingArrivalTime;
 var private float AvgRTT;
 var private float RTTAlpha;
 var private float ClientAvgDT;
@@ -40,11 +42,11 @@ replication
         ClientSetAllowMultiHit;
 
     unreliable if (Role < ROLE_Authority)
-        ServerPing,
-        ServerUpdateStats;
+        ServerPing;
 
     reliable if (Role < ROLE_Authority)
-        ServerSetLagCompensation;
+        ServerSetLagCompensation,
+        ServerUpdateStats;
 }
 
 simulated event PostBeginPlay()
@@ -66,7 +68,6 @@ simulated function InitializeCompensation()
     }
     ServerSetLagCompensation(bLagCompensation, Seed);
 }
-
 
 function SetupServer(HxMutator Mutator)
 {
@@ -98,7 +99,7 @@ simulated function Tick(float DeltaTime)
             {
                 ClientAvgDT = ClientAvgDT + (DeltaTime - ClientAvgDT) * DELTA_TIME_ALPHA;
             }
-            NewRTT = Level.TimeSeconds - LatestTimestamp - (ClientAvgDT + ServerAvgDT) * 0.5;
+            NewRTT = Level.TimeSeconds - PendingTimestamp - (ClientAvgDT + ServerAvgDT) * 0.5;
             if (PingCount < WARMUP_COUNT)
             {
                 ++PingCount;
@@ -133,13 +134,15 @@ simulated event Timer()
 function ServerPing(float Timestamp)
 {
     ServerAvgDT = MutHexedNET(MutatorOwner).GetAverageDeltaTime();
-    ClientPing(Timestamp, ServerAvgDT);
+    ClientPing(Timestamp, ServerAvgDT, Level.TimeSeconds);
 }
 
-simulated function ClientPing(float Timestamp, float NewServerAvgDT)
+simulated function ClientPing(float Timestamp, float NewServerAvgDT, float ServerTimestamp)
 {
-    LatestTimestamp = Timestamp;
+    PendingTimestamp = Timestamp;
     ServerAvgDT = NewServerAvgDT;
+    ReferenceTimestamp = ServerTimestamp;
+    PingArrivalTime = Level.TimeSeconds;
     bReceivedPing = true;
 }
 
@@ -230,6 +233,16 @@ simulated final function float GetAveragePing()
 simulated final function float GetCompensationTime()
 {
     return FMin(FMax(0.0, AvgRTT), LagCompensationLimit);
+}
+
+simulated final function float GetRTTDeviation(float RTT)
+{
+    return FMin((RTT - AvgRTT) * 0.5, LagCompensationLimit);
+}
+
+simulated function float GetReferenceTimestamp()
+{
+    return ReferenceTimestamp + (Level.TimeSeconds - PingArrivalTime);
 }
 
 simulated final function float GetProjectileCompensationTime(bool bEarlyFireEffect)

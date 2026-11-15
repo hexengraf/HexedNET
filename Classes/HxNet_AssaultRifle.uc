@@ -88,20 +88,19 @@ function ServerStartFireBASRecon(byte Mode, HxNTWeapon.HxBAS BAS, Actor ClientHi
 
 simulated function bool StartFire(int Mode)
 {
-    local float ServerDelay;
+    local float MaxDelay;
 
-    ServerDelay = Level.TimeSeconds - FireMode[Mode].NextFireTime;
+    MaxDelay = Level.TimeSeconds - FireMode[Mode].NextFireTime;
     if (Super.StartFire(Mode))
     {
-        if (FireMode[Mode].bServerDelayStartFire && HxNet_AssaultFire(FireMode[Mode]) != None)
-        {
-            FireMode[Mode].NextFireTime -= ServerDelay + 0.001;
-            HxNet_AssaultFire(FireMode[Mode]).ServerDelay = ServerDelay;
-        }
         if (Role < ROLE_Authority)
         {
             FireMode[Mode].bIsFiring =
                 FireMode[Mode].NextFireTime <= Level.TimeSeconds + FireMode[Mode].PreFireTime;
+        }
+        else if (HxNet_AssaultFire(FireMode[Mode]) != None)
+        {
+            HxNet_AssaultFire(FireMode[Mode]).SynchronizeFireTime(MaxDelay);
         }
         return FireMode[Mode].bIsFiring;
     }

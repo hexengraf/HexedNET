@@ -3,6 +3,7 @@ class HxNTWeapon extends Weapon
 
 struct HxBAS
 {
+    var float Timestamp;
     var float X;
     var float Y;
     var float Z;
