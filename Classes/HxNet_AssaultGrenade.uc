@@ -58,7 +58,7 @@ function DoFireEffect()
         {
             Start = HitLocation;
         }
-        SpawnHexedProjectile(Client.GetWeaponInfo(WeaponClass), Start, Dir);
+        SpawnHexedProjectile(Start, Dir);
     }
     else
     {
@@ -66,40 +66,35 @@ function DoFireEffect()
     }
 }
 
-function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
-                                         Vector Start,
-                                         Rotator Dir,
-                                         optional int Index)
+function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir)
 {
-    local Grenade G;
+    local Grenade P;
 
     if (Level.NetMode == NM_Client)
     {
-        G = Weapon.Spawn(class'HxNet_GrenadePredicted', instigator,, Start, Dir);
-        if (G != None)
+        P = Weapon.Spawn(class'HxNet_GrenadePredicted', instigator,, Start, Dir);
+        if (P != None)
         {
-            HxNet_GrenadePredicted(G).WeaponInfo = WeaponInfo;
-            HxNet_GrenadePredicted(G).SpawnRandomGenerator(WeaponInfo.Generator.RandInt());
-            WeaponInfo.AddPredictedProjectile(G);
-            UpdateSpeedAndDamage(G, Dir);
+            HxNet_GrenadePredicted(P).WeaponInfo = WeaponInfo;
+            HxNet_GrenadePredicted(P).SpawnRandomGenerator(WeaponInfo.Generator);
+            UpdateSpeedAndDamage(P, Dir);
         }
+        return WeaponInfo.AddPredictedProjectile(P);
     }
-    else
+    P = Weapon.Spawn(class'HxNet_Grenade', instigator,, Start, Dir);
+    WeaponInfo.AssignUniqueID(P);
+    if (P != None)
     {
-        G = Weapon.Spawn(class'HxNet_Grenade', instigator,, Start, Dir);
-        if (G != None)
+        HxNet_Grenade(P).Client = Client;
+        HxNet_Grenade(P).SpawnRandomGenerator(WeaponInfo.Generator);
+        UpdateSpeedAndDamage(P, Dir);
+        HexedNET.ForwardBouncingProjectile(Weapon, P, GetCompensationTime());
+        if (P != None && P.bTimerSet && P.TimerRate > 0)
         {
-            HxNet_Grenade(G).Client = Client;
-            HxNet_Grenade(G).SpawnRandomGenerator(WeaponInfo.Generator.RandInt());
-            UpdateSpeedAndDamage(G, Dir);
-            HexedNET.ForwardBouncingProjectile(Weapon, G, GetCompensationTime());
-            if (G != None && G.bTimerSet && G.TimerRate > 0)
-            {
-                G.ExplodeTimer = G.TimerRate;
-            }
+            P.ExplodeTimer = P.TimerRate;
         }
     }
-    return G;
+    return P;
 }
 
 function UpdateSpeedAndDamage(Grenade G, Rotator Dir)

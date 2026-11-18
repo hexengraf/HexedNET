@@ -1,7 +1,11 @@
 class HxNet_Grenade extends Grenade;
 
 var HxNTClient Client;
-var private HxRandomGeneratorAlt Generator;
+var int UID;
+var bool bShouldRemove;
+
+var private HxNTWeaponInfo WeaponInfo;
+var private HxRandomGenerator Generator;
 var private Vector InterpolationOffset;
 var private float InterpolationPeriod;
 var private bool bInterpolate;
@@ -13,7 +17,7 @@ replication
         DoMove, DoSetLocation;
 
     reliable if (Role == ROLE_Authority && bNetInitial)
-        Client;
+        Client, UID;
 }
 
 simulated event PostNetBeginPlay()
@@ -27,6 +31,11 @@ simulated event PostNetBeginPlay()
 
 simulated event Destroyed()
 {
+    if (bShouldRemove && WeaponInfo != None)
+    {
+        WeaponInfo.RemoveAuthoritativeProjectile(Self);
+        WeaponInfo = None;
+    }
     if (Generator != None)
     {
         Level.ObjectPool.FreeObject(Generator);
@@ -37,15 +46,14 @@ simulated event Destroyed()
 
 simulated function SearchPredictedProjectile()
 {
-    local HxNTWeaponInfo WeaponInfo;
-    local Grenade G;
+    local Grenade Predicted;
 
     WeaponInfo = Client.GetWeaponInfo(class'AssaultRifle');
-    G = Grenade(WeaponInfo.MatchPrediction(Self, class'HxNet_GrenadePredicted'));
-    if (G != None)
+    Predicted = Grenade(WeaponInfo.MatchPrediction(Self, UID));
+    if (Predicted != None)
     {
-        InterpolatePredicted(G);
-        G.Destroy();
+        InterpolatePredicted(Predicted);
+        Predicted.Destroy();
     }
 }
 
@@ -55,6 +63,8 @@ simulated function InterpolatePredicted(Grenade Predicted)
     {
         bInterpolate = true;
         InterpolationOffset = Location - Predicted.Location;
+        Generator = HxNet_GrenadePredicted(Predicted).Generator;
+        HxNet_GrenadePredicted(Predicted).Generator = None;
         DoSetLocation(Predicted.Location);
     }
 }
@@ -88,11 +98,10 @@ simulated function DoSetLocation(Vector NewLocation)
     SetLocation(NewLocation);
 }
 
-function SpawnRandomGenerator(int Seed)
+function SpawnRandomGenerator(HxRandomGeneratorAlt Seeder)
 {
-    Generator = HxRandomGeneratorAlt(Level.ObjectPool.AllocateObject(
-        class'HxRandomGeneratorAlt'));
-    Generator.SetSeed(Seed);
+    Generator = HxRandomGenerator(Level.ObjectPool.AllocateObject(class'HxRandomGenerator'));
+    Generator.SetSeed(Seeder.RandInt(), Seeder.RandInt(), Seeder.RandInt(), Seeder.RandInt());
     DeterministicRandSpin(25000);
 }
 

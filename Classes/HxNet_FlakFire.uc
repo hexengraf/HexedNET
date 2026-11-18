@@ -9,10 +9,7 @@ function DoFireEffect()
 {
     DoBaseFireEffect();
 }
-function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
-                                         Vector Start,
-                                         Rotator Dir,
-                                         optional int Index)
+function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir)
 {
     local FlakChunk P;
 
@@ -20,36 +17,30 @@ function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
     {
         ProjectileClass = class'HxNet_FlakChunkPredicted';
         P = FlakChunk(SpawnProjectile(Start, Dir));
-        ProjectileClass = default.ProjectileClass;
         if (P != None)
         {
             HxNet_FlakChunkPredicted(P).WeaponInfo = WeaponInfo;
-            P.Bounces = RandomizeBounces(WeaponInfo.Generator);
+            P.Bounces = RandomizeBounces();
         }
-        return WeaponInfo.AddPredictedProjectile(P, Index);
+        return WeaponInfo.AddPredictedProjectile(P);
     }
-    if (WantsLagCompensation())
+    ProjectileClass = class'HxNet_FlakChunk';
+    P = FlakChunk(WeaponInfo.AssignUniqueID(SpawnProjectile(Start, Dir)));
+    ProjectileClass = default.ProjectileClass;
+    if (P != None)
     {
-        ProjectileClass = class'HxNet_FlakChunk';
-        P = FlakChunk(SpawnProjectile(Start, Dir));
-        ProjectileClass = default.ProjectileClass;
-        if (P != None)
-        {
-            HxNet_FlakChunk(P).Client = Client;
-            HxNet_FlakChunk(P).Index = Index;
-            P.Bounces = RandomizeBounces(WeaponInfo.Generator);
-            HexedNET.ForwardBouncingProjectile(Weapon, P, GetCompensationTime());
-        }
-        return P;
+        HxNet_FlakChunk(P).Client = Client;
+        P.Bounces = RandomizeBounces();
+        HexedNET.ForwardBouncingProjectile(Weapon, P, GetCompensationTime());
     }
-    return SpawnProjectile(Start, Dir);
+    return P;
 }
 
-final function int RandomizeBounces(HxRandomGenerator Generator)
+function int RandomizeBounces()
 {
     local float R;
 
-    R = Generator.RandFloat();
+    R = WeaponInfo.Generator.RandFloat();
     if (R > 0.75)
     {
         return 2;

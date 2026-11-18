@@ -26,12 +26,12 @@ function ApplyProperty(int Index)
     {
         case 0:
             class'HxNTClient'.default.bLagCompensation = bLagCompensation;
+            if (HasClient())
+            {
+                Client.InitializeCompensation();
+            }
             ClientManager.RefreshConfigurationMenu();
             break;
-    }
-    if (HasClient())
-    {
-        Client.InitializeCompensation();
     }
 }
 

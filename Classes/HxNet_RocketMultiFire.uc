@@ -1,6 +1,8 @@
 class HxNet_RocketMultiFire extends RocketMultiFire
     DependsOn(HxNTWeapon);
 
+var class<RocketProj> RocketClass;
+var class<SeekingRocketProj> SeekingRocketClass;
 var private float DelayedLoad;
 #include Classes\Include\HxNTBaseProjectileFire.uci
 
@@ -11,9 +13,6 @@ function SaveDelayedState()
 
 function DoFireEffect()
 {
-    local class<RocketProj> RocketClass;
-    local class<SeekingRocketProj> SeekingRocketClass;
-    local HxNTWeaponInfo WeaponInfo;
     local Vector FireLocation;
     local Vector Start;
     local Vector X;
@@ -28,21 +27,27 @@ function DoFireEffect()
     local int q;
     local int i;
 
-    if (!class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
+    if (!WantsLagCompensation())
     {
         Super.DoFireEffect();
         return;
     }
     SavedLoad = Load;
-    if (HexedNET != None)
+    if (Level.NetMode == NM_Client)
     {
-        RocketClass = class'HxNet_RocketProj';
-        SeekingRocketClass = class'HxNet_SeekingRocketProj';
-    }
-    else
-    {
-        RocketClass = class'HxNet_RocketProjPredicted';
-        SeekingRocketClass = class'HxNet_SeekingRocketProjPredicted';
+        if (bEarlyFireEffect)
+        {
+            if (RocketLauncher(Weapon).bTightSpread)
+            {
+                Spread = TightSpread;
+                SpreadStyle = SS_Ring;
+            }
+            else
+            {
+                SpreadStyle = SS_Line;
+                Spread = LooseSpread;
+            }
+        }
         if (bIsDelayed)
         {
             Load = DelayedLoad;
@@ -58,14 +63,24 @@ function DoFireEffect()
     GetProjectileStartAndDirection(Start, Aim, X, Y, Z);
     SpawnCount = Max(1, int(Load));
     FiredRockets.Length = SpawnCount;
-    WeaponInfo = Client.GetWeaponInfo(WeaponClass);
+    if (Level.NetMode == NM_Client)
+    {
+        RocketClass = class'HxNet_RocketProjPredicted';
+        SeekingRocketClass = class'HxNet_SeekingRocketProjPredicted';
+    }
+    else
+    {
+        RocketClass = class'HxNet_RocketProj';
+        SeekingRocketClass = class'HxNet_SeekingRocketProj';
+    }
     for (p = 0; p < SpawnCount; ++p)
     {
         FireLocation = Start - 2 * ((Sin(p * 2 * PI / MaxLoad) * 8 - 7) * Y
             - (Cos(p * 2 * PI / MaxLoad) * 8 - 7) * Z) - X * 8 * WeaponInfo.Generator.RandFloat();
-        FiredRockets[p] = SpawnIndexedProjectile(
-            FireLocation, Aim, RocketClass, SeekingRocketClass);
+        FiredRockets[p] = RocketProj(SpawnProjectile(FireLocation, Aim));
     }
+    RocketClass = default.RocketClass;
+    SeekingRocketClass = default.SeekingRocketClass;
     if (SpawnCount > 1)
     {
         ++FlockIndex;
@@ -93,7 +108,7 @@ function DoFireEffect()
             }
         }
     }
-    if (HexedNET == None)
+    if (Level.NetMode == NM_Client)
     {
         for (p = 0; p < SpawnCount; ++p)
         {
@@ -105,11 +120,11 @@ function DoFireEffect()
             {
                 HxNet_SeekingRocketProjPredicted(FiredRockets[p]).WeaponInfo = WeaponInfo;
             }
-            WeaponInfo.AddPredictedProjectile(FiredRockets[p], p);
+            WeaponInfo.AddPredictedProjectile(FiredRockets[p]);
         }
         Load = SavedLoad;
     }
-    else if (WantsLagCompensation())
+    else
     {
         for (p = 0; p < FiredRockets.Length; ++p)
         {
@@ -123,59 +138,55 @@ function DoFireEffect()
                 HxNet_SeekingRocketProj(FiredRockets[p]).Client = Client;
                 HxNet_SeekingRocketProj(FiredRockets[p]).Index = p;
             }
+            WeaponInfo.AssignUniqueID(FiredRockets[p]);
         }
         HexedNET.ForwardLinearProjectiles(Weapon, FiredRockets, GetCompensationTime());
     }
 }
 
-function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
-                                         Vector Start,
-                                         Rotator Dir,
-                                         optional int Index)
+function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir)
 {
     local Projectile P;
 
     if (Level.NetMode == NM_Client)
     {
-        P = SpawnIndexedProjectile(
-            Start, Dir, class'HxNet_RocketProjPredicted', class'HxNet_SeekingRocketProjPredicted');
-        if (HxNet_RocketProjPredicted(P) != None)
-        {
-            HxNet_RocketProjPredicted(P).WeaponInfo = WeaponInfo;
-        }
-        else if (HxNet_SeekingRocketProjPredicted(P) != None)
-        {
-            HxNet_SeekingRocketProjPredicted(P).WeaponInfo = WeaponInfo;
-        }
-        return WeaponInfo.AddPredictedProjectile(P, Index);
-    }
-    if (WantsLagCompensation())
-    {
-        P = SpawnIndexedProjectile(
-            Start, Dir, class'HxNet_RocketProj', class'HxNet_SeekingRocketProj');
+        RocketClass = class'HxNet_RocketProjPredicted';
+        SeekingRocketClass = class'HxNet_SeekingRocketProjPredicted';
+        P = SpawnProjectile(Start, Dir);
         if (P != None)
         {
-            if (HxNet_RocketProj(P) != None)
+            if (HxNet_RocketProjPredicted(P) != None)
             {
-                HxNet_RocketProj(P).Client = Client;
-                HxNet_RocketProj(P).Index = Index;
+                HxNet_RocketProjPredicted(P).WeaponInfo = WeaponInfo;
             }
             else
             {
-                HxNet_SeekingRocketProj(P).Client = Client;
-                HxNet_SeekingRocketProj(P).Index = Index;
+                HxNet_SeekingRocketProjPredicted(P).WeaponInfo = WeaponInfo;
             }
-            HexedNET.ForwardLinearProjectile(Weapon, P, GetCompensationTime());
         }
-        return P;
+        return WeaponInfo.AddPredictedProjectile(P);
     }
-    return SpawnProjectile(Start, Dir);
+    RocketClass = class'HxNet_RocketProj';
+    SeekingRocketClass = class'HxNet_SeekingRocketProj';
+    P = WeaponInfo.AssignUniqueID(SpawnProjectile(Start, Dir));
+    RocketClass = default.RocketClass;
+    SeekingRocketClass = default.SeekingRocketClass;
+    if (P != None)
+    {
+        if (HxNet_RocketProj(P) != None)
+        {
+            HxNet_RocketProj(P).Client = Client;
+        }
+        else
+        {
+            HxNet_SeekingRocketProj(P).Client = Client;
+        }
+        HexedNET.ForwardLinearProjectile(Weapon, P, GetCompensationTime());
+    }
+    return P;
 }
 
-function RocketProj SpawnIndexedProjectile(Vector Start,
-                                           Rotator Dir,
-                                           class<RocketProj> RocketClass,
-                                           class<SeekingRocketProj> SeekingRocketClass)
+function Projectile SpawnProjectile(Vector Start, Rotator Dir)
 {
     local RocketProj P;
 
@@ -191,4 +202,6 @@ function RocketProj SpawnIndexedProjectile(Vector Start,
 defaultproperties
 {
     WeaponClass=class'RocketLauncher'
+    RocketClass = class'RocketProj';
+    SeekingRocketClass = class'SeekingRocketProj';
 }

@@ -32,9 +32,9 @@ static function LoadDefaultConfig(Weapon W, class<Weapon> BaseClass, bool bClear
 }
 
 static function bool ValidateClient(LevelInfo Level,
-                                    out MutHexedNET HexedNET,
                                     Pawn Instigator,
-                                    out HxNTClient Client)
+                                    out HxNTClient Client,
+                                    optional out MutHexedNET HexedNET)
 {
     if (Client != None)
     {
@@ -63,16 +63,16 @@ static function bool ValidateClient(LevelInfo Level,
     return Client != None;
 }
 
-static final function CheckStopFire(Weapon W, out int StopFireTime, out int AltStopFireTime)
+static final function CheckStopFire(Weapon W, out int StopTime, out int AltStopFireTime)
 {
     if (W.Level.Role == ROLE_Authority)
     {
         return;
     }
-    if (StopFireTime > 0)
+    if (StopTime > 0)
     {
-        --StopFireTime;
-        if (StopFireTime == 0 && W.Instigator.Controller.bFire > 0 && W.FireMode[0].bIsFiring)
+        --StopTime;
+        if (StopTime == 0 && W.Instigator.Controller.bFire > 0 && W.FireMode[0].bIsFiring)
         {
             W.ClientStopFire(0);
         }

@@ -1,9 +1,8 @@
 class HxNet_GrenadePredicted extends Grenade;
 
 var HxNTWeaponInfo WeaponInfo;
+var HxRandomGenerator Generator;
 var bool bRemoved;
-
-var private HxRandomGeneratorAlt Generator;
 
 simulated event Destroyed()
 {
@@ -19,11 +18,10 @@ simulated event Destroyed()
     Super.Destroyed();
 }
 
-function SpawnRandomGenerator(int Seed)
+function SpawnRandomGenerator(HxRandomGeneratorAlt Seeder)
 {
-    Generator = HxRandomGeneratorAlt(Level.ObjectPool.AllocateObject(
-        class'HxRandomGeneratorAlt'));
-    Generator.SetSeed(Seed);
+    Generator = HxRandomGenerator(Level.ObjectPool.AllocateObject(class'HxRandomGenerator'));
+    Generator.SetSeed(Seeder.RandInt(), Seeder.RandInt(), Seeder.RandInt(), Seeder.RandInt());
     DeterministicRandSpin(25000);
 }
 

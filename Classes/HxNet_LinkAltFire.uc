@@ -10,10 +10,7 @@ function DoFireEffect()
     DoBaseFireEffect();
 }
 
-function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
-                                         Vector Start,
-                                         Rotator Dir,
-                                         optional int Index)
+function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir)
 {
     local Projectile P;
 
@@ -21,26 +18,21 @@ function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
     {
         ProjectileClass = class'HxNet_LinkProjectilePredicted';
         P = SpawnProjectile(Start, Dir);
-        ProjectileClass = default.ProjectileClass;
         if (P != None)
         {
             HxNet_LinkProjectilePredicted(P).WeaponInfo = WeaponInfo;
         }
-        return WeaponInfo.AddPredictedProjectile(P, Index);
+        return WeaponInfo.AddPredictedProjectile(P);
     }
-    if (WantsLagCompensation())
+    ProjectileClass = class'HxNet_LinkProjectile';
+    P = WeaponInfo.AssignUniqueID(SpawnProjectile(Start, Dir));
+    ProjectileClass = default.ProjectileClass;
+    if (P != None)
     {
-        ProjectileClass = class'HxNet_LinkProjectile';
-        P = SpawnProjectile(Start, Dir);
-        ProjectileClass = default.ProjectileClass;
-        if (P != None)
-        {
-            HxNet_LinkProjectile(P).Client = Client;
-            HexedNET.ForwardLinearProjectile(Weapon, P, GetCompensationTime());
-        }
-        return P;
+        HxNet_LinkProjectile(P).Client = Client;
+        HexedNET.ForwardLinearProjectile(Weapon, P, GetCompensationTime());
     }
-    return SpawnProjectile(Start, Dir);
+    return P;
 }
 
 function Projectile SpawnProjectile(Vector Start, Rotator Dir)

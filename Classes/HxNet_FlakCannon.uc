@@ -4,7 +4,8 @@ class HxNet_FlakCannon extends FlakCannon
     HideDropDown
     CacheExempt;
 
-var private int StopFireTime[2];
+var private HxNTClient Client;
+var private int StopTime[2];
 
 replication
 {
@@ -12,45 +13,48 @@ replication
         ServerStartFireBAS;
 }
 
+simulated function bool WantsLagCompensation()
+{
+    return class'HxNTWeapon'.static.ValidateClient(Level, Instigator, Client)
+        && Client.WantsLagCompensation();
+}
+
 simulated event WeaponTick(float DT)
 {
     Super.WeaponTick(DT);
-    class'HxNTWeapon'.static.CheckStopFire(Self, StopFireTime[0], StopFireTime[1]);
+    class'HxNTWeapon'.static.CheckStopFire(Self, StopTime[0], StopTime[1]);
 }
 
 simulated event ClientStopFire(int Mode)
 {
     Super.ClientStopFire(Mode);
-    StopFireTime[Mode] = 0;
+    StopTime[Mode] = 0;
 }
 
 simulated event ClientStartFire(int Mode)
 {
     local HxNTWeapon.HxBAS BAS;
 
-    if (Pawn(Owner).Controller.IsInState('GameEnded')
-        || Pawn(Owner).Controller.IsInState('RoundEnded'))
+    if (!Pawn(Owner).Controller.IsInState('GameEnded')
+        && !Pawn(Owner).Controller.IsInState('RoundEnded')
+        && StartFire(Mode) && Role < ROLE_Authority)
     {
-        return;
-    }
-    if (Role < ROLE_Authority && WantsStartFireBAS(Mode))
-    {
-        if (StartFire(Mode))
+        if (WantsLagCompensation())
         {
             if (HxNet_FlakFire(FireMode[Mode]) != None)
             {
-                HxNet_FlakFire(FireMode[Mode]).PrepareBAS(BAS, StopFireTime[Mode]);
+                HxNet_FlakFire(FireMode[Mode]).PrepareBAS(BAS, StopTime[Mode]);
             }
             else
             {
-                HxNet_FlakAltFire(FireMode[Mode]).PrepareBAS(BAS, StopFireTime[Mode]);
+                HxNet_FlakAltFire(FireMode[Mode]).PrepareBAS(BAS, StopTime[Mode]);
             }
             ServerStartFireBAS(Mode, BAS);
         }
-    }
-    else
-    {
-        Super.ClientStartFire(Mode);
+        else
+        {
+            ServerStartFire(Mode);
+        }
     }
 }
 
@@ -90,15 +94,6 @@ simulated function bool StartFire(int Mode)
         return FireMode[Mode].bIsFiring;
     }
     return false;
-}
-
-simulated function bool WantsStartFireBAS(int Mode)
-{
-    if (HxNet_FlakFire(FireMode[Mode]) != None)
-    {
-        return HxNet_FlakFire(FireMode[Mode]).WantsLagCompensation();
-    }
-    return HxNet_FlakAltFire(FireMode[Mode]).WantsLagCompensation();
 }
 
 defaultproperties

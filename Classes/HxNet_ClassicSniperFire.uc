@@ -93,7 +93,14 @@ function GetStartAndAim(out Vector Start, out Rotator Aim)
     Aim = AdjustAim(Start, AimError);
 }
 
+function Rotator ApplySpread(Vector Aim)
+{
+    return Rotator(
+        Aim + WeaponInfo.Generator.RandVect() * WeaponInfo.Generator.RandFloat() * Spread);
+}
+
 defaultproperties
 {
     bClientFireEffect=false
+    WeaponClass=class'ClassicSniperRifle'
 }

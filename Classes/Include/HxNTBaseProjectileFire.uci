@@ -8,20 +8,38 @@ var private float ProjectileDelayTimer;
 var private bool bUseBAS;
 var private bool bIsDelayed;
 var private const class<Weapon> WeaponClass;
+var private HxNTWeaponInfo WeaponInfo;
 
 function PreBeginPlay()
 {
     Super.PreBeginPlay();
-    class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
+    class'HxNTWeapon'.static.ValidateClient(Level, Instigator, Client, HexedNET);
 }
 
 function bool WantsLagCompensation()
 {
-    return class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
+    return class'HxNTWeapon'.static.ValidateClient(Level, Instigator, Client, HexedNET)
         && Client.WantsLagCompensation();
 }
 
-function PrepareBAS(out HxNTWeapon.HxBAS BAS, optional out int StopFireTime)
+function float PrepareTimestamp()
+{
+    local float Timestamp;
+
+    Timestamp = Client.GetReferenceTimestamp();
+    WeaponInfo = Client.SynchronizeRandomness(WeaponClass, Timestamp);
+    return Timestamp;
+}
+
+function ApplyTimestamp(float Timestamp)
+{
+    if (class'HxNTWeapon'.static.ValidateClient(Level, Instigator, Client, HexedNET))
+    {
+        WeaponInfo = Client.SynchronizeRandomness(WeaponClass, Timestamp);
+    }
+}
+
+function PrepareBAS(out HxNTWeapon.HxBAS BAS, optional out int StopTime, optional bool bSkipSync)
 {
     BASStart = Instigator.Location + Instigator.EyePosition();
     BASAim = AdjustAim(BASStart, AimError);
@@ -31,26 +49,35 @@ function PrepareBAS(out HxNTWeapon.HxBAS BAS, optional out int StopFireTime)
     BAS.Yaw = BASAim.Yaw;
     BAS.Pitch = BASAim.Pitch;
     BAS.Timestamp = Client.GetReferenceTimestamp();
+    if (!bSkipSync)
+    {
+        WeaponInfo = Client.SynchronizeRandomness(WeaponClass, BAS.Timestamp);
+    }
     bUseBAS = true;
     bEarlyFireEffect = true;
     DoPredictedFireEffect();
-    StopFireTime = Client.GetStopFireTickCount();
+    StopTime = Client.GetStopFireTickCount();
 }
 
-function ApplyBAS(HxNTWeapon.HxBAS BAS)
+function ApplyBAS(HxNTWeapon.HxBAS BAS, optional bool bSkipSync)
 {
     local Rotator CurrentAim;
     local Vector CurrentStart;
 
-    if (class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
+    if (class'HxNTWeapon'.static.ValidateClient(Level, Instigator, Client, HexedNET))
     {
         BASStart.X = BAS.X;
         BASStart.Y = BAS.Y;
         BASStart.Z = BAS.Z;
         BASAim.Yaw = BAS.Yaw;
         BASAim.Pitch = BAS.Pitch;
+        if (!bSkipSync)
+        {
+            WeaponInfo = Client.SynchronizeRandomness(WeaponClass, BAS.Timestamp);
+        }
         CurrentStart = Instigator.Location + Instigator.EyePosition();
         CurrentAim = AdjustAim(CurrentStart, AimError);
+        BASAim.Roll = CurrentAim.Roll;
         bUseBAS = HexedNET.IsReasonableBAS(BASStart, BASAim, CurrentStart, CurrentAim);
         RTTDeviation = Client.GetRTTDeviation(Level.TimeSeconds - BAS.Timestamp);
     }
@@ -165,7 +192,6 @@ function GetProjectileStartAndDirection(out Vector Start,
 
 function DoBaseFireEffect()
 {
-    local HxNTWeaponInfo WeaponInfo;
     local Vector Start;
     local Vector X;
     local Rotator Dir;
@@ -175,7 +201,6 @@ function DoBaseFireEffect()
 
     if (WantsLagCompensation())
     {
-        WeaponInfo = Client.GetWeaponInfo(WeaponClass);
         Instigator.MakeNoise(1.0);
         GetProjectileStartAndDirection(Start, Dir);
         SpawnCount = Max(1, ProjPerFire * int(Load));
@@ -188,7 +213,7 @@ function DoBaseFireEffect()
                     Dir.Yaw = Spread * (WeaponInfo.Generator.RandFloat() - 0.5);
                     Dir.Pitch = Spread * (WeaponInfo.Generator.RandFloat() - 0.5);
                     Dir.Roll = Spread * (WeaponInfo.Generator.RandFloat() - 0.5);
-                    SpawnHexedProjectile(WeaponInfo, Start, Rotator(X >> Dir), i);
+                    SpawnHexedProjectile(Start, Rotator(X >> Dir));
                 }
                 break;
             case SS_Line:
@@ -198,11 +223,11 @@ function DoBaseFireEffect()
                     X.X = Cos(Theta);
                     X.Y = Sin(Theta);
                     X.Z = 0.0;
-                    SpawnHexedProjectile(WeaponInfo, Start, Rotator(X >> Dir), i);
+                    SpawnHexedProjectile(Start, Rotator(X >> Dir));
                 }
                 break;
             default:
-                SpawnHexedProjectile(WeaponInfo, Start, Dir);
+                SpawnHexedProjectile(Start, Dir);
                 break;
         }
     }

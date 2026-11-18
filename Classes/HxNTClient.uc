@@ -15,11 +15,11 @@ const DELTA_TIME_ALPHA = 0.008;
 var bool bLagCompensation;
 
 var private HxWeaponGroup Groups[WEAPON_GROUP_COUNT];
-var private HxRandomGeneratorAlt Seeder;
 var private bool bForceStartFireRPCs;
 var private bool bClientSideCollisions;
 var private bool bClientUpdated;
 var private bool bReceivedPing;
+var private int Seed;
 var private int PingCount;
 var private int TickCount;
 var private float PendingTimestamp;
@@ -35,6 +35,9 @@ var private float ProjectileCompensationLimit;
 
 replication
 {
+    reliable if (Role == ROLE_Authority && bNetInitial)
+        Seed;
+
     unreliable if (Role == ROLE_Authority)
         ClientPing;
 
@@ -49,24 +52,19 @@ replication
         ServerUpdateStats;
 }
 
-simulated event PostBeginPlay()
+event PostBeginPlay()
 {
-    Super.PostBeginPlay();
-    Seeder = HxRandomGeneratorAlt(Level.ObjectPool.AllocateObject(class'HxRandomGeneratorAlt'));
+    Seed = class'HxRandomGeneratorAlt'.static.Mix(Rand(MaxInt));
 }
 
 simulated function InitializeCompensation()
 {
-    local int Seed;
-
     bLagCompensation = default.bLagCompensation && Level.NetMode != NM_ListenServer;
     if (bLagCompensation)
     {
-        Seed = Rand(MaxInt);
-        RefreshSeeds(Seed);
         UpdatePingInterval();
     }
-    ServerSetLagCompensation(bLagCompensation, Seed);
+    ServerSetLagCompensation(bLagCompensation);
 }
 
 function SetupServer(HxMutator Mutator)
@@ -171,13 +169,9 @@ simulated function SetProjectileCompensationLimit(coerce float Value)
     ProjectileCompensationLimit = FMin((Value * Level.TimeDilation) * 0.001, LagCompensationLimit);
 }
 
-function ServerSetLagCompensation(bool bEnable, int Seed)
+function ServerSetLagCompensation(bool bEnable)
 {
     bLagCompensation = bEnable;
-    if (bLagCompensation)
-    {
-        RefreshSeeds(Seed);
-    }
 }
 
 simulated function NotifyMutatorInfoReady()
@@ -286,25 +280,17 @@ simulated final function HxNTWeaponInfo GetWeaponInfo(class<Weapon> WeaponClass)
     Groups[GroupIndex].Weapons[i] = HxNTWeaponInfo(
         Level.ObjectPool.AllocateObject(class'HxNTWeaponInfo'));
     Groups[GroupIndex].Weapons[i].WeaponClass = WeaponClass;
-    Groups[GroupIndex].Weapons[i].Generator = HxRandomGenerator(
-        Level.ObjectPool.AllocateObject(class'HxRandomGenerator'));
-    Groups[GroupIndex].Weapons[i].RefreshSeed(Seeder);
+    Groups[GroupIndex].Weapons[i].AllocateRandomGenerator(Level);
     return Groups[GroupIndex].Weapons[i];
 }
 
-simulated final function RefreshSeeds(int Seed)
+simulated function HxNTWeaponInfo SynchronizeRandomness(class<Weapon> WeaponClass, float Timestamp)
 {
-    local int i;
-    local int j;
+    local HxNTWeaponInfo WeaponInfo;
 
-    Seeder.SetSeed(Seed);
-    for (i = 0; i < WEAPON_GROUP_COUNT; ++i)
-    {
-        for (j = 0; j < Groups[i].Weapons.Length; ++j)
-        {
-            Groups[i].Weapons[j].RefreshSeed(Seeder);
-        }
-    }
+    WeaponInfo = GetWeaponInfo(WeaponClass);
+    WeaponInfo.Synchronize(Seed, Timestamp);
+    return WeaponInfo;
 }
 
 simulated event Destroyed()
@@ -318,15 +304,12 @@ simulated event Destroyed()
         {
             if (Groups[i].Weapons[j] != None)
             {
-                if (Groups[i].Weapons[j].Generator != None)
-                {
-                    Level.ObjectPool.FreeObject(Groups[i].Weapons[j].Generator);
-                }
+                Groups[i].Weapons[j].DeallocateRandomGenerator(Level);
                 Level.ObjectPool.FreeObject(Groups[i].Weapons[j]);
             }
         }
+        Groups[i].Weapons.Remove(0, Groups[i].Weapons.Length);
     }
-    Level.ObjectPool.FreeObject(Seeder);
     Super.Destroyed();
 }
 

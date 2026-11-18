@@ -1,6 +1,10 @@
 class HxNet_ShockProjectile extends ShockProjectile;
 
 var HxNTClient Client;
+var int UID;
+var bool bShouldRemove;
+
+var private HxNTWeaponInfo WeaponInfo;
 var private HxNTProjectileTracker Tracker;
 var private Vector InterpolationOffset;
 var private float InterpolationPeriod;
@@ -13,7 +17,7 @@ replication
         DoMove, DoSetLocation;
 
     reliable if (Role == ROLE_Authority && bNetInitial)
-        Client;
+        Client, UID;
 }
 
 simulated event PostNetBeginPlay()
@@ -27,6 +31,11 @@ simulated event PostNetBeginPlay()
 
 simulated event Destroyed()
 {
+    if (bShouldRemove && WeaponInfo != None)
+    {
+        WeaponInfo.RemoveAuthoritativeProjectile(Self);
+        WeaponInfo = None;
+    }
     if (Tracker != None)
     {
         Tracker.Destroy();
@@ -36,15 +45,14 @@ simulated event Destroyed()
 
 simulated function SearchPredictedProjectile()
 {
-    local HxNTWeaponInfo WeaponInfo;
-    local ShockProjectile Core;
+    local ShockProjectile Predicted;
 
     WeaponInfo = Client.GetWeaponInfo(class'ShockRifle');
-    Core = ShockProjectile(WeaponInfo.MatchPrediction(Self, class'HxNet_ShockProjectilePredicted'));
-    if (Core != None)
+    Predicted = ShockProjectile(WeaponInfo.MatchPrediction(Self, UID));
+    if (Predicted != None)
     {
-        InterpolatePredicted(Core);
-        Core.Destroy();
+        InterpolatePredicted(Predicted);
+        Predicted.Destroy();
     }
 }
 

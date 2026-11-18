@@ -1,57 +1,116 @@
 class HxNTWeaponInfo extends Object;
 
 var class<Weapon> WeaponClass;
-var HxRandomGenerator Generator;
+var HxRandomGeneratorAlt Generator;
 var private array<Projectile> PredProjectiles;
-var private array<int> Indices;
+var private array<Projectile> AuthProjectiles;
+var private array<int> PredUIDs;
+var private array<int> AuthUIDs;
+var private int UIDSeed;
 
-function RefreshSeed(HxRandomGeneratorAlt Seeder)
+function AllocateRandomGenerator(LevelInfo Level)
 {
-    Generator.SetSeed(Seeder.RandInt(), Seeder.RandInt(), Seeder.RandInt(), Seeder.RandInt());
+    if (Generator == None)
+    {
+        Generator = HxRandomGeneratorAlt(
+            Level.ObjectPool.AllocateObject(class'HxRandomGeneratorAlt'));
+    }
 }
 
-function Projectile MatchPrediction(Projectile AuthProjectile,
-                                    class<Projectile> ProjectileClass,
-                                    optional int Index)
+function DeallocateRandomGenerator(LevelInfo Level)
 {
-    local Projectile P;
-    local float MinDistance;
-    local float Distance;
-    local int MatchedIndex;
-    local int i;
-
-    PrunePredictedProjectiles();
-    MatchedIndex = -1;
-    MinDistance = MaxInt;
-    for (i = 0; i < PredProjectiles.Length; ++i)
+    if (Generator != None)
     {
-        if (PredProjectiles[i].Class == ProjectileClass && Indices[i] == Index)
-        {
-            Distance = VSize(AuthProjectile.Location - PredProjectiles[i].Location);
-            if (Distance < MinDistance)
-            {
-                MinDistance = Distance;
-                MatchedIndex = i;
-            }
-            else
-            {
-                break;
-            }
-        }
+        Level.ObjectPool.FreeObject(Generator);
+        Generator = None;
     }
-    if (MatchedIndex > -1)
+}
+
+function Synchronize(int BaseSeed, float Timestamp)
+{
+    UIDSeed = BaseSeed ^ class'HxRandomGeneratorAlt'.static.Mix(int(Timestamp * 1000));
+    Generator.SetSeed(UIDSeed);
+}
+
+function Projectile AssignUniqueID(Projectile P)
+{
+    local int UID;
+
+    UID = class'HxRandomGeneratorAlt'.static.Next(UIDSeed);
+    if (P != None)
     {
-        P = PredProjectiles[MatchedIndex];
-        P.bNoFX = true;
-        InternalRemove(MatchedIndex);
+        P.SetPropertyText("UID", string(UID));
     }
     return P;
 }
 
-function Projectile AddPredictedProjectile(Projectile P, optional int Index)
+function Projectile MatchPrediction(Projectile AuthProjectile, int UID)
 {
-    PredProjectiles[PredProjectiles.Length] = P;
-    Indices[Indices.Length] = Index;
+    local Projectile P;
+    local int i;
+
+    for (i = PredProjectiles.Length - 1; i >= 0; --i)
+    {
+        if (PredProjectiles[i] == None)
+        {
+            PredProjectiles.Remove(i, 1);
+        }
+        else if (PredUIDs[i] == UID)
+        {
+            P = PredProjectiles[i];
+            P.bNoFX = true;
+            InternalRemovePredictedProjectile(i);
+            return P;
+        }
+    }
+    AuthProjectile.SetPropertyText("bShouldRemove", "true");
+    AuthProjectiles[AuthProjectiles.Length] = AuthProjectile;
+    AuthUIDs[AuthUIDs.Length] = UID;
+    return None;
+}
+
+function bool RemoveAuthoritativeProjectile(Projectile P)
+{
+    local int i;
+
+    for (i = 0; i < AuthProjectiles.Length; ++i)
+    {
+        if (AuthProjectiles[i] == P)
+        {
+            InternalRemoveAuthoritativeProjectile(i);
+            return true;
+        }
+    }
+    return false;
+}
+
+function Projectile AddPredictedProjectile(Projectile P)
+{
+    local int UID;
+    local int i;
+
+    UID = class'HxRandomGeneratorAlt'.static.Next(UIDSeed);
+    if (P != None)
+    {
+        for (i = AuthProjectiles.Length - 1; i >= 0; --i)
+        {
+            if (AuthProjectiles[i] == None)
+            {
+                AuthProjectiles.Remove(i, 1);
+                AuthUIDs.Remove(i, 1);
+            }
+            else if (AuthUIDs[i] == UID)
+            {
+                InternalRemoveAuthoritativeProjectile(i);
+                P.SetPropertyText("bRemoved", "true");
+                P.bNoFX = true;
+                P.Destroy();
+                return P;
+            }
+        }
+        PredProjectiles[PredProjectiles.Length] = P;
+        PredUIDs[PredUIDs.Length] = UID;
+    }
     return P;
 }
 
@@ -63,31 +122,25 @@ function bool RemovePredictedProjectile(Projectile P)
     {
         if (PredProjectiles[i] == P)
         {
-            InternalRemove(i);
+            InternalRemovePredictedProjectile(i);
             return true;
         }
     }
     return false;
 }
 
-private function PrunePredictedProjectiles()
+private function InternalRemoveAuthoritativeProjectile(int Index)
 {
-    local int i;
-
-    for (i = PredProjectiles.Length - 1; i >= 0; --i)
-    {
-        if (PredProjectiles[i] == None)
-        {
-            PredProjectiles.Remove(i, 1);
-        }
-    }
+    AuthProjectiles[Index].SetPropertyText("bShouldRemove", "false");
+    AuthProjectiles.Remove(Index, 1);
+    AuthUIDs.Remove(Index, 1);
 }
 
-private function InternalRemove(int Index)
+private function InternalRemovePredictedProjectile(int Index)
 {
     PredProjectiles[Index].SetPropertyText("bRemoved", "true");
     PredProjectiles.Remove(Index, 1);
-    Indices.Remove(Index, 1);
+    PredUIDs.Remove(Index, 1);
 }
 
 defaultproperties

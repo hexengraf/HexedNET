@@ -1,7 +1,11 @@
 class HxNet_RocketProj extends RocketProj;
 
 var HxNTClient Client;
+var int UID;
 var int Index;
+var bool bShouldRemove;
+
+var private HxNTWeaponInfo WeaponInfo;
 var private Vector InterpolationOffset;
 var private float InterpolationPeriod;
 var private bool bInterpolate;
@@ -13,7 +17,7 @@ replication
         DoMove, DoSetLocation;
 
     reliable if (Role == ROLE_Authority && bNetInitial)
-        Client, Index;
+        Client, UID, Index;
 }
 
 simulated event PostNetBeginPlay()
@@ -51,17 +55,26 @@ simulated event PostNetBeginPlay()
     }
 }
 
+simulated event Destroyed()
+{
+    if (bShouldRemove && WeaponInfo != None)
+    {
+        WeaponInfo.RemoveAuthoritativeProjectile(Self);
+        WeaponInfo = None;
+    }
+    Super.Destroyed();
+}
+
 simulated function SearchPredictedProjectile()
 {
-    local HxNTWeaponInfo WeaponInfo;
-    local RocketProj Rocket;
+    local RocketProj Predicted;
 
     WeaponInfo = Client.GetWeaponInfo(class'RocketLauncher');
-    Rocket = RocketProj(WeaponInfo.MatchPrediction(Self, class'HxNet_RocketProjPredicted', Index));
-    if (Rocket != None)
+    Predicted = RocketProj(WeaponInfo.MatchPrediction(Self, UID));
+    if (Predicted != None)
     {
-        InterpolatePredicted(Rocket);
-        Rocket.Destroy();
+        InterpolatePredicted(Predicted);
+        Predicted.Destroy();
     }
 }
 

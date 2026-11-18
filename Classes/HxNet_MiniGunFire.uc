@@ -6,12 +6,12 @@ var private HxNTClient Client;
 function PreBeginPlay()
 {
     Super.PreBeginPlay();
-    class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
+    class'HxNTWeapon'.static.ValidateClient(Level, Instigator, Client, HexedNET);
 }
 
 function bool WantsLagCompensation()
 {
-    return class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
+    return class'HxNTWeapon'.static.ValidateClient(Level, Instigator, Client, HexedNET)
         && Client.WantsLagCompensation();
 }
 

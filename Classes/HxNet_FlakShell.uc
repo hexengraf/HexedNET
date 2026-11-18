@@ -1,6 +1,10 @@
 class HxNet_FlakShell extends FlakShell;
 
 var HxNTClient Client;
+var int UID;
+var bool bShouldRemove;
+
+var private HxNTWeaponInfo WeaponInfo;
 var private Vector InterpolationOffset;
 var private float InterpolationPeriod;
 var private bool bInterpolate;
@@ -12,7 +16,7 @@ replication
         DoMove, DoSetLocation;
 
     reliable if (Role == ROLE_Authority && bNetInitial)
-        Client;
+        Client, UID;
 }
 
 simulated event PostNetBeginPlay()
@@ -24,17 +28,26 @@ simulated event PostNetBeginPlay()
     }
 }
 
+simulated event Destroyed()
+{
+    if (bShouldRemove && WeaponInfo != None)
+    {
+        WeaponInfo.RemoveAuthoritativeProjectile(Self);
+        WeaponInfo = None;
+    }
+    Super.Destroyed();
+}
+
 simulated function SearchPredictedProjectile()
 {
-    local HxNTWeaponInfo WeaponInfo;
-    local FlakShell Shell;
+    local FlakShell Predicted;
 
     WeaponInfo = Client.GetWeaponInfo(class'FlakCannon');
-    Shell = FlakShell(WeaponInfo.MatchPrediction(Self, class'HxNet_FlakShellPredicted'));
-    if (Shell != None)
+    Predicted = FlakShell(WeaponInfo.MatchPrediction(Self, UID));
+    if (Predicted != None)
     {
-        InterpolatePredicted(Shell);
-        Shell.Destroy();
+        InterpolatePredicted(Predicted);
+        Predicted.Destroy();
     }
 }
 

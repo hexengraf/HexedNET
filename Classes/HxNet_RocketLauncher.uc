@@ -4,7 +4,8 @@ class HxNet_RocketLauncher extends RocketLauncher
     HideDropDown
     CacheExempt;
 
-var private int StopFireTime[2];
+var private HxNTClient Client;
+var private int StopTime[2];
 var private Pawn ClientSeekTarget;
 
 replication
@@ -13,7 +14,13 @@ replication
         ClientSeekTarget;
 
     reliable if (Role < Role_Authority)
-        ServerStartFireBAS, ServerStopFireBAS;
+        ServerStartFireBAS, ServerStartFireSynced, ServerStopFireBAS;
+}
+
+simulated function bool WantsLagCompensation()
+{
+    return class'HxNTWeapon'.static.ValidateClient(Level, Instigator, Client)
+        && Client.WantsLagCompensation();
 }
 
 simulated event WeaponTick(float DT)
@@ -27,16 +34,18 @@ simulated event WeaponTick(float DT)
     {
         SeekTarget = ClientSeekTarget;
     }
-    class'HxNTWeapon'.static.CheckStopFire(Self, StopFireTime[0], StopFireTime[1]);
+    class'HxNTWeapon'.static.CheckStopFire(Self, StopTime[0], StopTime[1]);
 }
 
 simulated event ClientStopFire(int Mode)
 {
     local HxNTWeapon.HxBAS BAS;
 
-    if (Role < ROLE_Authority && WantsStopFireBAS(Mode))
+    if (Role < ROLE_Authority && HxNet_RocketMultiFire(FireMode[Mode]) != None
+        && HxNet_RocketMultiFire(FireMode[Mode]).Load < 3
+        && WantsLagCompensation() && ReadyToFire(Mode))
     {
-        HxNet_RocketMultiFire(FireMode[Mode]).PrepareBAS(BAS);
+        HxNet_RocketMultiFire(FireMode[Mode]).PrepareBAS(BAS,, true);
         StopFire(Mode);
         ServerStopFireBAS(Mode, BAS);
     }
@@ -44,29 +53,47 @@ simulated event ClientStopFire(int Mode)
     {
         Super.ClientStopFire(Mode);
     }
-    StopFireTime[Mode] = 0;
+    StopTime[Mode] = 0;
 }
 
 simulated event ClientStartFire(int Mode)
 {
     local HxNTWeapon.HxBAS BAS;
+    local int OtherMode;
 
-    if (Pawn(Owner).Controller.IsInState('GameEnded')
-        || Pawn(Owner).Controller.IsInState('RoundEnded'))
-    {
-        return;
-    }
-    if (Role < ROLE_Authority && WantsStartFireBAS(Mode))
-    {
-        if (StartFire(Mode))
-        {
-            HxNet_RocketFire(FireMode[Mode]).PrepareBAS(BAS, StopFireTime[Mode]);
-            ServerStartFireBAS(Mode, BAS);
-        }
-    }
+	if (RocketMultiFire(FireMode[Mode]) != None)
+	{
+		SetTightSpread(false);
+	}
     else
     {
-        Super.ClientStartFire(Mode);
+        OtherMode = int(Mode == 0);
+		if (FireMode[OtherMode].bIsFiring || (FireMode[OtherMode].NextFireTime > Level.TimeSeconds))
+		{
+			if (FireMode[OtherMode].Load > 0)
+            {
+				SetTightSpread(true);
+            }
+			return;
+		}
+	}
+    if (!Pawn(Owner).Controller.IsInState('GameEnded')
+        && !Pawn(Owner).Controller.IsInState('RoundEnded')
+        && StartFire(Mode) && Role < ROLE_Authority)
+    {
+        if (!WantsLagCompensation())
+        {
+            ServerStartFire(Mode);
+        }
+        else if (HxNet_RocketFire(FireMode[Mode]) != None)
+        {
+            HxNet_RocketFire(FireMode[Mode]).PrepareBAS(BAS, StopTime[Mode]);
+            ServerStartFireBAS(Mode, BAS);
+        }
+        else
+        {
+            ServerStartFireSynced(Mode, HxNet_RocketMultiFire(FireMode[Mode]).PrepareTimestamp());
+        }
     }
 }
 
@@ -74,7 +101,7 @@ function ServerStopFireBAS(byte Mode, HxNTWeapon.HxBAS BAS)
 {
     if (FireMode[Mode].bIsFiring)
     {
-        HxNet_RocketMultiFire(FireMode[Mode]).ApplyBAS(BAS);
+        HxNet_RocketMultiFire(FireMode[Mode]).ApplyBAS(BAS, true);
     }
     ServerStopFire(Mode);
 }
@@ -82,6 +109,12 @@ function ServerStopFireBAS(byte Mode, HxNTWeapon.HxBAS BAS)
 function ServerStartFireBAS(byte Mode, HxNTWeapon.HxBAS BAS)
 {
     HxNet_RocketFire(FireMode[Mode]).ApplyBAS(BAS);
+    ServerStartFire(Mode);
+}
+
+function ServerStartFireSynced(byte Mode, float Timestamp)
+{
+    HxNet_RocketMultiFire(FireMode[Mode]).ApplyTimestamp(Timestamp);
     ServerStartFire(Mode);
 }
 
@@ -121,25 +154,6 @@ static function RocketProj StaticSpawnProjectile(RocketLauncher Weapon,
         return SeekingRocket;
     }
     return Weapon.Spawn(RocketClass,,, Start, Dir);
-}
-
-simulated function bool WantsStopFireBAS(int Mode)
-{
-    return HxNet_RocketMultiFire(FireMode[Mode]) != None
-        && HxNet_RocketMultiFire(FireMode[Mode]).Load < 3
-        && HxNet_RocketMultiFire(FireMode[Mode]).WantsLagCompensation()
-        && ReadyToFire(Mode);
-}
-
-simulated function bool WantsStartFireBAS(int Mode)
-{
-    local int AltMode;
-
-    AltMode = int(Mode == 0);
-    return HxNet_RocketFire(FireMode[Mode]) != None
-        && !FireMode[AltMode].bIsFiring
-        && FireMode[AltMode].NextFireTime <= Level.TimeSeconds
-        && HxNet_RocketFire(FireMode[Mode]).WantsLagCompensation();
 }
 
 defaultproperties

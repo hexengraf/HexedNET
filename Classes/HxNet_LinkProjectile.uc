@@ -1,6 +1,10 @@
 class HxNet_LinkProjectile extends LinkProjectile;
 
 var HxNTClient Client;
+var int UID;
+var bool bShouldRemove;
+
+var private HxNTWeaponInfo WeaponInfo;
 var private Vector InterpolationOffset;
 var private float InterpolationPeriod;
 var private bool bInterpolate;
@@ -12,7 +16,7 @@ replication
         DoMove, DoSetLocation;
 
     reliable if (Role == ROLE_Authority && bNetInitial)
-        Client;
+        Client, UID;
 }
 
 simulated event PostNetBeginPlay()
@@ -24,17 +28,26 @@ simulated event PostNetBeginPlay()
     }
 }
 
+simulated event Destroyed()
+{
+    if (bShouldRemove && WeaponInfo != None)
+    {
+        WeaponInfo.RemoveAuthoritativeProjectile(Self);
+        WeaponInfo = None;
+    }
+    Super.Destroyed();
+}
+
 simulated function SearchPredictedProjectile()
 {
-    local HxNTWeaponInfo WeaponInfo;
-    local LinkProjectile Proj;
+    local LinkProjectile Predicted;
 
     WeaponInfo = Client.GetWeaponInfo(class'LinkGun');
-    Proj = LinkProjectile(WeaponInfo.MatchPrediction(Self, class'HxNet_LinkProjectilePredicted'));
-    if (Proj != None)
+    Predicted = LinkProjectile(WeaponInfo.MatchPrediction(Self, UID));
+    if (Predicted != None)
     {
-        InterpolatePredicted(Proj);
-        Proj.Destroy();
+        InterpolatePredicted(Predicted);
+        Predicted.Destroy();
     }
 }
 

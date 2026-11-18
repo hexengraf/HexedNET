@@ -10,10 +10,7 @@ function DoFireEffect()
     DoBaseFireEffect();
 }
 
-function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
-                                         Vector Start,
-                                         Rotator Dir,
-                                         optional int Index)
+function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir)
 {
     local Projectile P;
 
@@ -21,26 +18,21 @@ function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
     {
         ProjectileClass = class'HxNet_FlakShellPredicted';
         P = SpawnProjectile(Start, Dir);
-        ProjectileClass = default.ProjectileClass;
         if (P != None)
         {
             HxNet_FlakShellPredicted(P).WeaponInfo = WeaponInfo;
         }
-        return WeaponInfo.AddPredictedProjectile(P, Index);
+        return WeaponInfo.AddPredictedProjectile(P);
     }
-    if (WantsLagCompensation())
+    ProjectileClass = class'HxNet_FlakShell';
+    P = WeaponInfo.AssignUniqueID(SpawnProjectile(Start, Dir));
+    ProjectileClass = default.ProjectileClass;
+    if (P != None)
     {
-        ProjectileClass = class'HxNet_FlakShell';
-        P = SpawnProjectile(Start, Dir);
-        ProjectileClass = default.ProjectileClass;
-        if (P != None)
-        {
-            HxNet_FlakShell(P).Client = Client;
-            HexedNET.ForwardFallingProjectile(Weapon, P, GetCompensationTime());
-        }
-        return P;
+        HxNet_FlakShell(P).Client = Client;
+        HexedNET.ForwardFallingProjectile(Weapon, P, GetCompensationTime());
     }
-    return SpawnProjectile(Start, Dir);
+    return P;
 }
 
 defaultproperties

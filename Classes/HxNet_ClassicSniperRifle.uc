@@ -4,7 +4,8 @@ class HxNet_ClassicSniperRifle extends ClassicSniperRifle
     HideDropDown
     CacheExempt;
 
-var private int StopFireTime[2];
+var private HxNTClient Client;
+var private int StopTime[2];
 
 replication
 {
@@ -12,16 +13,22 @@ replication
         ServerStartFireBAS, ServerStartFireBASRecon;
 }
 
+simulated function bool WantsLagCompensation()
+{
+    return class'HxNTWeapon'.static.ValidateClient(Level, Instigator, Client)
+        && Client.WantsLagCompensation();
+}
+
 simulated event WeaponTick(float DT)
 {
     Super.WeaponTick(DT);
-    class'HxNTWeapon'.static.CheckStopFire(Self, StopFireTime[0], StopFireTime[1]);
+    class'HxNTWeapon'.static.CheckStopFire(Self, StopTime[0], StopTime[1]);
 }
 
 simulated event ClientStopFire(int Mode)
 {
     Super.ClientStopFire(Mode);
-    StopFireTime[Mode] = 0;
+    StopTime[Mode] = 0;
 }
 
 simulated event ClientStartFire(int Mode)
@@ -29,17 +36,17 @@ simulated event ClientStartFire(int Mode)
     local HxNTWeapon.HxBAS BAS;
     local Actor ClientHit;
 
-    if (Pawn(Owner).Controller.IsInState('GameEnded')
-        || Pawn(Owner).Controller.IsInState('RoundEnded'))
+    if (Mode == 1)
     {
-        return;
+        Super.ClientStartFire(Mode);
     }
-    if (Role < ROLE_Authority && WantsStartFireBAS(Mode))
+    else if (!Pawn(Owner).Controller.IsInState('GameEnded')
+        && !Pawn(Owner).Controller.IsInState('RoundEnded')
+        && StartFire(Mode) && Role < ROLE_Authority)
     {
-        if (StartFire(Mode))
+        if (WantsLagCompensation())
         {
-            if (HxNet_ClassicSniperFire(FireMode[Mode]).PrepareBAS(
-                BAS, StopFireTime[Mode], ClientHit))
+            if (HxNet_ClassicSniperFire(FireMode[Mode]).PrepareBAS(BAS, StopTime[Mode], ClientHit))
             {
                 ServerStartFireBASRecon(Mode, BAS, ClientHit);
             }
@@ -48,10 +55,10 @@ simulated event ClientStartFire(int Mode)
                 ServerStartFireBAS(Mode, BAS);
             }
         }
-    }
-    else
-    {
-        Super.ClientStartFire(Mode);
+        else
+        {
+            ServerStartFire(Mode);
+        }
     }
 }
 
@@ -86,12 +93,6 @@ simulated function bool StartFire(int Mode)
         return FireMode[Mode].bIsFiring;
     }
     return false;
-}
-
-simulated function bool WantsStartFireBAS(int Mode)
-{
-    return HxNet_ClassicSniperFire(FireMode[Mode]) != None
-        && HxNet_ClassicSniperFire(FireMode[Mode]).WantsLagCompensation();
 }
 
 defaultproperties

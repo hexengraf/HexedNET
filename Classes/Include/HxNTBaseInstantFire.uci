@@ -8,33 +8,35 @@ var private Rotator BASAim;
 var private bool bUseBAS;
 var private Actor ClientHit;
 var private bool bDoRecon;
+var private const class<Weapon> WeaponClass;
+var private HxNTWeaponInfo WeaponInfo;
 
 function PreBeginPlay()
 {
     Super.PreBeginPlay();
-    class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client);
+    class'HxNTWeapon'.static.ValidateClient(Level, Instigator, Client, HexedNET);
 }
 
 function bool WantsLagCompensation()
 {
-    return class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client)
+    return class'HxNTWeapon'.static.ValidateClient(Level, Instigator, Client, HexedNET)
         && Client.WantsLagCompensation();
 }
 
-function bool PrepareBAS(out HxNTWeapon.HxBAS BAS, out int StopFireTime, optional out Actor Hit)
+function bool PrepareBAS(out HxNTWeapon.HxBAS BAS, out int StopTime, optional out Actor Hit)
 {
     local Vector HitLocation;
     local Vector HitNormal;
     local bool bUseCSC;
 
     GetStartAndAim(BASStart, BASAim);
-    BASAim = Rotator(Vector(BASAim) + VRand() * FRand() * Spread);
     BAS.X = BASStart.X;
     BAS.Y = BASStart.Y;
     BAS.Z = BASStart.Z;
     BAS.Yaw = BASAim.Yaw;
     BAS.Pitch = BASAim.Pitch;
     BAS.Timestamp = Client.GetReferenceTimestamp();
+    WeaponInfo = Client.SynchronizeRandomness(WeaponClass, BAS.Timestamp);
     if (Client.WantsClientSideCollision())
     {
         Hit = Weapon.Trace(
@@ -42,12 +44,9 @@ function bool PrepareBAS(out HxNTWeapon.HxBAS BAS, out int StopFireTime, optiona
         bUseCSC = true;
     }
     bUseBAS = true;
-    if (bClientFireEffect)
-    {
-        bEarlyFireEffect = true;
-        DoFireEffect();
-    }
-    StopFireTime = Client.GetStopFireTickCount();
+    bEarlyFireEffect = true;
+    DoFireEffect();
+    StopTime = Client.GetStopFireTickCount();
     return bUseCSC;
 }
 
@@ -56,16 +55,18 @@ function ApplyBAS(HxNTWeapon.HxBAS BAS, optional Actor Hit, optional bool bHasHi
     local Rotator CurrentAim;
     local Vector CurrentStart;
 
-    if (class'HxNTWeapon'.static.ValidateClient(Level, HexedNET, Instigator, Client))
+    if (class'HxNTWeapon'.static.ValidateClient(Level, Instigator, Client, HexedNET))
     {
         BASStart.X = BAS.X;
         BASStart.Y = BAS.Y;
         BASStart.Z = BAS.Z;
         BASAim.Yaw = BAS.Yaw;
         BASAim.Pitch = BAS.Pitch;
+        WeaponInfo = Client.SynchronizeRandomness(WeaponClass, BAS.Timestamp);
         ClientHit = Hit;
         bDoRecon = bHasHit;
         GetStartAndAim(CurrentStart, CurrentAim);
+        BASAim.Roll = CurrentAim.Roll;
         bUseBAS = HexedNET.IsReasonableBAS(BASStart, BASAim, CurrentStart, CurrentAim);
         RTTDeviation = Client.GetRTTDeviation(Level.TimeSeconds - BAS.Timestamp);
     }
@@ -91,8 +92,7 @@ function SynchronizeFireTime(float MaxDelay)
 function PlayFiring()
 {
     Super.PlayFiring();
-    if (Level.NetMode == NM_Client && bClientFireEffect && !bEarlyFireEffect
-        && WantsLagCompensation())
+    if (Level.NetMode == NM_Client && !bEarlyFireEffect && WantsLagCompensation())
     {
         DoFireEffect();
     }
@@ -101,10 +101,18 @@ function PlayFiring()
 
 function DoFireEffect()
 {
-    if (bUseBAS)
+    if (WantsLagCompensation())
     {
-        Instigator.MakeNoise(1.0);
-        DoTrace(BASStart, BASAim);
+        if (!bUseBAS)
+        {
+            GetStartAndAim(BASStart, BASAim);
+        }
+        BASAim = ApplySpread(Vector(BASAim));
+        if (Level.NetMode != NM_Client || bClientFireEffect)
+        {
+            Instigator.MakeNoise(1.0);
+            DoTrace(BASStart, BASAim);
+        }
         bUseBAS = false;
     }
     else

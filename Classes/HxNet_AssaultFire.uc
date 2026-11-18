@@ -22,7 +22,31 @@ function GetStartAndAim(out Vector Start, out Rotator Aim)
     Aim = AdjustAim(Start, AimError);
 }
 
+function Rotator ApplySpread(Vector Aim)
+{
+    local float ActualSpread;
+
+    if (bEarlyFireEffect)
+    {
+        if (Level.TimeSeconds - LastFireTime > 0.5)
+        {
+            ActualSpread = Default.Spread;
+        }
+        else
+        {
+            ActualSpread = FMin(Spread + 0.02, 0.12);
+        }
+    }
+    else
+    {
+        ActualSpread = Spread;
+    }
+    return Rotator(
+        Aim + WeaponInfo.Generator.RandVect() * WeaponInfo.Generator.RandFloat() * ActualSpread);
+}
+
 defaultproperties
 {
     bClientFireEffect=true
+    WeaponClass=class'AssaultRifle'
 }

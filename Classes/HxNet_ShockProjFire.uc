@@ -10,10 +10,7 @@ function DoFireEffect()
     DoBaseFireEffect();
 }
 
-function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
-                                         Vector Start,
-                                         Rotator Dir,
-                                         optional int Index)
+function Projectile SpawnHexedProjectile(Vector Start, Rotator Dir, optional int Index)
 {
     local Projectile P;
 
@@ -26,10 +23,11 @@ function Projectile SpawnHexedProjectile(HxNTWeaponInfo WeaponInfo,
         {
             HxNet_ShockProjectilePredicted(P).WeaponInfo = WeaponInfo;
         }
-        return WeaponInfo.AddPredictedProjectile(P, Index);
+        return WeaponInfo.AddPredictedProjectile(P);
     }
     P = SpawnProjectile(Start, Dir);
-    if (P != None && WantsLagCompensation())
+    WeaponInfo.AssignUniqueID(P);
+    if (P != None)
     {
         HxNet_ShockProjectile(P).Client = Client;
         HexedNET.ForwardLinearProjectile(Weapon, P, GetCompensationTime());

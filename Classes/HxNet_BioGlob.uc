@@ -1,6 +1,10 @@
 class HxNet_BioGlob extends BioGlob;
 
 var HxNTClient Client;
+var int UID;
+var bool bShouldRemove;
+
+var private HxNTWeaponInfo WeaponInfo;
 var private Vector InterpolationOffset;
 var private float InterpolationPeriod;
 var private bool bInterpolate;
@@ -11,7 +15,7 @@ replication
         DoMove, DoSetLocation;
 
     reliable if (Role == ROLE_Authority && bNetInitial)
-        Client;
+        Client, UID;
 }
 
 simulated event PostNetBeginPlay()
@@ -23,17 +27,26 @@ simulated event PostNetBeginPlay()
     }
 }
 
+simulated event Destroyed()
+{
+    if (bShouldRemove && WeaponInfo != None)
+    {
+        WeaponInfo.RemoveAuthoritativeProjectile(Self);
+        WeaponInfo = None;
+    }
+    Super.Destroyed();
+}
+
 simulated function SearchPredictedProjectile()
 {
-    local HxNTWeaponInfo WeaponInfo;
-    local BioGlob Glob;
+    local BioGlob Predicted;
 
     WeaponInfo = Client.GetWeaponInfo(class'BioRifle');
-    Glob = BioGlob(WeaponInfo.MatchPrediction(Self, class'HxNet_BioGlobPredicted'));
-    if (Glob != None)
+    Predicted = BioGlob(WeaponInfo.MatchPrediction(Self, UID));
+    if (Predicted != None)
     {
-        InterpolatePredicted(Glob);
-        Glob.Destroy();
+        InterpolatePredicted(Predicted);
+        Predicted.Destroy();
     }
 }
 

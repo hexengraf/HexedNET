@@ -1,7 +1,10 @@
 class HxNet_FlakChunk extends FlakChunk;
 
 var HxNTClient Client;
-var int Index;
+var int UID;
+var bool bShouldRemove;
+
+var private HxNTWeaponInfo WeaponInfo;
 var private Vector InterpolationOffset;
 var private float InterpolationPeriod;
 var private bool bInterpolate;
@@ -13,7 +16,7 @@ replication
         DoMove, DoSetLocation;
 
     reliable if (Role == ROLE_Authority && bNetInitial)
-        Client, Index;
+        Client, UID;
 }
 
 simulated event PostNetBeginPlay()
@@ -26,17 +29,26 @@ simulated event PostNetBeginPlay()
     }
 }
 
+simulated event Destroyed()
+{
+    if (bShouldRemove && WeaponInfo != None)
+    {
+        WeaponInfo.RemoveAuthoritativeProjectile(Self);
+        WeaponInfo = None;
+    }
+    Super.Destroyed();
+}
+
 simulated function SearchPredictedProjectile()
 {
-    local HxNTWeaponInfo WeaponInfo;
-    local FlakChunk Chunk;
+    local FlakChunk Predicted;
 
     WeaponInfo = Client.GetWeaponInfo(class'FlakCannon');
-    Chunk = FlakChunk(WeaponInfo.MatchPrediction(Self, class'HxNet_FlakChunkPredicted', Index));
-    if (Chunk != None)
+    Predicted = FlakChunk(WeaponInfo.MatchPrediction(Self, UID));
+    if (Predicted != None)
     {
-        InterpolatePredicted(Chunk);
-        Chunk.Destroy();
+        InterpolatePredicted(Predicted);
+        Predicted.Destroy();
     }
 }
 
