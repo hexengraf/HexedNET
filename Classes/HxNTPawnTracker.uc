@@ -211,10 +211,14 @@ function Tick(float DeltaTime)
 // TODO: what about self-inflicted splash damage if target is close?
 // By updating to collide in the current target location (instead of past location),
 // players might wrongfully avoid self-inflicted splash damage.
-final function Vector GetPresentHitLocation(Vector HitLocation)
+function Pawn GetTracked(out Vector HitLocation)
 {
-    // TODO: handle crouching differences
-    return HitLocation + Tracked.Location - Location;
+    if (Tracked != None)
+    {
+        // TODO: handle crouching differences
+        HitLocation = HitLocation + (Tracked.Location - Location);
+    }
+    return Tracked;
 }
 
 final function int FindLowerBound(float Timestamp)

@@ -284,18 +284,17 @@ function Actor RewoundTrace(Weapon Weapon,
                             optional Vector PastLocation)
 {
     local Actor Hit;
-    local Actor Pawn;
+    local Actor Tracked;
 
     foreach TraceActors(class'Actor', Hit, HitLocation, HitNormal, End, Start, Extent)
     {
         if (Hit.IsA('HxNTPawnTracker'))
         {
-            Pawn = HxNTPawnTracker(Hit).Tracked;
-            if (Pawn != None && (bHitInstigator || Pawn != Weapon.Instigator))
+            PastLocation = HitLocation;
+            Tracked = HxNTPawnTracker(Hit).GetTracked(HitLocation);
+            if (Tracked != None && (bHitInstigator || Tracked != Weapon.Instigator))
             {
-                PastLocation = HitLocation;
-                HitLocation = HxNTPawnTracker(Hit).GetPresentHitLocation(HitLocation);
-                Hit = Pawn;
+                Hit = Tracked;
                 break;
             }
         }
@@ -604,8 +603,8 @@ function ForwardBouncingProjectile(Weapon W, Projectile P, float CompensationTim
     UndoRewind();
     if (P != None)
     {
-        RestoreCollision(P);
         ForwardProjectileLifeSpan(P, CompensationTime, Counter);
+        RestoreCollision(P);
     }
 }
 
