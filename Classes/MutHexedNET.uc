@@ -837,14 +837,14 @@ defaultproperties
     QualifiedName="HexedNET"
     ClientReplicationInfoClass=class'HxNTClient'
     Properties(0)=(Name="PingFrequency",Type=HX_PROPERTY_Float,LowerLimit="0.5",UpperLimit="20.0")
-    Properties(1)=(Name="LagCompensationLimit",Type=HX_PROPERTY_Int,LowerLimit="50",UpperLimit="999")
-    Properties(2)=(Name="ProjectileCompensationLimit",Type=HX_PROPERTY_Int,LowerLimit="50",UpperLimit="999")
-    Properties(3)=(Name="MaxCollisionCheckRate",Type=HX_PROPERTY_Int,LowerLimit="25",UpperLimit="100")
+    Properties(1)=(Name="LagCompensationLimit",Type=HX_PROPERTY_Int,LowerLimit="50",UpperLimit="500")
+    Properties(2)=(Name="ProjectileCompensationLimit",Type=HX_PROPERTY_Int,LowerLimit="50",UpperLimit="500")
+    Properties(3)=(Name="MaxCollisionCheckRate",Type=HX_PROPERTY_Int,LowerLimit="25",UpperLimit="200")
     Properties(4)=(Name="LocationErrorTolerance",Type=HX_PROPERTY_Int,LowerLimit="10",UpperLimit="100")
     Properties(5)=(Name="AngleErrorTolerance",Type=HX_PROPERTY_Float,LowerLimit="-1.0",UpperLimit="1.0")
     Properties(6)=(Name="bForceStartFireRPCs",Type=HX_PROPERTY_Bool)
     Properties(7)=(Name="bClientSideCollisions",Type=HX_PROPERTY_Bool)
-    Properties(8)=(Name="PingSpikeTolerance",Type=HX_PROPERTY_Int,LowerLimit="5",UpperLimit="999")
+    Properties(8)=(Name="PingSpikeTolerance",Type=HX_PROPERTY_Int,LowerLimit="5",UpperLimit="500")
     Properties(9)=(Name="bRubberbandingFix",Type=HX_PROPERTY_Bool)
     Properties(10)=(Name="bLinkMeshes",Type=HX_PROPERTY_Bool)
     DisplayInfo(0)=(Caption="Ping Frequency",Hint="Frequency to send ping packets (pings/second). Lower this value if server connection is saturated.",Step="0.25",bMPOnly=true,bAdvanced=true,Verbosity=HX_VERB_High)
@@ -876,7 +876,7 @@ defaultproperties
     PingFrequency=2.0
     LagCompensationLimit=300
     ProjectileCompensationLimit=125
-    MaxCollisionCheckRate=60
+    MaxCollisionCheckRate=90
     LocationErrorTolerance=36
     AngleErrorTolerance=-0.5
     bForceStartFireRPCs=true
