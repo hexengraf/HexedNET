@@ -231,7 +231,7 @@ simulated final function float GetCompensationTime()
 
 simulated final function float GetRTTDeviation(float RTT)
 {
-    return FMin((RTT - AvgRTT) * 0.5, LagCompensationLimit);
+    return FClamp((RTT - AvgRTT) * 0.5, -AvgRTT, LagCompensationLimit - AvgRTT);
 }
 
 simulated function float GetReferenceTimestamp()
